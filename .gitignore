@@ -41,6 +41,10 @@ keypairs/
 /runs/
 /wandb/
 
+# Local AI-generated documents; retain only the explanatory placeholder
+/docs/ai-gen/*
+!/docs/ai-gen/.gitkeep
+
 # Editors / OS / logs
 .cursor/
 .DS_Store
