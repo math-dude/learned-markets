@@ -1,7 +1,7 @@
 # learned-markets
 
 Hackathon scaffold for a learned-market exchange on Solana. The onchain/offchain
-matching boundary and market design are still open; see [PLANNING.md](PLANNING.md).
+matching boundary and market design are still open; see [PLANNING.md](docs/PLANNING.md).
 Application source currently comes only from standard initializers.
 
 ## Components
