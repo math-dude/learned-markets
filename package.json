@@ -1,0 +1,11 @@
+{
+  "name": "learned-markets",
+  "private": true,
+  "packageManager": "bun@1.3.5",
+  "workspaces": ["apps/web", "packages/client"],
+  "scripts": {
+    "dev": "bun run --cwd apps/web dev",
+    "build": "bun run --cwd apps/web build",
+    "lint": "bun run --cwd apps/web lint"
+  }
+}

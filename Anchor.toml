@@ -1,0 +1,20 @@
+[toolchain]
+anchor_version = "1.2.2"
+solana_version = "4.1.2"
+package_manager = "bun"
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.localnet]
+learned_markets = "9pHCUQptsZt5zVUFa3zHK3aWHH51H81Vo9Bi8UNS12iU"
+
+[provider]
+cluster = "localnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test = "cargo test"
+
+[hooks]

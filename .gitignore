@@ -1,0 +1,47 @@
+# Rust / Anchor / local validator
+/target/
+/.anchor/
+/test-ledger/
+/.surfpool/
+*.so
+**/*.rs.bk
+
+# JavaScript / TypeScript
+node_modules/
+dist/
+.vite/
+.next/
+*.tsbuildinfo
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+*-keypair.json
+*.keypair.json
+id.json
+keypairs/
+
+# Local research outputs
+/data/
+**/data/raw/
+/artifacts/
+/checkpoints/
+/runs/
+/wandb/
+
+# Editors / OS / logs
+.cursor/
+.DS_Store
+*.log
