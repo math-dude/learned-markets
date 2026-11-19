@@ -1,0 +1,19 @@
+# Build output
+target/
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Secrets and local state: operator keys, deploy keypairs, service databases
+keys/
+*.keypair.json
+.env
+.env.*
+!.env.example
+*.sqlite
+*.sqlite-*
+
+# Nested upstream checkout kept locally; not part of this repo's history
+/learned-markets/
+
+.DS_Store
