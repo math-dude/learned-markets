@@ -12,7 +12,9 @@ per=$(( (WALLETS + ENROLLERS - 1) / ENROLLERS ))
 done
 wait
 echo "enrolled $(cat /tmp/lm-enroll-*.log | grep -c '"enrolled"') wallets"
-cap=${PER_MARKET:-2}  # traders per market per batch; 3+ fills with position setup exceed the 1232-byte packet
+# Traders per market per batch. One keeps settlement inside the batch that follows, so the board's
+# last cleared batch stays right behind the clock; 3+ with position setup exceed the 1232-byte packet.
+cap=${PER_MARKET:-1}
 per=$(( (WALLETS + WORKERS - 1) / WORKERS ))
 # Real pump.fun order flow when the tapes exist (scripts/build-pump-replay.py); REPLAY= keeps the crowd model.
 REPLAY=${REPLAY-.pump-replay.jsonl.gz}

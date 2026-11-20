@@ -214,7 +214,7 @@ export function ValidatorBoard({ state }: { state: ChainState }) {
         <div>
           <span className="eyebrow">Batch closes in</span>
           <BatchClock slot={state.slot} batchSlots={state.batch_slots} />
-          <small className="muted">Batch {Math.floor(state.slot / state.batch_slots).toLocaleString()} · one clearing price for everyone</small>
+          <small className="muted">Batch {Math.floor(state.slot / state.batch_slots).toLocaleString()} open · one clearing price for everyone</small>
         </div>
         <div className="hero-counts">
           <div>
@@ -273,7 +273,7 @@ export function ValidatorBoard({ state }: { state: ChainState }) {
               buys={totalBuys}
               sells={totalSells}
               batch={latestBatch}
-              label={latestBatch !== undefined ? 'Batch ' + latestBatch.toLocaleString() + ' · all coins' : undefined}
+              label={latestBatch !== undefined ? 'Batch ' + latestBatch.toLocaleString() + ' cleared · all coins' : undefined}
             />
           </div>
           <RankBoard state={state} rounds={rounds} sort={sort} />

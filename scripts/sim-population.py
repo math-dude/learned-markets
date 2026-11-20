@@ -377,7 +377,15 @@ class Population:
             for addr, script in list(self.script.items()):
                 if addr not in self.markets:
                     continue
+                if script["i"] >= len(script["trades"]):
+                    # The real coin's tape is over; the market carries on with another coin's flow.
+                    script.update(trades=self.tapes[self.rng.randrange(len(self.tapes))], t0=now, i=0)
                 trades, clock = script["trades"], (now - script["t0"]) * self.args.replay_speed
+                quiet = trades[script["i"]][0] - clock - self.args.replay_max_gap
+                if quiet > 0:
+                    # Skip the long silences of a real tape so a live market keeps trading.
+                    script["t0"] -= quiet / self.args.replay_speed
+                    clock += quiet
                 seats = self.per_batch.setdefault((addr, batch), set())
                 while script["i"] < len(trades) and trades[script["i"]][0] <= clock:
                     at, wallet, is_buy, lamports = trades[script["i"]]
@@ -524,6 +532,8 @@ def main():
     parser.add_argument("--replay", help="real pump.fun tapes from scripts/build-pump-replay.py; replaces the crowd model")
     parser.add_argument("--replay-speed", type=float, default=1.0, help="tape seconds per real second")
     parser.add_argument("--replay-scale", type=float, default=1.0, help="multiplier on real trade sizes")
+    parser.add_argument("--replay-max-gap", type=float, default=10.0,
+                        help="longest silence, in tape seconds, replayed between two trades of a coin")
     parser.add_argument("--replay-patience", type=float, default=8.0,
                         help="tape seconds a trade waits for a batch seat before it is dropped")
     args = parser.parse_args()

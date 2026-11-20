@@ -14,7 +14,7 @@ LM_BATCH_SLOTS=${LM_BATCH_SLOTS:-10} LM_SETTLE_POLL=${LM_SETTLE_POLL:-0.5} LM_BA
 # The trained quoter prices every batch when its export is present (LM_QUOTER= forces the fixed rule).
 QUOTER=${LM_QUOTER-models/quoter-v3/quoter.pt}
 [ -n "$QUOTER" ] && [ -f "$QUOTER" ] && ENVS="$ENVS LM_QUOTER=$QUOTER"
-POPENV="WALLETS=${WALLETS:-192} WORKERS=${WORKERS:-4} LAUNCH_MIN=${LAUNCH_MIN:-0.2} LAUNCH_MAX=${LAUNCH_MAX:-0.5} MAX_LIVE=${MAX_LIVE:-60} SKIP_ENROLL=${SKIP_ENROLL:-0} POP_ARGS=\"${POP_ARGS:-}\""
+POPENV="WALLETS=${WALLETS:-192} WORKERS=${WORKERS:-4} LAUNCH_MIN=${LAUNCH_MIN:-0.2} LAUNCH_MAX=${LAUNCH_MAX:-0.5} MAX_LIVE=${MAX_LIVE:-40} PER_MARKET=${PER_MARKET:-1} SKIP_ENROLL=${SKIP_ENROLL:-0} POP_ARGS=\"${POP_ARGS:---replay-patience 3 --replay-max-gap 20}\""
 declare -A CMD=(
   [attest]="HOST=127.0.0.1 PORT=8787 node apps/attestation-service/src/main.ts"
   [backend]=".venv/bin/uvicorn learned_markets_backend.chain_web:app --host 127.0.0.1 --port 8000"
