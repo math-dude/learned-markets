@@ -34,7 +34,10 @@ id.json
 keypairs/
 
 # Local research outputs
-/data/
+/data/*
+!/data/archive/
+!/data/jetstreamer/
+!/data/sql/
 **/data/raw/
 /artifacts/
 /checkpoints/
