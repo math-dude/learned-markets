@@ -1,0 +1,134 @@
+{
+  "accounts": {
+    "balance": {
+      "address": "3mNWtEBFLNSLwDyxNy6Wm7yhLWHQRnDLoKADy6f79Kth",
+      "dataBase64": "UCbHh2ZgxwgB//4d0VP3eeMj5jyckw1+TImMpGbvBVbrnHyPg+JPUC7e5QMAAAAAAAA=",
+      "owner": "nuX7BMKKWz9WG6EDRn5dXnSZArRW8uLkyKC5iTenqQz"
+    },
+    "market": {
+      "address": "7QxC9sP6tZijymBonfmJn3rgb7827QH4uNsEFACfT85o",
+      "dataBase64": "exiJjmW7uV0B/tHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0Af9xNzRL4qVfA/TUsH7zJZqKwBN9WRl+J4ok20AFrk0AAAAAAAAAP7JmjsAAAAAAQEAAAAAAAAAQEIPAAAAAAAB",
+      "owner": "nuX7BMKKWz9WG6EDRn5dXnSZArRW8uLkyKC5iTenqQz"
+    },
+    "platform": {
+      "address": "HhE2LnFzioa4w3VPruZ3qxqfe7xVceUbNzKbfMDGdofX",
+      "dataBase64": "Drn+xBfCUvIB/zQAAAAAAAAA",
+      "owner": "nuX7BMKKWz9WG6EDRn5dXnSZArRW8uLkyKC5iTenqQz"
+    },
+    "position": {
+      "address": "BCzLzuGwYajWA9N9BRaxMwUKfG1USoQS4wmAnZg9uef3",
+      "dataBase64": "hhGvNFR7QWoB/19I4uPjfEm6Z7mDM7C7YgPfB5EnkMinM8OweRgXHvOi/h3RU/d54yPmPJyTDX5MiYykZu8FVuucfI+D4k9QLt4CAAAAAAAAAA==",
+      "owner": "nuX7BMKKWz9WG6EDRn5dXnSZArRW8uLkyKC5iTenqQz"
+    }
+  },
+  "after": {
+    "cash": [
+      899,
+      997
+    ],
+    "platform_cash": 52,
+    "reserve_cash": 52,
+    "reserve_tokens": 999999998,
+    "tokens": [
+      0,
+      2
+    ]
+  },
+  "marketId": "F83muwL8bL5M9vH5ASB2oxJS2By4mHVNnHJ9BSND9dQk",
+  "participant": "J6xviZ4q5SWBAwHMuECvZWRrD5SMEfryXTd2SFwDJPRo",
+  "settleLedgerBatch": {
+    "accounts": [
+      [
+        "EdmxWPmx2WH6WgFfTdu9xfkYf3k1g5wD1zccTVySEEh1",
+        false,
+        true
+      ],
+      [
+        "J4y21PX2KV8Nd9GbhfDbRZfNF7jVaorZnGQRDkwqJBWJ",
+        false,
+        false
+      ],
+      [
+        "7QxC9sP6tZijymBonfmJn3rgb7827QH4uNsEFACfT85o",
+        true,
+        false
+      ],
+      [
+        "HhE2LnFzioa4w3VPruZ3qxqfe7xVceUbNzKbfMDGdofX",
+        true,
+        false
+      ],
+      [
+        "2EhaHrGTG1nhD1k8VJYcXN6Ye6rKsxDRTyqVSHBWptfF",
+        false,
+        false
+      ],
+      [
+        "H3Gq9pswe6hjLf7ZTh2VzPqZmiskds62uo7rehfu8j52",
+        false,
+        false
+      ],
+      [
+        "GQsqu4c8Qjoe2y1Lx57Z8v5JjKfiVaXb5bNRWqtYNY5C",
+        false,
+        false
+      ],
+      [
+        "9tYSCDR9BZ3DVm2ymK77YkDDNCrgzTjcoz6CKJTPBwM8",
+        true,
+        false
+      ],
+      [
+        "J6xviZ4q5SWBAwHMuECvZWRrD5SMEfryXTd2SFwDJPRo",
+        false,
+        false
+      ],
+      [
+        "J5xPrc45psFeQixm257Kavzw7tiH2zPVxHi1ePWFWF22",
+        false,
+        false
+      ],
+      [
+        "G5zFbFmSJdECbCyLMXS1TdqHWLouqVrWQtRjUyuwR9cd",
+        false,
+        false
+      ],
+      [
+        "BiwVkjaZf7bsAhXtiozmcSGMhQwU71zqbpUqwN26BPRD",
+        false,
+        false
+      ],
+      [
+        "F1AipqofUWC6PspJMd2wZgKvXpoUKCj8H6wsE2EnMDWf",
+        false,
+        false
+      ],
+      [
+        "3mNWtEBFLNSLwDyxNy6Wm7yhLWHQRnDLoKADy6f79Kth",
+        true,
+        false
+      ],
+      [
+        "BCzLzuGwYajWA9N9BRaxMwUKfG1USoQS4wmAnZg9uef3",
+        true,
+        false
+      ]
+    ],
+    "dataHex": "813a7b93bd7970eb5f48e2e3e37c49ba67b98333b0bb6203df07912790c8a733c3b07918171ef3a2010000000000000040420f000000000000000000000000000200000000000000010000008411a8dd4eeea1c9e54cbfd969d6896f5da45f244ce9c1de6c7151a96520d9972300000001000240420f0000000000040000000000000080841e00000000000100000000000000020000000000000000000000",
+    "request": {
+      "batchId": 1,
+      "clearingPrice": 1000000,
+      "intents": [
+        {
+          "contentsHex": "01000240420f0000000000040000000000000080841e00000000000100000000000000",
+          "feeRatePpm": 0,
+          "intent": "9tYSCDR9BZ3DVm2ymK77YkDDNCrgzTjcoz6CKJTPBwM8",
+          "quantity": 2
+        }
+      ],
+      "market": "7QxC9sP6tZijymBonfmJn3rgb7827QH4uNsEFACfT85o",
+      "quoterBuy": 0,
+      "quoterSell": 2
+    }
+  }
+}

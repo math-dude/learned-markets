@@ -233,4 +233,13 @@ pub enum GateError {
     AlreadySwept,
     #[msg("Nothing to claim")]
     NothingToClaim,
+
+    #[msg("Synthetic ledger credits are disabled for this build or network")]
+    LedgerCreditDisabled,
+    #[msg("Ledger fill has zero quantity or exceeds the submitted step curve")]
+    InvalidLedgerFill,
+    #[msg("Seller fee rate must be between 10000 and 250000 ppm")]
+    LedgerFeeRateOutOfRange,
+    #[msg("The supplied user and quoter legs do not conserve tokens")]
+    LedgerTokenMismatch,
 }

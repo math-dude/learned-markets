@@ -1,0 +1,448 @@
+{
+  "constants": {
+    "price_scale": 1000000,
+    "base_fee_bps": 100,
+    "fee_to_bucket_ppm": 500000
+  },
+  "people": 6,
+  "initial_cash": [
+    1000000000,
+    1000000000,
+    1000000000,
+    1000000000,
+    1000000000,
+    1000000000
+  ],
+  "launch": {
+    "deployer": 0,
+    "launch_fee": 100000000
+  },
+  "batches": [
+    {
+      "batch_id": 1,
+      "clearing_price": 29690798,
+      "quoter_buy": 0,
+      "quoter_sell": 1600011,
+      "fills": [
+        {
+          "person": 1,
+          "side": "buy",
+          "curve": [
+            [
+              29987706,
+              700001
+            ]
+          ],
+          "quantity": 700001,
+          "fee_rate_ppm": 0,
+          "pay_or_recv": 20783589,
+          "fee": 207836
+        },
+        {
+          "person": 2,
+          "side": "buy",
+          "curve": [
+            [
+              29987706,
+              500003
+            ]
+          ],
+          "quantity": 500003,
+          "fee_rate_ppm": 0,
+          "pay_or_recv": 14845489,
+          "fee": 148455
+        },
+        {
+          "person": 3,
+          "side": "buy",
+          "curve": [
+            [
+              29987706,
+              400007
+            ]
+          ],
+          "quantity": 400007,
+          "fee_rate_ppm": 0,
+          "pay_or_recv": 11876528,
+          "fee": 118766
+        }
+      ],
+      "after": {
+        "cash": [
+          900000000,
+          979008575,
+          985006056,
+          988004706,
+          1000000000,
+          1000000000
+        ],
+        "tokens": [
+          0,
+          700001,
+          500003,
+          400007,
+          0,
+          0
+        ],
+        "reserve_cash": 97743134,
+        "reserve_tokens": 998399989,
+        "platform_cash": 50237529
+      }
+    },
+    {
+      "batch_id": 2,
+      "clearing_price": 27418953,
+      "quoter_buy": 172178,
+      "quoter_sell": 0,
+      "fills": [
+        {
+          "person": 1,
+          "side": "sell",
+          "curve": [
+            [
+              27418953,
+              700001
+            ]
+          ],
+          "quantity": 333774,
+          "fee_rate_ppm": 61094,
+          "pay_or_recv": 9151733,
+          "fee": 559116
+        },
+        {
+          "person": 2,
+          "side": "sell",
+          "curve": [
+            [
+              27418953,
+              500003
+            ]
+          ],
+          "quantity": 238411,
+          "fee_rate_ppm": 60617,
+          "pay_or_recv": 6536980,
+          "fee": 396253
+        },
+        {
+          "person": 3,
+          "side": "buy",
+          "curve": [
+            [
+              31832554,
+              400007
+            ]
+          ],
+          "quantity": 400007,
+          "fee_rate_ppm": 0,
+          "pay_or_recv": 10967774,
+          "fee": 109678
+        }
+      ],
+      "after": {
+        "cash": [
+          900000000,
+          987601192,
+          991146783,
+          976927254,
+          1000000000,
+          1000000000
+        ],
+        "tokens": [
+          0,
+          366227,
+          261592,
+          800014,
+          0,
+          0
+        ],
+        "reserve_cash": 93554718,
+        "reserve_tokens": 998572167,
+        "platform_cash": 50770053
+      }
+    },
+    {
+      "batch_id": 3,
+      "clearing_price": 29105772,
+      "quoter_buy": 0,
+      "quoter_sell": 1600011,
+      "fills": [
+        {
+          "person": 1,
+          "side": "buy",
+          "curve": [
+            [
+              29396829,
+              700001
+            ]
+          ],
+          "quantity": 700001,
+          "fee_rate_ppm": 0,
+          "pay_or_recv": 20374070,
+          "fee": 203741
+        },
+        {
+          "person": 2,
+          "side": "buy",
+          "curve": [
+            [
+              29396829,
+              500003
+            ]
+          ],
+          "quantity": 500003,
+          "fee_rate_ppm": 0,
+          "pay_or_recv": 14552974,
+          "fee": 145530
+        },
+        {
+          "person": 3,
+          "side": "buy",
+          "curve": [
+            [
+              29396829,
+              400007
+            ]
+          ],
+          "quantity": 400007,
+          "fee_rate_ppm": 0,
+          "pay_or_recv": 11642513,
+          "fee": 116426
+        }
+      ],
+      "after": {
+        "cash": [
+          900000000,
+          967023381,
+          976448279,
+          965168315,
+          1000000000,
+          1000000000
+        ],
+        "tokens": [
+          0,
+          1066228,
+          761595,
+          1200021,
+          0,
+          0
+        ],
+        "reserve_cash": 140357123,
+        "reserve_tokens": 996972156,
+        "platform_cash": 51002902
+      }
+    },
+    {
+      "batch_id": 4,
+      "clearing_price": 26878692,
+      "quoter_buy": 252218,
+      "quoter_sell": 0,
+      "fills": [
+        {
+          "person": 1,
+          "side": "sell",
+          "curve": [
+            [
+              26878692,
+              700001
+            ]
+          ],
+          "quantity": 380464,
+          "fee_rate_ppm": 60937,
+          "pay_or_recv": 10226374,
+          "fee": 623165
+        },
+        {
+          "person": 2,
+          "side": "sell",
+          "curve": [
+            [
+              26878692,
+              500003
+            ]
+          ],
+          "quantity": 271761,
+          "fee_rate_ppm": 60393,
+          "pay_or_recv": 7304580,
+          "fee": 441146
+        },
+        {
+          "person": 3,
+          "side": "buy",
+          "curve": [
+            [
+              31205327,
+              400007
+            ]
+          ],
+          "quantity": 400007,
+          "fee_rate_ppm": 0,
+          "pay_or_recv": 10751665,
+          "fee": 107517
+        }
+      ],
+      "after": {
+        "cash": [
+          900000000,
+          976626590,
+          983311713,
+          954309133,
+          1000000000,
+          1000000000
+        ],
+        "tokens": [
+          0,
+          685764,
+          489834,
+          1600028,
+          0,
+          0
+        ],
+        "reserve_cash": 134163748,
+        "reserve_tokens": 997224374,
+        "platform_cash": 51588816
+      }
+    },
+    {
+      "batch_id": 5,
+      "clearing_price": 28532273,
+      "quoter_buy": 0,
+      "quoter_sell": 1600011,
+      "fills": [
+        {
+          "person": 1,
+          "side": "buy",
+          "curve": [
+            [
+              28817596,
+              700001
+            ]
+          ],
+          "quantity": 700001,
+          "fee_rate_ppm": 0,
+          "pay_or_recv": 19972620,
+          "fee": 199727
+        },
+        {
+          "person": 2,
+          "side": "buy",
+          "curve": [
+            [
+              28817596,
+              500003
+            ]
+          ],
+          "quantity": 500003,
+          "fee_rate_ppm": 0,
+          "pay_or_recv": 14266223,
+          "fee": 142663
+        },
+        {
+          "person": 3,
+          "side": "buy",
+          "curve": [
+            [
+              28817596,
+              400007
+            ]
+          ],
+          "quantity": 400007,
+          "fee_rate_ppm": 0,
+          "pay_or_recv": 11413109,
+          "fee": 114132
+        }
+      ],
+      "after": {
+        "cash": [
+          900000000,
+          956454243,
+          968902827,
+          942781892,
+          1000000000,
+          1000000000
+        ],
+        "tokens": [
+          0,
+          1385765,
+          989837,
+          2000035,
+          0,
+          0
+        ],
+        "reserve_cash": 180043961,
+        "reserve_tokens": 995624363,
+        "platform_cash": 51817077
+      }
+    },
+    {
+      "batch_id": 6,
+      "clearing_price": 26349075,
+      "quoter_buy": 330040,
+      "quoter_sell": 0,
+      "fills": [
+        {
+          "person": 1,
+          "side": "sell",
+          "curve": [
+            [
+              26349075,
+              700001
+            ]
+          ],
+          "quantity": 425859,
+          "fee_rate_ppm": 60801,
+          "pay_or_recv": 11220990,
+          "fee": 682248
+        },
+        {
+          "person": 2,
+          "side": "sell",
+          "curve": [
+            [
+              26349075,
+              500003
+            ]
+          ],
+          "quantity": 304188,
+          "fee_rate_ppm": 60193,
+          "pay_or_recv": 8015072,
+          "fee": 482452
+        },
+        {
+          "person": 3,
+          "side": "buy",
+          "curve": [
+            [
+              30590458,
+              400007
+            ]
+          ],
+          "quantity": 400007,
+          "fee_rate_ppm": 0,
+          "pay_or_recv": 10539815,
+          "fee": 105399
+        }
+      ],
+      "after": {
+        "cash": [
+          900000000,
+          966992985,
+          976435447,
+          932136678,
+          1000000000,
+          1000000000
+        ],
+        "tokens": [
+          0,
+          959906,
+          685649,
+          2400042,
+          0,
+          0
+        ],
+        "reserve_cash": 171982763,
+        "reserve_tokens": 995954403,
+        "platform_cash": 52452127
+      }
+    }
+  ]
+}

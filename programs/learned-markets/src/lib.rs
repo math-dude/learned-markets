@@ -4,7 +4,8 @@
 //!   participant to exactly one active wallet.
 //! * Gate: `gate::require_eligible` is executed inside every protected instruction.
 //! * Intents: `Trade` and `Nomination` intents with persistent per-participant nonces.
-//! * Settlement: `settle_batch` validates and then returns `SettlementNotImplemented`.
+//! * Simulation ledger: `settle_ledger_batch` applies one atomic batch at a uniform price.
+//! * Legacy `settle_batch` remains a validation-only interface.
 
 pub mod accounting;
 pub mod assets;
@@ -13,6 +14,8 @@ pub mod error;
 pub mod events;
 pub mod gate;
 pub mod instructions;
+pub mod ledger;
+pub use ledger::*;
 pub mod market;
 pub mod tokens;
 pub use market::*;
@@ -34,6 +37,29 @@ declare_id!("nuX7BMKKWz9WG6EDRn5dXnSZArRW8uLkyKC5iTenqQz");
 #[program]
 pub mod learned_markets {
     use super::*;
+
+    pub fn open_ledger_market(
+        ctx: Context<OpenLedgerMarket>,
+        market_id: Pubkey,
+        launch_fee: u64,
+    ) -> Result<()> {
+        ledger::open(ctx, market_id, launch_fee)
+    }
+    pub fn close_ledger_market(ctx: Context<CloseLedgerMarket>) -> Result<()> {
+        ledger::close(ctx)
+    }
+    pub fn credit_ledger_balance(ctx: Context<CreditLedgerBalance>, amount: u64) -> Result<()> {
+        ledger::credit(ctx, amount)
+    }
+    pub fn initialize_ledger_position(ctx: Context<InitializeLedgerPosition>) -> Result<()> {
+        ledger::initialize_position(ctx)
+    }
+    pub fn settle_ledger_batch<'info>(
+        ctx: Context<'info, SettleLedgerBatch<'info>>,
+        request: LedgerSettlementRequest,
+    ) -> Result<()> {
+        ledger::settle(ctx, request)
+    }
 
     pub fn initialize_board(ctx: Context<InitializeBoard>, args: BoardArgs) -> Result<()> {
         instructions::board::init(ctx, args)
