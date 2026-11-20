@@ -36,6 +36,9 @@ Trading clears in batch auctions where every order is a curve. Users net against
 | `docs/ai-gen/design/board-and-timers.md` | Line, board, timers, death, deployment |
 | `docs/ai-gen/design/rl-formulation.md` | The two agents, healthy-chart definition, rewards, training, roadmap v0/v1/v2 |
 | `docs/ai-gen/research/precedents.md` | Real-world and academic precedents, with links |
+| `docs/ai-gen/attestations.md` | SAS participant attestations, gate, service: runbook and toolchain |
+| `docs/ai-gen/onchain-validation.md` | On-chain authorization, read-only account APIs, accounting helpers |
+| `docs/ai-gen/deployment.md` | Board mechanism proposal: seats, timers, stage manager agent |
 | `docs/ai-gen/research/group-chat-ideas.md` | Ideas from the team group chat, Nov 12–18. **Not decisions**, context only |
 | `docs/ai-gen/sessions/` | Dated handoff notes from design sessions |
 
