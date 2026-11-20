@@ -6,7 +6,10 @@ def rpc(method, params):
     req = urllib.request.Request(url, json.dumps({"jsonrpc": "2.0", "id": 1, "method": method, "params": params}).encode(), {"content-type": "application/json"})
     return json.load(urllib.request.urlopen(req, timeout=30))
 ok = bad = 0
-for i, (key, a) in enumerate(d.items()):
+# Programdata must exist before its upgradeable program account, or Surfpool never loads the program.
+UPGRADEABLE = "BPFLoaderUpgradeab1e11111111111111111111111"
+items = sorted(d.items(), key=lambda kv: bool(kv[1] and kv[1]["executable"] and kv[1]["owner"] == UPGRADEABLE))
+for i, (key, a) in enumerate(items):
     if limit and i >= limit: break
     if a is None: continue
     data = a["data"]

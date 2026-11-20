@@ -107,22 +107,30 @@ function roundsFor(state: ChainState) {
   return [...map.values()].sort((a, b) => b.batch - a.batch)
 }
 
-function BatchClock({ remainingSlots, batchSlots }: { remainingSlots: number; batchSlots: number }) {
-  // Interpolate between polls so the countdown runs smoothly.
+function BatchClock({ slot, batchSlots }: { slot: number; batchSlots: number }) {
+  // Interpolate between polls; learn the slot duration from how fast slots arrive.
   const [now, setNow] = useState(() => Date.now())
-  const anchor = useRef({ at: Date.now(), ms: remainingSlots * 400 })
-  useEffect(() => {
-    anchor.current = { at: Date.now(), ms: remainingSlots * 400 }
-  }, [remainingSlots])
+  const seen = useRef({ slot, at: Date.now(), ms: 400 })
+  if (slot !== seen.current.slot) {
+    const t = Date.now()
+    const per = (t - seen.current.at) / Math.max(1, slot - seen.current.slot)
+    const ms = slot > seen.current.slot && per > 50 && per < 2000 ? seen.current.ms * 0.6 + per * 0.4 : seen.current.ms
+    seen.current = { slot, at: t, ms }
+  }
   useEffect(() => {
     const t = window.setInterval(() => setNow(Date.now()), 100)
     return () => window.clearInterval(t)
   }, [])
-  const total = batchSlots * 400
-  const left = Math.max(0, anchor.current.ms - (now - anchor.current.at))
+  const { ms, at } = seen.current
+  const elapsedSlots = slot % batchSlots + (now - at) / ms
+  const total = batchSlots * ms
+  const left = Math.max(0, total - (elapsedSlots % batchSlots) * ms)
   return (
     <>
-      <div className="epoch-clock">{(left / 1000).toFixed(1)}<small style={{ fontSize: 28 }}>s</small></div>
+      <div className="epoch-clock">
+        {(left / 1000).toFixed(1)}
+        <small style={{ fontSize: 28 }}>s</small>
+      </div>
       <div className="epoch-segments" aria-hidden="true">
         {Array.from({ length: 24 }, (_, i) => (
           <i key={i} className={i / 24 < 1 - left / total ? 'lit' : ''} />
@@ -143,7 +151,6 @@ export function ValidatorBoard({ state }: { state: ChainState }) {
   const volume = new Map<string, number>()
   for (const r of rounds) volume.set(r.market, (volume.get(r.market) ?? 0) + (Number(r.buys) + Number(r.sells)) * Number(r.price ?? 0))
   const leader = [...live].sort((a, b) => (volume.get(b.address) ?? 0) - (volume.get(a.address) ?? 0))[0]
-  const phase = state.slot % state.batch_slots
   const ticker = (address: string) => state.markets.find((m) => m.address === address)?.ticker ?? '???'
   const headlines = [
     ...(state.flows ?? []).slice(0, 6).map(
@@ -175,7 +182,7 @@ export function ValidatorBoard({ state }: { state: ChainState }) {
         )}
         <div>
           <span className="eyebrow">Batch closes in</span>
-          <BatchClock remainingSlots={state.batch_slots - phase} batchSlots={state.batch_slots} />
+          <BatchClock slot={state.slot} batchSlots={state.batch_slots} />
           <small className="muted">Batch {Math.floor(state.slot / state.batch_slots).toLocaleString()} · one clearing price for everyone</small>
         </div>
         <div className="hero-counts">
