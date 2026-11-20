@@ -1,0 +1,60 @@
+{
+  "fieldNames": [
+    "app_scope",
+    "participant_id",
+    "wallet",
+    "verification_method",
+    "binding_version",
+    "issued_at"
+  ],
+  "layout": [
+    12,
+    13,
+    13,
+    0,
+    2,
+    8
+  ],
+  "malformed": [
+    {
+      "hex": "140000006c6561726e65642d6d61726b6574733a64656d6f20000000a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1200000002222222222222222222222222222222222222222222222222222222222222222000300000080661e690000000000",
+      "label": "trailing byte"
+    },
+    {
+      "hex": "140000006c6561726e65642d6d61726b6574733a64656d6f20000000a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1200000002222222222222222222222222222222222222222222222222222222222222222000300000080661e69000000",
+      "label": "truncated"
+    },
+    {
+      "hex": "140000006c6561726e65642d6d61726b6574733a64656d6f1f0000000101010101010101010101010101010101010101010101010101010101010120000000020202020202020202020202020202020202020202020202020202020202020200010000000000000000000000",
+      "label": "31-byte participant_id"
+    }
+  ],
+  "nonces": [
+    {
+      "bindingVersion": 1,
+      "nonce": "B4ALB4ysnsSZUY7JJQsgpeFtASK3MqLdT6WP8xj51ZaM",
+      "participantIdHex": "a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1"
+    },
+    {
+      "bindingVersion": 2,
+      "nonce": "3FsEwd1XEw9EHAuJNqT4Krz8mgvd5EXQtBHiM3J5aZ4G",
+      "participantIdHex": "a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1"
+    },
+    {
+      "bindingVersion": 1,
+      "nonce": "J6DBJY7mVnDFvgJExiPeW3Zxseo6RSQUQQDAXtHGFN8T",
+      "participantIdHex": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  ],
+  "valid": [
+    {
+      "appScope": "learned-markets:demo",
+      "bindingVersion": 3,
+      "hex": "140000006c6561726e65642d6d61726b6574733a64656d6f20000000a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1200000002222222222222222222222222222222222222222222222222222222222222222000300000080661e6900000000",
+      "issuedAt": 1763600000,
+      "participantIdHex": "a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+      "verificationMethod": 0,
+      "wallet": "3JF3sEqM796hk5WFqA6EtmEwJQ9quALszsfJyvXNQKy3"
+    }
+  ]
+}

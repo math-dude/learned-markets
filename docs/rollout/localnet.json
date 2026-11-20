@@ -1,0 +1,206 @@
+{
+  "runId": "20261119154115",
+  "network": "localnet",
+  "rpcUrl": "http://127.0.0.1:8899",
+  "programId": "nuX7BMKKWz9WG6EDRn5dXnSZArRW8uLkyKC5iTenqQz",
+  "badgeUri": "https://badges.learned-markets.test/v1/badge/metadata.json",
+  "startedAt": "2026-11-19T15:41:15.723Z",
+  "addresses": {
+    "issuer": {
+      "credential": "HHvztcSoGA6U8ptPA8LZnq679dkzVGzb9szqPoNvWA1m",
+      "schema": "5EHKoBwhSy6CU3WhYEZCVgExSdw8NfJbFU5yeLwMghbg",
+      "schemaMint": "9gsBVjomQbLvk8UJxv2b8wTavHWgRhaxCEoM6mzibxtv",
+      "sasAuthority": "HngMQFF6Yoqj9VqA31r43HQsnuYZ6BxopRWQLQAS6zk"
+    },
+    "config": {
+      "address": "J4y21PX2KV8Nd9GbhfDbRZfNF7jVaorZnGQRDkwqJBWJ",
+      "version": 1,
+      "bump": 254,
+      "appScope": "learned-markets:demo",
+      "network": "localnet",
+      "admin": "7H4rMeaPVB1nFvHXNkMkB8wTe2TbXCH1sXcRjwarNkDM",
+      "settlementAuthority": "9Jj3EXSW5oe3i3iqWRMvsRkftTYcWxspb5B7gtKLQSfn",
+      "sasProgram": "22zoJMtdu4tQc2PzL74ZUT7FrwgB1Udec8DdW4yw4BdG",
+      "sasAuthority": "HngMQFF6Yoqj9VqA31r43HQsnuYZ6BxopRWQLQAS6zk",
+      "credential": "HHvztcSoGA6U8ptPA8LZnq679dkzVGzb9szqPoNvWA1m",
+      "credentialAuthority": "GeSUFgLxmdU9xSGGxMEVPLUwyci8W6VMVU4GWPmRFeNc",
+      "schema": "5EHKoBwhSy6CU3WhYEZCVgExSdw8NfJbFU5yeLwMghbg",
+      "schemaVersion": 1,
+      "schemaMint": "9gsBVjomQbLvk8UJxv2b8wTavHWgRhaxCEoM6mzibxtv",
+      "allowedVerificationMethod": 0,
+      "admissionPaused": false
+    },
+    "participants": {
+      "alice": {
+        "wallet": "4renDCwc3sfr5THBF5LrdLndK9mSvqv3wdHR7ioogEnN",
+        "replacementWallet": "CNTyjdnpkfEv6YTigNpNHQoTXA7ddQKnbVkqBkaQg6Ty",
+        "participantIdHex": "3b2022f070b63de588ade93b210f9e149b742daaa9baec19dc0a8b5458d1f795",
+        "participant": "CSJtngwkFYyMbYj3Zn5RofW6C5A8u4q8LGWnYekFyAmY"
+      },
+      "bob": {
+        "wallet": "E656T3EQ3Q61eDXL2HU4ADE513Cv5K6mMGnsJx1rVDQ",
+        "participantIdHex": "8833427d0b1e14165cbb6b32f22cfe1ced77c23149cf633bb4d5651c6f71417b",
+        "participant": "DRd6u4aA4MWFUBvwunwCm2rhbi3EJYzbeRN99W98Wp1y"
+      },
+      "mallory": {
+        "wallet": "9qVWvEbE81RLhjwj23gZLt6yVDyMKfb5N7624LpoMQgw",
+        "note": "never approved"
+      }
+    },
+    "badgeMints": {
+      "aliceV2": "CrDWyfgM9cS1DwjFfLd4GA7HkB4WJNQDyJf8GP8nmbD7",
+      "wallet": "CNTyjdnpkfEv6YTigNpNHQoTXA7ddQKnbVkqBkaQg6Ty"
+    }
+  },
+  "steps": [
+    {
+      "step": "issuer:setup (credential, schema v1, schema group max 1,000,000)",
+      "ok": true,
+      "note": "{}"
+    },
+    {
+      "step": "gate:initialize_config",
+      "ok": true,
+      "note": "already initialized"
+    },
+    {
+      "step": "badge:issue alice v1 (LMTEST, mint space 748)",
+      "ok": true,
+      "signature": "3SPD3DKbfwB4rnS6aD31BFoddA7BPDZYXQwJK3rfxNLQ61AyzUhfgTm8FfhBCeXMDbAyDWjpo2AKdjNMakAZWorG",
+      "attestation": "89KUG6YvF8NjLCgWkLMKT4dhFSLz7mfUrxCW66sZZp9s",
+      "badgeMint": "EtvEhVQxDnEgdig5huuMKg2NhGj1FKNLATx4dGdwXiZT"
+    },
+    {
+      "step": "register_participant alice",
+      "ok": true,
+      "signature": "4yQ7HX5wSPtk4B1FtgcYyxHEei2Uqc5wtCfKGwM5MdZo3BkgaY51qDWSzJ5qG4T4Jmqj7N7Bo11FCBAvUfASoSmh"
+    },
+    {
+      "step": "badge:issue bob v1 (LMTEST, mint space 748)",
+      "ok": true,
+      "signature": "23M4tzXuLTggAvgbNJdHBfgS9kMMiNKJokyF67oRhP54PxEr8iamYG2vxoWdWErZGieN7SkpbGApKQLxBx9xFsWB",
+      "attestation": "H9pYFiCYz9rCLik8oXCVgeK4h7jbLrtnUuahEg9GwsCf",
+      "badgeMint": "GPn63PC3Hh9qQAk9pYuUo67bmCDKJVW1X7QCYfLoBMvq"
+    },
+    {
+      "step": "register_participant bob",
+      "ok": true,
+      "signature": "39RQzKjpDyouEM9zVCwmP559f9hM8TSdsQZoyR91DKTMQrsUiHYQP9yPrkkXNmzJs61CyPPbVsAuLCQNYNusKJq"
+    },
+    {
+      "step": "submit_intent alice nonce 0 (gated admission)",
+      "ok": true,
+      "signature": "48GYAXKAdjKM1uSGaCe2CgMcvVArCkjSnuuFSxbJ1gHiK4b1uxxNVtP796nj2EVXcLoK9SH3WH3J2nKMwRhyNfSw",
+      "intent": "6paxPvibZ8F8KEAZXQK1x5TVo7rCw2x58cZAyf5GTD2f"
+    },
+    {
+      "step": "eligibility alice",
+      "ok": true,
+      "attestationValid": true,
+      "registryActive": true,
+      "slot": "267"
+    },
+    {
+      "step": "direct submit_intent by unapproved wallet (Mallory, own binding)",
+      "ok": true,
+      "expectedError": "AccountNotInitialized"
+    },
+    {
+      "step": "badge:issue carol v1 (not registered)",
+      "ok": true,
+      "signature": "4YqKwQNVge2FTb8itMhu4Mi37T2wVHLU2eMZ5yMcMVyheVWUdgVaah7cbYPKYQbMEDn9KFV4znZ8sJrgcvPMQoUW"
+    },
+    {
+      "step": "direct register_participant by Mallory with Carol's badge",
+      "ok": true,
+      "expectedError": "WalletMismatch"
+    },
+    {
+      "step": "settle_batch (scaffold)",
+      "ok": true,
+      "expectedError": "SettlementNotImplemented"
+    },
+    {
+      "step": "suspend_participant bob",
+      "ok": true,
+      "signature": "2yefqV2S5xXt5VTxPqh6EhsLtM5jwpEGT53QzcpTFsRz32raSfScbdYuKtgQKwPLeppkpTUtEsymuLawyVaEN77Y"
+    },
+    {
+      "step": "submit_intent by suspended bob",
+      "ok": true,
+      "expectedError": "ParticipantNotActive"
+    },
+    {
+      "step": "revoke_participant bob",
+      "ok": true,
+      "signature": "5qiyaugeJYvLDtcfPhkmuBVTDBdfBctwmbrhf5viQqLjjKyL4MuwbBtVqEs6AqxmCoQiKrd7k2LUiLDSL3HeKbhJ"
+    },
+    {
+      "step": "badge:revoke bob (SAS close: burn + close)",
+      "ok": true,
+      "signature": "2QBG3FXgMsk6VwbQTMZqtRSjh7QtbPyo4CLE4gBSgnWqG8HjTwiGSX34624CeYbRQry41Cr7vxWVozamu97wopa"
+    },
+    {
+      "step": "eligibility bob after revocation",
+      "ok": true,
+      "reasons": [
+        "ParticipantRevoked",
+        "AttestationNotCurrent",
+        "SasWrongOwner",
+        "NonCanonicalBadgeMint",
+        "BadgeNotHeld"
+      ]
+    },
+    {
+      "step": "suspend_participant alice (replacement step 1)",
+      "ok": true,
+      "signature": "5ALrNnvdnz2SR5tFExXD3k9xMcpkr7c5ehNdZyBoqE5DsnXzKcFFVANBJ3HV6wLptQLzQfebrUeqAJedFsekjFUR"
+    },
+    {
+      "step": "badge:revoke alice v1",
+      "ok": true,
+      "signature": "2fvanaHzGdwqwvgZTS7AvTfCHHirHvKiyybB7wKQDtDFBp6UM1yb1SiP9xTJMFt5hcRt1wrsa5vKkJ8D6JMAZrLE"
+    },
+    {
+      "step": "badge:issue alice v2 to replacement wallet",
+      "ok": true,
+      "signature": "4E9KZ7TrQonCLgg4Q4zuTYK6Msmod2r656Krru5K9mAg3iTxzFRjdAXFC2eFPJReuSCRnMpfX9iGz8PLNuJd5Nzj",
+      "attestation": "BA36bxcdiFLCmBFwmWHMjgy1LB14b7Rv8sa5RwWittEF",
+      "badgeMint": "CrDWyfgM9cS1DwjFfLd4GA7HkB4WJNQDyJf8GP8nmbD7"
+    },
+    {
+      "step": "replace_binding (admin + new wallet)",
+      "ok": true,
+      "signature": "5ApKrVAof4cb1s1jnDEwgTHmVYwEG4v9pw3YAVcBTAbqQzxn1btrXgAnLCjT19XCoJLu27G2JvRi3og4nXSkmcZ"
+    },
+    {
+      "step": "participant after replacement",
+      "ok": true,
+      "wallet": "CNTyjdnpkfEv6YTigNpNHQoTXA7ddQKnbVkqBkaQg6Ty",
+      "bindingVersion": 2,
+      "nextIntentNonce": "1"
+    },
+    {
+      "step": "submit_intent by old wallet after replacement",
+      "ok": true,
+      "expectedError": "WalletNotCurrent"
+    },
+    {
+      "step": "submit_intent replacement wallet nonce 1 (nonce preserved)",
+      "ok": true,
+      "signature": "2UmAjzTKRp183BQnJPZEs3WBjdQER3ELM46jdAnTFZ1QWFaqZ25VZkht7vjhUuN4XMUPBzPNi7GbiD8KFPtRxzw",
+      "intent": "D488UHeiJCNNbSGaD9c5mhtvU5795J2WwzP9dHJMp59f"
+    },
+    {
+      "step": "cancel_intent nonce 1",
+      "ok": true,
+      "signature": "5zgijupFn24mNz7pzeT9Se2gjK7LzG4SV8dUKjoXSvAoz51ujh3DjssoXCeLyPVEA2kfsmyDhiJMVgpZwaDbo6x"
+    },
+    {
+      "step": "inspect alice v2 attestation",
+      "ok": true,
+      "badgeMint": "CrDWyfgM9cS1DwjFfLd4GA7HkB4WJNQDyJf8GP8nmbD7",
+      "expiry": "1795707686"
+    }
+  ]
+}

@@ -1,0 +1,173 @@
+{
+  "runId": "20261120041357",
+  "network": "devnet",
+  "serviceUrl": "http://localhost:8787",
+  "users": {
+    "alice": {
+      "wallet": "6cEegJ1sH2kQmLv5vRWj9QCQeReGWgzzaBdsvHnW7s45",
+      "eligibility": {
+        "wallet": "6cEegJ1sH2kQmLv5vRWj9QCQeReGWgzzaBdsvHnW7s45",
+        "attestationValid": true,
+        "registryActive": true,
+        "eligible": true,
+        "reasons": [],
+        "slot": "524228489",
+        "participant": {
+          "address": "GdGo2cM49MwkrbJQ3PdLaT7kyoXTLidGwpQ3yL5u3AR3",
+          "participantIdHex": "83887ad900340ef4e19fe4887068e5de21f4e84a41f1bad9971a9ed9162777a2",
+          "currentWallet": "6cEegJ1sH2kQmLv5vRWj9QCQeReGWgzzaBdsvHnW7s45",
+          "bindingVersion": 1,
+          "status": "Active",
+          "nextIntentNonce": "1"
+        },
+        "badge": {
+          "attestation": "38KUE2bXKR3K5yMFsCxqArXQPGEXuSXRmpn53a81US7M",
+          "badgeMint": "DiGrjb9J5rZ2KVS9uczuuiCTR7y65dDRbaUhDuCWmWB5",
+          "expiry": "1795752842"
+        }
+      },
+      "enrollment": {
+        "request": "a27d4762-84eb-4958-93b9-0f98d00776cd",
+        "operation": "1d727870-c2d2-47ec-8b63-7e5722642f22",
+        "participantIdHex": "83887ad900340ef4e19fe4887068e5de21f4e84a41f1bad9971a9ed9162777a2",
+        "registerSignature": "5GmmRTLvKKRY9rMuRnH4M6psAmAjQACadsc9TbWHCRDnR4QyEctHdYhUTvakLh4VarFhcqNoefDUbWmjB7EqDD4h",
+        "eligibility": {
+          "wallet": "6cEegJ1sH2kQmLv5vRWj9QCQeReGWgzzaBdsvHnW7s45",
+          "attestationValid": true,
+          "registryActive": true,
+          "eligible": true,
+          "reasons": [],
+          "slot": "524228360",
+          "participant": {
+            "address": "GdGo2cM49MwkrbJQ3PdLaT7kyoXTLidGwpQ3yL5u3AR3",
+            "participantIdHex": "83887ad900340ef4e19fe4887068e5de21f4e84a41f1bad9971a9ed9162777a2",
+            "currentWallet": "6cEegJ1sH2kQmLv5vRWj9QCQeReGWgzzaBdsvHnW7s45",
+            "bindingVersion": 1,
+            "status": "Active",
+            "nextIntentNonce": "0"
+          },
+          "badge": {
+            "attestation": "38KUE2bXKR3K5yMFsCxqArXQPGEXuSXRmpn53a81US7M",
+            "badgeMint": "DiGrjb9J5rZ2KVS9uczuuiCTR7y65dDRbaUhDuCWmWB5",
+            "expiry": "1795752842"
+          }
+        }
+      },
+      "intent": {
+        "intent": "83CcwaWc6CYqiHykmywLGjjKMJzxPEKtsyotnxeNxxs2",
+        "nonce": "0",
+        "signature": "43LyQwryi6JdjJ2jqKYEaeqTq44gpXRZummjGaxVh5196ansMKuaJrm5Q4wF58KKGr1Wx4W67SUzp1MWqEb7jTNk",
+        "contentsHex": "010002640000000000000005000000000000006e000000000000000300000000000000",
+        "observedSlot": "524228415"
+      }
+    },
+    "bob": {
+      "wallet": "7xzrXeTyLwPBHrjNGuzZVDZqpjeBze6uqVTJWcTAwssM",
+      "eligibility": {
+        "wallet": "7xzrXeTyLwPBHrjNGuzZVDZqpjeBze6uqVTJWcTAwssM",
+        "attestationValid": true,
+        "registryActive": true,
+        "eligible": true,
+        "reasons": [],
+        "slot": "524228491",
+        "participant": {
+          "address": "AeaVTspYJUFEzjg19uBv3uJbhxDBQNwZDi4otLecTwwH",
+          "participantIdHex": "7b43d97ea6d4c86277eb73a8708c6d52c3affe0c6cf1a84ef3ffefff9d72d28f",
+          "currentWallet": "7xzrXeTyLwPBHrjNGuzZVDZqpjeBze6uqVTJWcTAwssM",
+          "bindingVersion": 1,
+          "status": "Active",
+          "nextIntentNonce": "1"
+        },
+        "badge": {
+          "attestation": "7cBarLZZgjEHQDgzA1r9xPXzTz3v2aeWDDgSX5AbDu2s",
+          "badgeMint": "2mmCQThAS3rYvMRfAHvGv1XKBxYDV1kNSJ9S81nE2Vbq",
+          "expiry": "1795752852"
+        }
+      },
+      "enrollment": {
+        "request": "9ad96193-20fd-4f82-91a4-b31e10ada590",
+        "operation": "332f5bea-37fc-49b9-8e3d-404847988bcd",
+        "participantIdHex": "7b43d97ea6d4c86277eb73a8708c6d52c3affe0c6cf1a84ef3ffefff9d72d28f",
+        "registerSignature": "3dwwUEMsoaM3jv62oRLZaqQHcWEYgPNkqueMkzHgwxeMtJoUVNft9YQbusWGeURxxxkqSqNB1XErAxAuv7eWhWjz",
+        "eligibility": {
+          "wallet": "7xzrXeTyLwPBHrjNGuzZVDZqpjeBze6uqVTJWcTAwssM",
+          "attestationValid": true,
+          "registryActive": true,
+          "eligible": true,
+          "reasons": [],
+          "slot": "524228407",
+          "participant": {
+            "address": "AeaVTspYJUFEzjg19uBv3uJbhxDBQNwZDi4otLecTwwH",
+            "participantIdHex": "7b43d97ea6d4c86277eb73a8708c6d52c3affe0c6cf1a84ef3ffefff9d72d28f",
+            "currentWallet": "7xzrXeTyLwPBHrjNGuzZVDZqpjeBze6uqVTJWcTAwssM",
+            "bindingVersion": 1,
+            "status": "Active",
+            "nextIntentNonce": "0"
+          },
+          "badge": {
+            "attestation": "7cBarLZZgjEHQDgzA1r9xPXzTz3v2aeWDDgSX5AbDu2s",
+            "badgeMint": "2mmCQThAS3rYvMRfAHvGv1XKBxYDV1kNSJ9S81nE2Vbq",
+            "expiry": "1795752852"
+          }
+        }
+      },
+      "intent": {
+        "intent": "Bj4TgxMLtz5MY7mBRK52BJkAoKqVvRXk3hLz8RdfUvoX",
+        "nonce": "0",
+        "signature": "4bYT9wuzAZ75qD1ReXUgbDb3iUqPZjN2pRAzXA1QeExpCWrrADEg7VkZanwbKep3GrXd1N2ghGtvhnZ8Jk4anqAA",
+        "contentsHex": "01535132555260b59f3b15cc453f31acc68cb13011b6d7edf8fb8fa9155707c11a",
+        "observedSlot": "524228459"
+      }
+    },
+    "mallory": {
+      "wallet": "8DRtihZqv4T4cF6DtzSQ745tkaSfoodTc9A1Yid3sLJS",
+      "eligibility": {
+        "wallet": "8DRtihZqv4T4cF6DtzSQ745tkaSfoodTc9A1Yid3sLJS",
+        "attestationValid": false,
+        "registryActive": false,
+        "eligible": false,
+        "reasons": [
+          {
+            "code": "NotRegistered",
+            "message": "wallet has no registry binding"
+          }
+        ],
+        "slot": "524228491",
+        "participant": null,
+        "badge": null
+      }
+    }
+  },
+  "checks": [
+    {
+      "check": "unenrolled wallet cannot open a session",
+      "expected": "NotEligible",
+      "got": "403 NotEligible",
+      "pass": true
+    },
+    {
+      "check": "unenrolled wallet cannot prepare an intent",
+      "expected": "NoSession",
+      "got": "401 NoSession",
+      "pass": true
+    },
+    {
+      "check": "replayed session challenge is refused",
+      "expected": "ChallengeReplayed",
+      "got": "401 ChallengeReplayed",
+      "pass": true
+    },
+    {
+      "check": "bob cannot admit alice's intent",
+      "expected": "IntentOwnerMismatch",
+      "got": "409 IntentOwnerMismatch",
+      "pass": true
+    },
+    {
+      "check": "an intent cannot be admitted twice",
+      "expected": "IntentAlreadyAdmitted",
+      "got": "409 IntentAlreadyAdmitted",
+      "pass": true
+    }
+  ]
+}

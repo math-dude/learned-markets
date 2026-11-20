@@ -1,0 +1,26 @@
+[package]
+name = "gate-test-consumer"
+version = "0.1.0"
+description = "Test-only CPI caller for the learned-markets gate (never deployed to mainnet)"
+edition.workspace = true
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "gate_test_consumer"
+
+[features]
+default = []
+cpi = ["no-entrypoint"]
+no-entrypoint = []
+no-log-ix-name = []
+idl-build = ["anchor-lang/idl-build", "learned-markets/idl-build"]
+anchor-debug = []
+custom-heap = []
+custom-panic = []
+
+[dependencies]
+anchor-lang = "=1.2.2"
+learned-markets = { path = "../learned-markets", features = ["cpi"] }
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"))'] }

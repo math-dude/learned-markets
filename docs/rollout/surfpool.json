@@ -1,0 +1,206 @@
+{
+  "runId": "20261120061524",
+  "network": "surfpool",
+  "rpcUrl": "http://127.0.0.1:8899",
+  "programId": "nuX7BMKKWz9WG6EDRn5dXnSZArRW8uLkyKC5iTenqQz",
+  "badgeUri": "https://badges.learned-markets.test/v1/badge/metadata.json",
+  "startedAt": "2026-11-20T06:15:24.933Z",
+  "addresses": {
+    "issuer": {
+      "credential": "HHvztcSoGA6U8ptPA8LZnq679dkzVGzb9szqPoNvWA1m",
+      "schema": "5EHKoBwhSy6CU3WhYEZCVgExSdw8NfJbFU5yeLwMghbg",
+      "schemaMint": "9gsBVjomQbLvk8UJxv2b8wTavHWgRhaxCEoM6mzibxtv",
+      "sasAuthority": "HngMQFF6Yoqj9VqA31r43HQsnuYZ6BxopRWQLQAS6zk"
+    },
+    "config": {
+      "address": "J4y21PX2KV8Nd9GbhfDbRZfNF7jVaorZnGQRDkwqJBWJ",
+      "version": 1,
+      "bump": 254,
+      "appScope": "learned-markets:demo",
+      "network": "surfpool",
+      "admin": "7H4rMeaPVB1nFvHXNkMkB8wTe2TbXCH1sXcRjwarNkDM",
+      "settlementAuthority": "9Jj3EXSW5oe3i3iqWRMvsRkftTYcWxspb5B7gtKLQSfn",
+      "sasProgram": "22zoJMtdu4tQc2PzL74ZUT7FrwgB1Udec8DdW4yw4BdG",
+      "sasAuthority": "HngMQFF6Yoqj9VqA31r43HQsnuYZ6BxopRWQLQAS6zk",
+      "credential": "HHvztcSoGA6U8ptPA8LZnq679dkzVGzb9szqPoNvWA1m",
+      "credentialAuthority": "GeSUFgLxmdU9xSGGxMEVPLUwyci8W6VMVU4GWPmRFeNc",
+      "schema": "5EHKoBwhSy6CU3WhYEZCVgExSdw8NfJbFU5yeLwMghbg",
+      "schemaVersion": 1,
+      "schemaMint": "9gsBVjomQbLvk8UJxv2b8wTavHWgRhaxCEoM6mzibxtv",
+      "allowedVerificationMethod": 0,
+      "admissionPaused": false
+    },
+    "participants": {
+      "alice": {
+        "wallet": "HYcshnHZekXPuu1smr1k65as8Am5yi5zfNVA73zinEAf",
+        "replacementWallet": "5n5pXQhfNEx5wxCKtVG7mby4Mmtw2U5fVoXyXCKcwrMW",
+        "participantIdHex": "bff43cd1cb5550b1d8d1421709614fb670446e1caac6cb3dcc36a71a27fdf0d9",
+        "participant": "CJLePsHAc81ZEwXaTYRoxE5pbqNMtHt9MxrXwiA3nFgf"
+      },
+      "bob": {
+        "wallet": "FBKuGGGzUdEZArDVjFvcnXMRpmba95s7ZMASWVVVoUQj",
+        "participantIdHex": "60459f8fcac6fae0736e6ecf508b98de58bafe3c5a5ab819c1f046ebcb44dc9c",
+        "participant": "Advac4GTAkfMWSAfmHaaWhQRhQVCFPWB9nneHZXBreSi"
+      },
+      "mallory": {
+        "wallet": "Ecq5xCZtx7ENageyihJU2LCQcnKr8EB4cCeTGTHVy96F",
+        "note": "never approved"
+      }
+    },
+    "badgeMints": {
+      "aliceV2": "5b5icshZSdJ7vwmx5PyubjvF1nhJWeA8MQxzTz6MbZtb",
+      "wallet": "5n5pXQhfNEx5wxCKtVG7mby4Mmtw2U5fVoXyXCKcwrMW"
+    }
+  },
+  "steps": [
+    {
+      "step": "issuer:setup (credential, schema v1, schema group max 1,000,000)",
+      "ok": true,
+      "note": "{\"credential\":\"5VruD1WR7EUiwXs2J9yUanthsK23pfyCdSexpu3wCt3xh7Fz1SnTBWbqE3Htc75aa9oBfpYKjLseMueoinfJiNS\",\"schema\":\"qKq5eVcoGyjnaZhKwoLUvTKCmcoRQBsdt2egvJASKcKm1xU5oWxmn3i8TVhB1eSAxUs5VWTmXgfp2x7ckMWzgzc\",\"schemaMint\":\"4Wbk9qYTFqRLXrxDCMGsCLaBjXQScYubd8HMXCjT4gKZBeAv3SQH2DTPDQSP45K8JvmHnKUmboU94kwW1RSE8gEK\"}"
+    },
+    {
+      "step": "gate:initialize_config (deployment authority)",
+      "ok": true,
+      "signature": "2cnpbwNFemBv5MhLbiwudNAE3PkgwQiuNs53P7b1huoby4u6QkHLM619XiBA4MJ7EMLjZWJjtShPWnrc2xpq1SSu"
+    },
+    {
+      "step": "badge:issue alice v1 (LMTEST, mint space 748)",
+      "ok": true,
+      "signature": "2NHd64rqjJWjbBbRFNh8QyLkssyCCnEvruCZfeP2ArEFvuC5YxVv8iaPdT4dTkfFyenHR4JWJphPBnYZMxc56ajt",
+      "attestation": "AWH4yktQ7BXMcnuQEQEkRgThRgxw2eHMuW733KHFVo5P",
+      "badgeMint": "7i7PEPbcmumYoCm2UpTm99KowAQzaHsiqwWUzqauBjuH"
+    },
+    {
+      "step": "register_participant alice",
+      "ok": true,
+      "signature": "4vt6ixjU3jJ94BA3z438DciS8j6YpH4u8xUaZa2ZVUYvBZFw4wJAm4HaebWC7iVD5HyrUd8egjJHScUfVDBCn7Aj"
+    },
+    {
+      "step": "badge:issue bob v1 (LMTEST, mint space 748)",
+      "ok": true,
+      "signature": "4i7wryUPuZ282NjKWyzN7iEYLpe5GEXgVmuG7Q89wPbPtTPGGGRBdgijNZaQjJXo8VZkjKKk9k1DfEAjxchG7Qau",
+      "attestation": "2geVP91RgWFeeFUqpvhhQf82CrBUCBhLVq8M6MDmgZCv",
+      "badgeMint": "4YbhuWFJCAaUL1xG6ueszhxPUJqwff9h9f7rFbRNYf8a"
+    },
+    {
+      "step": "register_participant bob",
+      "ok": true,
+      "signature": "3S1HYBWSK1MAYV4jyp6q8Rwv59soUjNFvJgQLnTxyEpde9XcXGiHw8D8p6r8TisTaHQPnCwhrjjmtbATZa3D6SVg"
+    },
+    {
+      "step": "submit_intent alice nonce 0 (gated admission)",
+      "ok": true,
+      "signature": "3Z4bJwRK1SnqZDfNCoSU674T1GGHpYFyzp5uCT72cHoYAgawFcZtrgresMndXWpwknFQu76ofpcmaxzEC93Ptxvr",
+      "intent": "Aei2hkbMfDRRtg6Hgu9mowGc9jzW7EFD252maTi2vbK4"
+    },
+    {
+      "step": "eligibility alice",
+      "ok": true,
+      "attestationValid": true,
+      "registryActive": true,
+      "slot": "471632828"
+    },
+    {
+      "step": "direct submit_intent by unapproved wallet (Mallory, own binding)",
+      "ok": true,
+      "expectedError": "AccountNotInitialized"
+    },
+    {
+      "step": "badge:issue carol v1 (not registered)",
+      "ok": true,
+      "signature": "3nmedZ6fsvL96jdeBTnZFn1kzqSVqF2KwWy3Se55UWMXcuWMfjdCpv2S9uDkUH6iAKhKRdGHbFqjmZHSN6PZLSPA"
+    },
+    {
+      "step": "direct register_participant by Mallory with Carol's badge",
+      "ok": true,
+      "expectedError": "WalletMismatch"
+    },
+    {
+      "step": "settle_batch (scaffold)",
+      "ok": true,
+      "expectedError": "SettlementNotImplemented"
+    },
+    {
+      "step": "suspend_participant bob",
+      "ok": true,
+      "signature": "2VNn3pHBT1najM25SS8ZVNuFqgm9TgMDyNcz3o8RRS4MJ43LneSn6BXoHpDrb8N78KrrmTfGRBh8ayQzFDqdJLeL"
+    },
+    {
+      "step": "submit_intent by suspended bob",
+      "ok": true,
+      "expectedError": "ParticipantNotActive"
+    },
+    {
+      "step": "revoke_participant bob",
+      "ok": true,
+      "signature": "thF3ge487wBdkhnMv6VvEMeVCWv77QoLRmmntaaGcR61gGi812Zx4gQU3tHxSt5CRQMpE3pZwbk8PoxzUpm8ScR"
+    },
+    {
+      "step": "badge:revoke bob (SAS close: burn + close)",
+      "ok": true,
+      "signature": "63jqDzBS6EoqVi6RX4XnKwzn6H3Gc7d56tbUWKGi4whcyvdAEtAfBLHr6HFdAkvanAqvYHbeGECAjdJ1frPLEpT"
+    },
+    {
+      "step": "eligibility bob after revocation",
+      "ok": true,
+      "reasons": [
+        "ParticipantRevoked",
+        "AttestationNotCurrent",
+        "SasWrongOwner",
+        "NonCanonicalBadgeMint",
+        "BadgeNotHeld"
+      ]
+    },
+    {
+      "step": "suspend_participant alice (replacement step 1)",
+      "ok": true,
+      "signature": "5jHFkisfaSFvnQoJ93vQPkuyZUygXPviEtYzP64CvhRwZYMWf3anLsTWPyWwZS8J7LH3AaGYQCawmavB3niCqGpq"
+    },
+    {
+      "step": "badge:revoke alice v1",
+      "ok": true,
+      "signature": "5trU3MSqqxwz47y315vRb4n2aWyq9TaT6hVjjZqh1JkLDkjXjSgcxRwppVGQttXVHoSJyK3atRVMnVr2R5NCNeb4"
+    },
+    {
+      "step": "badge:issue alice v2 to replacement wallet",
+      "ok": true,
+      "signature": "4miVJLnDN15MX3xZ52vSxUpTZjR5iBKhfCDXTZJXY3yxsLMBHmJKjAatAinj7xsL9DST9hqmdg7gPZwp5Kxw8UuQ",
+      "attestation": "2iJkuLZs6ufdQEM27aNkc8uoPgM1dU9igvfRkE5tAeXt",
+      "badgeMint": "5b5icshZSdJ7vwmx5PyubjvF1nhJWeA8MQxzTz6MbZtb"
+    },
+    {
+      "step": "replace_binding (admin + new wallet)",
+      "ok": true,
+      "signature": "364qugEdy8XjVnctSx11T59J6WgugT1z9hdqKTxLYqmDvsYvz2mEKGC26DBGyUrTHKnqH5z8fTxFZFZ1ActZwpuF"
+    },
+    {
+      "step": "participant after replacement",
+      "ok": true,
+      "wallet": "5n5pXQhfNEx5wxCKtVG7mby4Mmtw2U5fVoXyXCKcwrMW",
+      "bindingVersion": 2,
+      "nextIntentNonce": "1"
+    },
+    {
+      "step": "submit_intent by old wallet after replacement",
+      "ok": true,
+      "expectedError": "WalletNotCurrent"
+    },
+    {
+      "step": "submit_intent replacement wallet nonce 1 (nonce preserved)",
+      "ok": true,
+      "signature": "2be89X225N87dwszQb8GekBvVa3rY87qT39CPak6fMpYdZC7m2woUhzYvUjPAqeda7tvL2dMRjYJMCS78LC5n1Ri",
+      "intent": "9oBEAe4aqFgn9Kejmq781kN27i2kgWuT3WQ9272Y6oWt"
+    },
+    {
+      "step": "cancel_intent nonce 1",
+      "ok": true,
+      "signature": "39sZjPdYzRwfhLAVKFUMpRYKzmkmdnSjXREz1B9SFerzfgX2omPWBAG5PodP1TRV8LrMqRMadZaFPDTs1vd1teAC"
+    },
+    {
+      "step": "inspect alice v2 attestation",
+      "ok": true,
+      "badgeMint": "5b5icshZSdJ7vwmx5PyubjvF1nhJWeA8MQxzTz6MbZtb",
+      "expiry": "1795760151"
+    }
+  ]
+}
