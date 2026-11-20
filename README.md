@@ -1,160 +1,119 @@
-# Damper
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/logo/damper-logo-light-text.svg">
+  <img alt="Damper" src="assets/logo/damper-logo-dark-text.svg" width="220">
+</picture>
 
-A memecoin exchange on Solana where the market's rules are learned and tuned instead of hand-picked.
+A memecoin exchange on Solana where the market's rules are learned instead of hand-picked.
 
-On today's launchpads, the people who make money are the ones who deploy fastest, snipe launches, or split supply across a dozen wallets. We wanted an exchange where you make money by calling which memes catch on. Damper gets there with three pieces: one wallet per person, batch auctions where arriving first doesn't help, and reinforcement-learning agents that manage liquidity and listings inside hard on-chain limits.
+On today's launchpads, money goes to whoever deploys fastest, snipes launches, or splits supply across wallets. On Damper, you make money by calling which memes catch on. It combines one wallet per person, batch auctions where arriving first doesn't help, and RL agents that run liquidity and listings inside hard on-chain limits.
 
-We built this for the UBC Hackathon 2026 (DeFi and Onchain Applications, Best Use of Solana). The repo and packages still use our working name, `learned-markets`.
+Built for UBC Hackathon 2026 (DeFi and Onchain Applications, Best Use of Solana). The repo still uses our working name, `learned-markets`.
 
 ## Status
 
-We designed more than we could build in a week, so here's where each part stands:
-
 | Component | State |
 | --- | --- |
-| Identity registry and trade-intent gate (Anchor program) | **Built, deployed to devnet.** 33 LiteSVM tests plus a 26-step localnet rollout. |
-| Attestation service and operator CLI | **Built.** Run end to end on devnet with two browser-wallet participants. |
-| pump.fun history pipeline (Old Faithful → ClickHouse) | **Built.** |
-| Batch-auction settlement | **Built, locally tested.** The shared Python core clears batches and an atomic Anchor parity ledger validates and settles its fills. A six-batch episode replays in LiteSVM with matching balances after each batch. Deployment of this build and live transaction delivery are pending. See the [settlement interface](docs/ai-gen/design/settlement-interface.md). |
-| Python backend | **Built.** Serves quotes, clearing and confirmed ledger account reads through Codama-generated bindings. |
-| Learned maker, stage manager, simulator | **Designed.** Training is next. |
-| Web app | React + Vite starter. UI mockups in progress. |
+| Identity registry and intent gate (Anchor) | Deployed to devnet. 33 LiteSVM tests, 26-step localnet rollout. |
+| Attestation service | Run end to end on devnet with two wallets. |
+| Market core, simulator | Built. One Python/PyTorch core shared by the simulator, training and backend. |
+| Learned maker and stage manager | Trained with PPO and evaluated ([results](#results)). |
+| Settlement (parity ledger) | Tested locally: a six-batch episode replays in LiteSVM with matching balances. Not yet on devnet. |
+| Backend auctioneer | Built (FastAPI). |
+| pump.fun pipeline | Built (Old Faithful → ClickHouse). |
+| QuickNode Streams | Experimental. No live Stream yet. |
+| Web app | Starter on `main`; mockups in [`docs/design/`](docs/design/). |
 
 ## Architecture
 
 ```mermaid
 flowchart LR
-    subgraph Users
-        W[Trader wallet]
-    end
-    subgraph Offchain
-        AS[Attestation service<br/>Hono + SQLite]
-        AU[Batch auctioneer]
-        MK[Learned maker<br/>quoting network]
-        SM[Stage manager<br/>auction network]
-        SIM[Simulator + training]
-        DP[pump.fun pipeline<br/>Jetstreamer → ClickHouse]
-    end
-    subgraph Solana
-        SAS[Solana Attestation Service<br/>Token-2022 badge]
-        LM[learned_markets program<br/>registry · gate · intents · settlement]
-    end
-
-    W -- sign challenge --> AS
-    AS -- issue badge --> SAS
-    W -- register / submit_intent --> LM
+    W[Trader wallet] -- enroll --> AS[Attestation service]
+    AS -- badge --> SAS[Solana Attestation Service]
+    W -- submit_intent --> LM[learned_markets program]
     LM -- verify badge --> SAS
-    LM -- confirmed intents --> AU
-    MK -- one curve per batch --> AU
-    SM -- seats, drain, launch fee --> AU
-    AU -- settle_batch --> LM
-    DP --> SIM --> MK
-    SIM --> SM
+    LM -- intents --> AU[Backend auctioneer]
+    AU --> CORE[Market core]
+    SIM[Simulator + PPO] --> CORE
+    MK[Learned maker] --> CORE
+    SM[Stage manager] --> CORE
+    AU -- settle_ledger_batch --> LM
+    DP[pump.fun data] --> SIM
 ```
 
-### On-chain: `programs/learned-markets`
+The simulator and the backend call the same `step_batch`, so the agents train on exactly the market they'll run, and the on-chain ledger is tested against it.
 
-The program is written in Anchor 1.2.2 and stores `Config`, `Participant`, `WalletBinding` and `Intent` PDAs.
-
-Each participant gets a non-transferable Token-2022 badge through the Solana Attestation Service, and the registry ties that participant to exactly one active wallet. We started out trying to detect wallet clusters, but switched to attestations because detection is a guessing game and attackers can always split wallets more carefully.
-
-Every protected instruction calls `gate::require_eligible`. Holding the badge isn't enough. The gate re-checks the registry, the SAS credential, schema and signer, the badge mint and its owner, expiry against the on-chain clock, and the pause flags on every call.
-
-`submit_intent` records a hashed curve order (up to 16 price/quantity steps) with a strict nonce and a deadline of at most five minutes. Traders can always cancel.
-
-`settle_batch` validates every intent first: eligibility, payload hash, expiry, replays and duplicates. It then passes the intents to a settlement engine that consumes them and applies the state changes in the same instruction. Writing that engine is our next step.
-
-| Instruction | Signer |
-| --- | --- |
-| `initialize_config`, `update_config` | upgrade authority / admin |
-| `register_participant` | attested wallet |
-| `suspend_participant`, `revoke_participant`, `replace_binding` | admin (+ new wallet for replacement) |
-| `submit_intent`, `cancel_intent` | current bound wallet |
-| `settle_batch` | settlement authority |
-
-### Off-chain
-
-- `apps/attestation-service` handles challenges, enrollment, wallet replacement, sessions and intent admission. It re-reads chain state on every privileged request and refuses the request if RPC is down.
-- `packages/attestations` has the TypeScript schema codecs, verifier, gate client and the `lm-attest` operator CLI.
-- `data/jetstreamer` streams Solana history from Old Faithful and keeps every pump.fun and PumpSwap create, trade, completion and migration. We'll train and evaluate the agents on this data.
-- `packages/simulation` and `packages/training` are the Python workspace for the market simulator and the RL agents (Gymnasium, Stable-Baselines3).
+**On-chain.** Each person holds a non-transferable Token-2022 badge from the Solana Attestation Service, and the program binds them to one wallet. Every protected instruction re-checks the badge and registry. We first tried detecting wallet clusters, but attackers can always split more carefully. `settle_ledger_batch` applies a batch's fills atomically and checks that cash and tokens are conserved. An older custody design (M1) remains in the program under separate accounts.
 
 ## Economic design
 
-1. **Batch auctions with curve orders.** Every order is a supply or demand curve, and everything in a batch clears at one price. We picked this over an AMM because on an AMM, whoever lands first gets the best price, which is exactly the sniping problem.
-2. **Learned maker.** One agent posts a single curve per batch and only absorbs whatever imbalance is left after traders net against each other. It slows price moves but never defends a price level, since defended levels are what attackers target.
-3. **Board and public timers.** New coins start in a low-stakes line. Each coin on the board has a countdown fed by fees from distinct traders. Each person's fees count by their square root, so ten small traders outweigh one whale. When a timer hits zero, the coin is delisted and its reserve goes to the coins that survived.
-4. **Stage manager.** A second agent sets the number of seats, the drain rate, the timer cap and a launch fee that goes up when lots of people are launching. We deliberately didn't let it pick which coins live. The maker holds inventory, so letting the agents decide survival would be a conflict of interest.
-5. **Fees and holds.** `fee = base + sell-speed term + decaying exit fee`. You can always sell, but it costs more right after buying. We dropped hard lockups early on because a coin you can't sell looks like a honeypot. Holds also release once a coin's timer is close to running out.
+1. **Batch auctions.** Everything in a batch clears at one price, so sniping doesn't pay. On an AMM, whoever lands first gets the best price.
+2. **2% holding cap** per person per coin.
+3. **Learned maker.** Absorbs leftover imbalance each batch and sets the exit fee, which is locked when you buy. It slows price moves but never defends a level.
+4. **Public timers.** Coins stay listed while distinct traders keep them alive. At zero, the coin is delisted and its reserve goes to survivors.
+5. **Stage manager.** Sets seats and the launch fee. It can't choose which coins live, since the maker holds inventory and that would be a conflict of interest.
 
-Full specs: [market rules](docs/ai-gen/design/market-rules.md), [board and timers](docs/ai-gen/design/board-and-timers.md), [RL formulation](docs/ai-gen/design/rl-formulation.md). Every decision we made or rejected, with the reason, is in the [decisions log](docs/ai-gen/decisions.md).
+We skipped hard lockups because unsellable coins look like honeypots. Details: [market rules](docs/ai-gen/design/market-rules.md), [board and timers](docs/ai-gen/design/board-and-timers.md), [RL formulation](docs/ai-gen/design/rl-formulation.md), [decisions log](docs/ai-gen/decisions.md).
 
-## Risk assumptions
+## Results
 
-- **Maker solvency.** The maker stays solvent only as long as profit from noise trading plus its share of fees covers what it loses to informed and adversarial traders. Hard on-chain caps limit the damage: a loss budget per epoch, an inventory limit, a maximum share of volume and a kill switch.
-- **Identity.** Badges are currently operator-approved test identities. We haven't integrated a real proof-of-personhood provider, and an approved person could still script their own wallet.
-- **Delisting.** If you're holding a coin when it dies, you lose that position. Public timers and released holds are there so you can see it coming and get out.
-- **Sim-to-chain gap.** The simulator and the program have to use identical clearing math. We enforce that with golden test vectors shared between Python and Rust.
-- **Regulatory.** Fee sharing and token launches can raise securities questions. This is a devnet prototype with no real funds.
+Simulated, so directional. 64 worlds × 2,000 batches on a held-out seed. The maker trains in about 8 minutes on one RTX 5060 Ti. [Full write-up](docs/ai-gen/results/2026-11-20-evaluation.md).
 
-## Solana usage and program IDs
+| | pump.fun curve | Rule-based maker | Trained maker |
+| --- | --- | --- | --- |
+| Top-10 holder share | 16.1% | 7.2% | 6.8% |
+| Retail profit per person (SOL) | −0.40 | −0.27 | 0.00 |
+| Trapped in dead coins (SOL/world) | 386 | 140 | 209 |
+| Price impact per SOL | 16 | 23 | 74 |
+
+The trained maker beats our rule-based one on reward by about 52%, and it's fairer than pump.fun. It's also jumpier, because its reward had no smoothness term, so that's next. The stage manager beats hand-set launch rules by about 11% at normal launch rates.
+
+## Risks
+
+- **Maker solvency.** Fees and noise profit must cover losses to informed traders. The trained maker is currently easier to pick off than the rule-based one.
+- **Identity.** Badges are operator-approved test identities, with no proof-of-personhood provider yet.
+- **Delisting.** Holders of a dying coin lose their position. Public timers give warning.
+- **Simulator realism.** How people react to fees and caps can't be measured from pump.fun data.
+- **Regulatory.** Devnet prototype, no real funds.
+
+## Program IDs
 
 | Program | Network | ID |
 | --- | --- | --- |
-| `learned_markets` | devnet, localnet | `nuX7BMKKWz9WG6EDRn5dXnSZArRW8uLkyKC5iTenqQz` |
-| `gate_test_consumer` (CPI test only) | localnet | `ZwKZ5pjQuiEr6AbHCj4BibaCLfyagQj8Ye4nfHRRx4q` |
-| Solana Attestation Service | devnet | existing SAS program |
-| Token-2022 | devnet | existing SPL program |
+| `learned_markets` | devnet | `nuX7BMKKWz9WG6EDRn5dXnSZArRW8uLkyKC5iTenqQz` |
+| Solana Attestation Service | devnet | `22zoJMtdu4tQc2PzL74ZUT7FrwgB1Udec8DdW4yw4BdG` |
+| Token-2022 | devnet | `TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb` |
 
-Run records with transaction signatures are in [`docs/rollout/`](docs/rollout/).
+Run records are in [`docs/rollout/`](docs/rollout/).
 
-## Repository layout
+## Layout
 
 | Path | Contents |
 | --- | --- |
-| `programs/learned-markets` | Anchor program: registry, gate, intents, settlement boundary, accounting helpers |
-| `programs/gate-test-consumer` | Test-only CPI caller |
-| `tests/program-tests` | LiteSVM suite against the real SAS binary (separate Cargo workspace) |
-| `packages/attestations` | TypeScript codecs, verifier, operator CLI |
-| `packages/client` | Shared TypeScript SDK (planned) |
-| `packages/simulation`, `packages/training` | Python simulator and RL training |
-| `apps/attestation-service` | HTTP service for enrollment, sessions and intent admission |
-| `apps/web` | React + Vite front end |
-| `data/jetstreamer` | pump.fun extraction pipeline |
-| `fixtures/` | Shared cross-language test vectors |
-| `scripts/` | Rollout and two-user devnet demo |
+| `programs/learned-markets` | Anchor program |
+| `tests/program-tests` | LiteSVM suite (separate Cargo workspace) |
+| `packages/core` | Market core |
+| `packages/simulation`, `packages/training` | Simulator, PPO training, evaluation |
+| `packages/client`, `packages/attestations` | TypeScript bindings and attestation tools |
+| `apps/backend` | FastAPI auctioneer |
+| `apps/attestation-service` | Enrollment and sessions |
+| `apps/settler` | Earlier settlement experiment, QuickNode receiver |
+| `apps/web` | Front end |
+| `data/` | pump.fun pipeline |
+| `fixtures/`, `scripts/` | Test vectors, demos, codegen |
+| `docs/` | Specs, decisions, results, mockups |
 
 ## Run locally
 
-You'll need Rust (via rustup), Solana CLI 4.4, Anchor CLI 1.2.2, Node ≥ 24.12, and Python 3.12 with uv.
+Requires Rust, Solana CLI 4.4, Anchor 1.2.2, Node ≥ 24.12, Python 3.12 with uv.
 
 ```bash
-npm ci
-anchor build                     # program + IDL
-npm run test:programs            # Rust unit tests + LiteSVM on-chain suite
-npm run typecheck && npm test    # TypeScript packages and service
-npm run dev                      # web app at http://localhost:5173
-```
-
-The [Python backend](apps/backend/README.md) serves quotes, clearing and confirmed ledger account reads:
-
-```bash
-uv sync --locked --all-packages --all-extras
+npm ci && uv sync --locked --all-packages --all-extras
+npm run test:programs                  # program + LiteSVM suite
+npm run typecheck && npm test          # TypeScript
+uv run --all-packages --all-extras pytest -p no:pytest_anchorpy \
+  packages/core/tests packages/simulation/tests apps/backend/tests
 uv run --package learned-markets-backend uvicorn learned_markets_backend.service:app --port 8000
+npm run dev                            # web app
 ```
 
-Ledger balances are simulated accounting units, and the earlier token custody implementation has separate accounts. QuickNode integration remains available as an experimental sponsor-bounty adapter.
-
-Two-user devnet demo, where two participants enroll, get approved, and submit gated intents from their own wallets:
-
-```bash
-# terminal 1: attestation service
-DB_PATH=attestation-service.devnet.sqlite LM_RPC_URL=https://api.devnet.solana.com \
-  node apps/attestation-service/src/main.ts
-
-# terminal 2: demo clients
-DB_PATH=attestation-service.devnet.sqlite LM_RPC_URL=https://api.devnet.solana.com \
-  node scripts/two-user-client-demo.ts
-```
-
-More detail: [development guide](docs/DEVELOPMENT.md), [attestations runbook](docs/ai-gen/attestations.md), [on-chain validation](docs/ai-gen/onchain-validation.md).
+More: [development guide](docs/DEVELOPMENT.md), [attestations runbook](docs/ai-gen/attestations.md), [backend](apps/backend/README.md).
