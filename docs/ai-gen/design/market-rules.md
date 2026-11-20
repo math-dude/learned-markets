@@ -23,16 +23,18 @@ Cleaned from the team doc "Learned Markets: RL & System Design" (2026-11-19). Se
 
 **Dual flow batch auction where every order is a curve.**
 
-- Each order is a supply or demand function over price for the next batch. The auctioneer sums all curves and clears at the one price where supply meets demand: simple to compute, verifiable from the public record.
+- Each order is a supply or demand function over price for the next batch. The auctioneer sums the curves and selects one price that maximizes executed volume.
 - A discrete limit order is a step function. The launch curve is a smooth curve order. An outside maker's ladder is piecewise linear. **The learned maker posts its own curve each batch; that curve is its RL action.**
-- Users' curves net against each other first; the maker absorbs only what's left (shock absorber, not the main counterparty).
+- User and maker curves clear together in one batch. Both contribute to the clearing price and can receive fills in the same clearing pass.
 
 **Constraints that keep it buildable and safe**
 
 1. **A few fixed curve families only:** step, piecewise linear, constant-product segment, bonding curve. Arbitrary functions make clearing harder to compute and verify, and break Python/Rust math parity. v0: piecewise linear only.
 2. **A per-batch size cap on every curve order.** Without it a dumper slides a whole curve in one batch.
 
-**Clearing details to make concrete (v0):** clearing price by bisection on net demand; ties at the clearing price filled pro rata.
+**Clearing price.** If several prices maximize executed volume, use the one closest to the previous clearing price. The opening batch needs an explicit reference price. The rule for choosing that reference and the tie-break for equally close prices are open.
+
+**Clearing details to make concrete (v0).** The proposed search uses bisection on net demand. At the selected price, the proposed fill rule allocates tied orders pro rata.
 
 **Batch interval (open):** slot-aligned (~400 ms to 1 s) for now. Batches are short-lived. (Jito BAM alignment was considered and dropped.)
 
@@ -56,6 +58,8 @@ fee = f_base + f_speed(sell rate) + f_hold(time since buy)
 ```
 
 Traders in the same batch can receive different terms. The market's action is to choose the mapping or its parameters. A fixed mapping can support the same interface before learning is ready. Traders see the terms before committing, including how the terms depend on fill size when the batch can partially fill an order. The applicable schedule is fixed at fill, subject to the danger-zone release below.
+
+The quoter sets this policy before the batch. The auctioneer applies the applicable terms to every fill, including trades between users. Each batch has one gross clearing price, and per-trader charges determine what each trader pays or receives net. After the hackathon, test the alternative of applying personalized terms only through the quoter’s own spread.
 
 **Submission fallback.** If there isn't time to implement the preferred curve, publish one soft-hold duration and early-exit fee schedule for everyone in each batch. Use a fixed rule to set those terms.
 

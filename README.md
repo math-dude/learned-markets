@@ -15,7 +15,8 @@ We designed more than we could build in a week, so here's where each part stands
 | Identity registry and trade-intent gate (Anchor program) | **Built, deployed to devnet.** 33 LiteSVM tests plus a 26-step localnet rollout. |
 | Attestation service and operator CLI | **Built.** Run end to end on devnet with two browser-wallet participants. |
 | pump.fun history pipeline (Old Faithful → ClickHouse) | **Built.** |
-| Batch-auction settlement | **Scaffolded.** Validation runs, but execution returns `SettlementNotImplemented`. |
+| Batch-auction settlement | **Built, locally tested.** The shared Python core clears batches and an atomic Anchor parity ledger validates and settles its fills. A six-batch episode replays in LiteSVM with matching balances after each batch. Deployment of this build and live transaction delivery are pending. See the [settlement interface](docs/ai-gen/design/settlement-interface.md). |
+| Python backend | **Built.** Serves quotes, clearing and confirmed ledger account reads through Codama-generated bindings. |
 | Learned maker, stage manager, simulator | **Designed.** Training is next. |
 | Web app | React + Vite starter. UI mockups in progress. |
 
@@ -134,6 +135,15 @@ npm run test:programs            # Rust unit tests + LiteSVM on-chain suite
 npm run typecheck && npm test    # TypeScript packages and service
 npm run dev                      # web app at http://localhost:5173
 ```
+
+The [Python backend](apps/backend/README.md) serves quotes, clearing and confirmed ledger account reads:
+
+```bash
+uv sync --locked --all-packages --all-extras
+uv run --package learned-markets-backend uvicorn learned_markets_backend.service:app --port 8000
+```
+
+Ledger balances are simulated accounting units, and the earlier token custody implementation has separate accounts. QuickNode integration remains available as an experimental sponsor-bounty adapter.
 
 Two-user devnet demo, where two participants enroll, get approved, and submit gated intents from their own wallets:
 

@@ -33,3 +33,44 @@ These functions compute values in memory. Ownership, reservations, and custody r
 `ConfigInitialized` and `ConfigUpdated` report the config PDA and the resulting admin, settlement authority, and admission pause flag. `ConfigUpdated` also identifies the signer who authorized the update, which matters when the update rotates the admin. Both events are emitted after the handler's validation succeeds. Consumers should rely on events from successful transactions.
 
 The IDL adds these two events and their types and appends validation errors. The helpers are Rust APIs for future handlers.
+
+
+## Atomic parity ledger
+
+The current backend/program contract follows
+[the environment settlement interface](design/settlement-interface.md).
+`programs/learned-markets/src/ledger.rs` defines separate accounts for simulated
+cash and whole-token positions.
+
+| Account | Seeds | Role |
+| --- | --- | --- |
+| LedgerMarket | ledger-market, market_id | Coin reserve cash/tokens, latest batch and price, live flag |
+| LedgerBalance | ledger-balance, participant | Cash shared across coins |
+| LedgerPosition | ledger-position, market, participant | One person's whole-token position |
+| LedgerPlatform | ledger-platform | Platform fees |
+
+`open_ledger_market` debits the deployer's recorded launch fee and splits it
+between reserve and platform. `initialize_ledger_position` creates the canonical
+position. `settle_ledger_batch` uses the existing eligibility and intent
+validation, then verifies step-curve quantity, positive fills, one participant
+per batch, seller fee bounds, funding and token conservation. It derives reserve
+cash from rounded user notionals and splits fees once per atomic batch. Batch
+IDs increase strictly. A failure rolls back every fill and leaves intents open.
+`close_ledger_market` stops trading and retains the reserve record.
+
+The program bounds the auctioneer's ppm sell fee between the 1% base and 25%
+ceiling. The Python core owns position-dependent exit-term evaluation and
+clearing optimality. These remain settlement-authority trust assumptions.
+Cash arithmetic uses checked integers and u128 products. Prices are
+micro-lamports per whole token.
+
+`credit_ledger_balance` requires an explicit `demo-credit` build, admin signature
+and a development-network configuration label. The label is operator-supplied.
+Deployment controls establish the target cluster. Ledger accounts own recorded
+units and remain separate from the M1 token vaults.
+
+The Python Codama client reproduces actual SBF instruction bytes and account
+data from `fixtures/ledger-wire.json`. LiteSVM replays the six-batch
+`fixtures/settlement-episode.json` produced by the shared Python core and compares
+all balances after each batch. The current parity program has local test
+evidence. Deployment and live backend submission remain pending.

@@ -1,0 +1,50 @@
+program_id,name,class,confidence,source
+L2TExMFKdjpN9kozasaurPirfHy9P8sbXoAN1qA3S95,Lighthouse (assertion guard),infra,high,on-chain binary links github.com/Jac0xb/lighthouse; orbmarkets.io; wassup.trenchscreener.ai
+Memo4c2pN8afCj432Lb7RMVKi9PbQnnW7ewFFaV3oAH,unidentified (Memo vanity; not SPL Memo),unknown,low,vanity prefix only
+JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4,Jupiter Aggregator v6,aggregator,high,well known; wassup.trenchscreener.ai; cpkt9762/solana-dex-program-dumps
+DF1ow4tspfHX9JwWJsAb9epbkA8hmpSEAtxXy1V27QBH,DFlow Aggregator v4,aggregator,high,wassup.trenchscreener.ai; cpkt9762/solana-dex-program-dumps
+proVF4pMXVaYqmy4NjniPh4pqKNfMmsihgd4wdkCX3u,OKX DEX router v3,aggregator,medium,wassup.trenchscreener.ai; cpkt9762/solana-dex-program-dumps
+fs1HenFVUF9atcynPeeu9HxaYGvKJGqdXY3a2kCoDPW,OKX (same upgrade authority as OKX DEX router v3),aggregator,low,on-chain: upgrade authority CjoV5B96... shared with proVF4p...
+T1TANpTeScyeqVzzgNViGDNrkQ6qHz9KrSBS4aNXvGT,Titan router,aggregator,high,wassup.trenchscreener.ai; cpkt9762/solana-dex-program-dumps
+RangohQxaWip6i1twAAnRVLmob9j88fid7sq2DMAATW,Rango (inferred from vanity ID),aggregator,low,vanity prefix only
+3i5JeuZuUxeKtVysUnwQNGerJP2bSMX9fTFfS4Nxe3Br,LI.FI,aggregator,medium,on-chain binary links docs.li.fi and github.com/lifinance/solana-programs
+3mB3kHbyvn45hZ87Lp93wY5oKBrAeqKCgRE1mHj9PYYg,Relay fee taker,aggregator,medium,on-chain binary links relay.link and github.com/unevenlabs-sandbox/solana-fee-taker
+B3111yJCeHBcA1bizdJjUFPALfhAfSRnAbJzGUtnt56A,Binance Wallet router,aggregator,medium,cpkt9762/solana-dex-program-dumps (binance-wallet)
+s7SunwrPG5SbViEKiViaDThPRJxkkTrNx2iRPN3exNC,Bitget DEX aggregator,aggregator,medium,cpkt9762/solana-dex-program-dumps
+JBpxRsMWi2ySouhaiCFpidW7XWChbQQpC8ZywoViPRno,Bitget (same upgrade authority as Bitget DEX aggregator),aggregator,low,on-chain: upgrade authority 22WRsfxo... shared with s7Sunw...
+HuTkmnrv4zPnArMqpbMbFhfwzTR7xfWQZHH1aQKzDKFZ,LiquidMesh router,aggregator,medium,cpkt9762/solana-dex-program-dumps
+Sett1erwx2eqT5A8uvu8GBxDFT2W5TNnhirL7hLmb8m,0x Settler,aggregator,medium,cpkt9762/solana-dex-program-dumps
+routeUGWgWzqBWFcrCfv8tritsqukccJPu3q5GPP3xS,Raydium AMM route,aggregator,medium,cpkt9762/solana-dex-program-dumps
+6Vo3245eszAb5wuqEMw8mGdbfRUdKbHhDHP5LcaGuTAB,pump.fun mobile trade router,official,medium,wassup.trenchscreener.ai community label; on-chain: shares upgrade authority 7gZufww... with MAyhSmzX...
+68kTkdQsd9WhXgsg5X9untjvpSinwAMrJgYHXG9NRQmD,Sol Incinerator (burn/close tool),public_tool,medium,on-chain binary links sol-incinerator.com
+FLASHX8DrLbgeR8FcfNV1F5krxYcYMUdBkrP1EPBtxB9,Axiom Trade,terminal,medium,wassup.trenchscreener.ai; orbmarkets.io/programs (via search snippet)
+term9YPb9mzAsABaqN71A4xdbxHmpBNZavpBiQKZzN3,Terminal (formerly Padre),terminal,medium,wassup.trenchscreener.ai; orbmarkets.io/programs (via search snippet)
+GMgnVFR8Jb39LoXsEVzb3DvBy3ywCmdmJquHUy1Lrkqb,GMGN,terminal,medium,wassup.trenchscreener.ai
+GMGNreQcJFufBiCTLDBgKhYEfEe9B454UjpDr5CaSLA1,GMGN (same upgrade authority),terminal,medium,on-chain: upgrade authority dgmgqBJi... shared with GMgnVFR8...; vanity ID
+DGmgn8AJHwVK1hN6nB361MrZGuGimE9jhR41FRppZRau,GMGN (same upgrade authority),terminal,medium,on-chain: upgrade authority dgmgqBJi... shared with GMgnVFR8...; vanity ID
+BSfD6SHZigAfDWSjzD5Q41jw8LmKwtmjskPH9XW1mrRW,Photon,terminal,medium,orbmarkets.io/programs (via search snippet: Photon program ID starts BSfD)
+BBRouter1cVunVXvkcqeKkZQcBK7ruan37PPm3xzWaXD,BonkBot router,terminal,medium,cpkt9762/solana-dex-program-dumps; orbmarkets.io/programs (via search snippet)
+CxvksNjwhdHDLr3qbCXNKVdeYACW8cs93vFqLqtgyFE5,BonkBot (same upgrade authority; always co-occurs with router),terminal,low,on-chain: upgrade authority 3GLJ4UJF... shared with BBRouter1...
+b1oomGGqPKGD6errbyfbVMBuzSC8WtAAYo8MwNafWW1,Bloom router,terminal,medium,cpkt9762/solana-dex-program-dumps; on-chain binary contains telegram.bloombot.app
+BANANAjs7FJiPQqJTGFzkZJndT9o7UmKiYYGaJz6frGu,Banana Gun router,terminal,medium,cpkt9762/solana-dex-program-dumps
+troyXT7Ty3s2rjJe4bqWaroUrS4Fjd8rbHHNHxcACF4,Trojan (inferred from vanity ID),terminal,low,vanity prefix only; not confirmed by any source
+TroYL71c8P2XNtDxHs98VtVLuiASJ7Ao5FvUoKyp3Bk,Trojan (inferred from vanity ID),terminal,low,vanity prefix only; not confirmed by any source
+MaestroAAe9ge5HTc64VbBQZ6fP77pwvrhM8i1XWSAx,Maestro (inferred from vanity ID),terminal,low,vanity prefix only
+AveaiuA1emN71q9mS2QQ9BEWNAAHmp8sHSvwLFHQjufM,Ave.ai (inferred from vanity ID),terminal,low,vanity prefix only
+MevxQ9iQNGNQSWqa2CtDQs2BwrJA6MifzocykZAgGBr,MevX (inferred from vanity ID),terminal,low,vanity prefix only
+CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK,Raydium CLMM,dex,high,on-chain binary links github.com/raydium-io/raydium-clmm; wassup.trenchscreener.ai
+675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8,Raydium AMM v4,dex,high,on-chain binary links github.com/raydium-io/raydium-amm; wassup.trenchscreener.ai
+CPMMoo8L3F4NbTegBCKVNunggL7H1ZpdTHKxQB5qKP1C,Raydium CPMM,dex,high,wassup.trenchscreener.ai
+whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc,Orca Whirlpools,dex,high,on-chain binary links github.com/orca-so/whirlpools; wassup.trenchscreener.ai
+LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo,Meteora DLMM,dex,high,wassup.trenchscreener.ai
+cpamdpZCGKUy5JxQXB4dcpGPiikHawvSWAd6mEn1sGG,Meteora DAMM v2,dex,high,wassup.trenchscreener.ai
+dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN,Meteora Dynamic Bonding Curve,dex,high,wassup.trenchscreener.ai
+zapvX9M3uf5pvy4wRPAbQgdQsM1xmuiFnkfHKPvwMiz,Meteora (same upgrade authority as DLMM; probably Zap),dex,low,on-chain: upgrade authority JADaUV8k... shared with LBUZKh...
+HpNfyc2Saw7RKkQd8nEL4khUcuPhQ7WwY1B2qjx8jxFq,PancakeSwap CLMM,dex,high,on-chain binary links github.com/pancakeswap/pancake-clmm; wassup.trenchscreener.ai
+MAyhSmzXzV1pTf7LsNkrNwkWKTo4ougAJ1PPg47MD4e,pump.fun-operated program (probably Mayhem-mode agent; inferred),bot,low,on-chain: shares upgrade authority 7gZufww... with pump.fun mobile router; 2 signers
+MEViEnscUm6tsQRoGd9h6nLQaQspKj7DB2M5FwM3Xvz,MEV bot (vanity ID),bot,medium,vanity prefix; 85 signers
+Prism8hsRo6Ww5jiN5Zeh3YDPLZHqHduCPSAV7JF7qv,Copychain copy-trading bot,bot,medium,on-chain binary contains copychain.cc; 37 signers
+AKbotMAGJmYPwV8z55Lqiqgijt2KcjLeFGue5sw1noHM,bot product (vanity 'AKbot'),bot,low,vanity prefix only; ~400 signers
+akbotssnVdpbCyjxbZJbspZspRcXJqzLjqteNBMJF9i,bot product (vanity 'akbot'),bot,low,vanity prefix only; ~300 signers
+XTbotxFEemJLuNiKwi9JBbGGoTfGeiqrboPHmweZ73i,bot product (vanity 'XTbot'),bot,low,vanity prefix only; ~300 signers
+Stbot61LkCD5HE4p1TDtYRt9bzkjX81pKrshZz4Awny,bot product (vanity 'Stbot'),bot,low,vanity prefix only; ~300 signers

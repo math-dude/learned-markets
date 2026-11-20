@@ -1,0 +1,385 @@
+{
+  "version": 1,
+  "qty_at": [
+    {
+      "contents_hex": "01000264000000000000000b0000000000000068000000000000000400000000000000",
+      "price": "99",
+      "quantity": "11"
+    },
+    {
+      "contents_hex": "01000264000000000000000b0000000000000068000000000000000400000000000000",
+      "price": "100",
+      "quantity": "11"
+    },
+    {
+      "contents_hex": "01000264000000000000000b0000000000000068000000000000000400000000000000",
+      "price": "101",
+      "quantity": "9"
+    },
+    {
+      "contents_hex": "01000264000000000000000b0000000000000068000000000000000400000000000000",
+      "price": "102",
+      "quantity": "7"
+    },
+    {
+      "contents_hex": "01000264000000000000000b0000000000000068000000000000000400000000000000",
+      "price": "103",
+      "quantity": "5"
+    },
+    {
+      "contents_hex": "01000264000000000000000b0000000000000068000000000000000400000000000000",
+      "price": "104",
+      "quantity": "4"
+    },
+    {
+      "contents_hex": "01000264000000000000000b0000000000000068000000000000000400000000000000",
+      "price": "105",
+      "quantity": "0"
+    },
+    {
+      "contents_hex": "0101026400000000000000020000000000000068000000000000000900000000000000",
+      "price": "99",
+      "quantity": "0"
+    },
+    {
+      "contents_hex": "0101026400000000000000020000000000000068000000000000000900000000000000",
+      "price": "100",
+      "quantity": "2"
+    },
+    {
+      "contents_hex": "0101026400000000000000020000000000000068000000000000000900000000000000",
+      "price": "101",
+      "quantity": "3"
+    },
+    {
+      "contents_hex": "0101026400000000000000020000000000000068000000000000000900000000000000",
+      "price": "102",
+      "quantity": "5"
+    },
+    {
+      "contents_hex": "0101026400000000000000020000000000000068000000000000000900000000000000",
+      "price": "103",
+      "quantity": "7"
+    },
+    {
+      "contents_hex": "0101026400000000000000020000000000000068000000000000000900000000000000",
+      "price": "104",
+      "quantity": "9"
+    },
+    {
+      "contents_hex": "0101026400000000000000020000000000000068000000000000000900000000000000",
+      "price": "105",
+      "quantity": "9"
+    }
+  ],
+  "terms": {
+    "schedule": {
+      "version": 1,
+      "base_fee_bps": 20,
+      "speed_fee_bps": 80,
+      "hold_fee_bps": 100,
+      "hold_secs": 600,
+      "large_holder_share_bps": 100,
+      "large_holder_fee_bps": 40,
+      "cap_bps": 200,
+      "per_person_batch_max": "2000000"
+    },
+    "bytes_hex": "011400500064005802000064002800c80080841e0000000000"
+  },
+  "quote": {
+    "market_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+    "batch_id": "9007199254740993",
+    "maker_reveal_hex": "010101000264000000000000000b0000000000000068000000000000000400000000000000010101026400000000000000020000000000000068000000000000000900000000000000",
+    "buy_contents_hex": "01000264000000000000000b0000000000000068000000000000000400000000000000",
+    "sell_contents_hex": "0101026400000000000000020000000000000068000000000000000900000000000000",
+    "hash_hex": "9430578b95e7dbc776a2d467fc6b7432e3a3d27e1360fd35ce902256e702e9d6"
+  },
+  "fees": [
+    {
+      "side": "buy",
+      "fill": "1200001",
+      "price": "1000003",
+      "base_before": "0",
+      "total_supply": "100000000",
+      "last_buy_ts": "0",
+      "now": "1000",
+      "max_total_fee_bps": 300,
+      "notional": "1200005",
+      "fee": "7201"
+    },
+    {
+      "side": "sell",
+      "fill": "500001",
+      "price": "1000003",
+      "base_before": "1500000",
+      "total_supply": "100000000",
+      "last_buy_ts": "700",
+      "now": "1000",
+      "max_total_fee_bps": 300,
+      "notional": "500002",
+      "fee": "4801"
+    },
+    {
+      "side": "buy",
+      "fill": "1000000",
+      "price": "1000003",
+      "base_before": "0",
+      "total_supply": "100000000",
+      "last_buy_ts": "0",
+      "now": "1000",
+      "max_total_fee_bps": 300,
+      "notional": "1000003",
+      "fee": "2001"
+    },
+    {
+      "side": "sell",
+      "fill": "1000000",
+      "price": "1000003",
+      "base_before": "1000000",
+      "total_supply": "100000000",
+      "last_buy_ts": "400",
+      "now": "1000",
+      "max_total_fee_bps": 300,
+      "notional": "1000003",
+      "fee": "10001"
+    }
+  ],
+  "two_chunk_batch": {
+    "stage": "Rookie",
+    "max_total_fee_bps": 300,
+    "deployer_fee_bps": 300,
+    "platform_fee_share_bps": 2500,
+    "batch_id": "7",
+    "clearing_price": "1000003",
+    "now": "1000",
+    "maker_reveal_hex": "01000101010143420f000000000060ae0a0000000000",
+    "before": {
+      "market": {
+        "total_supply": "100000000",
+        "maker_base": "98500000",
+        "maker_quote": "10000",
+        "maker_trading_quote": "0",
+        "maker_fee_income": "0",
+        "risk_allowance": "1000",
+        "risk_drawn_peak": "0",
+        "platform_fees": "0",
+        "deployer_fees": "0",
+        "total_user_base": "1500000",
+        "total_user_quote": "10000007",
+        "last_price": "1000000",
+        "last_settled_batch": "6",
+        "batch_id": "8"
+      },
+      "positions": {
+        "buyer": {
+          "base": "0",
+          "quote": "10000000",
+          "last_buy_ts": "0",
+          "external_base": "0",
+          "batch_seen": "0",
+          "batch_bought": "0",
+          "batch_sold": "0",
+          "total_bought": "0",
+          "total_sold": "0",
+          "fees_paid": "0"
+        },
+        "seller": {
+          "base": "1500000",
+          "quote": "7",
+          "last_buy_ts": "700",
+          "external_base": "0",
+          "batch_seen": "0",
+          "batch_bought": "0",
+          "batch_sold": "0",
+          "total_bought": "0",
+          "total_sold": "0",
+          "fees_paid": "0"
+        }
+      },
+      "accumulators": {
+        "acc_user_buy": "0",
+        "acc_user_sell": "0",
+        "acc_buyer_paid": "0",
+        "acc_seller_recv": "0",
+        "acc_fees": "0",
+        "intents_settled": "0"
+      }
+    },
+    "chunks": [
+      {
+        "fills": [
+          {
+            "participant": "buyer",
+            "side": "buy",
+            "contents_hex": "01000143420f0000000000814f120000000000",
+            "fill": "1200001",
+            "notional": "1200005",
+            "fee": "7201"
+          }
+        ],
+        "market": {
+          "total_supply": "100000000",
+          "maker_base": "98500000",
+          "maker_quote": "10000",
+          "maker_trading_quote": "0",
+          "maker_fee_income": "0",
+          "risk_allowance": "1000",
+          "risk_drawn_peak": "0",
+          "platform_fees": "0",
+          "deployer_fees": "0",
+          "total_user_base": "2700001",
+          "total_user_quote": "8792801",
+          "last_price": "1000000",
+          "last_settled_batch": "6",
+          "batch_id": "8"
+        },
+        "positions": {
+          "buyer": {
+            "base": "1200001",
+            "quote": "8792794",
+            "last_buy_ts": "1000",
+            "external_base": "0",
+            "batch_seen": "7",
+            "batch_bought": "1200001",
+            "batch_sold": "0",
+            "total_bought": "1200001",
+            "total_sold": "0",
+            "fees_paid": "7201"
+          },
+          "seller": {
+            "base": "1500000",
+            "quote": "7",
+            "last_buy_ts": "700",
+            "external_base": "0",
+            "batch_seen": "0",
+            "batch_bought": "0",
+            "batch_sold": "0",
+            "total_bought": "0",
+            "total_sold": "0",
+            "fees_paid": "0"
+          }
+        },
+        "accumulators": {
+          "acc_user_buy": "1200001",
+          "acc_user_sell": "0",
+          "acc_buyer_paid": "1200005",
+          "acc_seller_recv": "0",
+          "acc_fees": "7201",
+          "intents_settled": "1"
+        }
+      },
+      {
+        "fills": [
+          {
+            "participant": "seller",
+            "side": "sell",
+            "contents_hex": "01010143420f000000000021a1070000000000",
+            "fill": "500001",
+            "notional": "500002",
+            "fee": "4801"
+          }
+        ],
+        "market": {
+          "total_supply": "100000000",
+          "maker_base": "98500000",
+          "maker_quote": "10000",
+          "maker_trading_quote": "0",
+          "maker_fee_income": "0",
+          "risk_allowance": "1000",
+          "risk_drawn_peak": "0",
+          "platform_fees": "0",
+          "deployer_fees": "0",
+          "total_user_base": "2200000",
+          "total_user_quote": "9288002",
+          "last_price": "1000000",
+          "last_settled_batch": "6",
+          "batch_id": "8"
+        },
+        "positions": {
+          "buyer": {
+            "base": "1200001",
+            "quote": "8792794",
+            "last_buy_ts": "1000",
+            "external_base": "0",
+            "batch_seen": "7",
+            "batch_bought": "1200001",
+            "batch_sold": "0",
+            "total_bought": "1200001",
+            "total_sold": "0",
+            "fees_paid": "7201"
+          },
+          "seller": {
+            "base": "999999",
+            "quote": "495208",
+            "last_buy_ts": "700",
+            "external_base": "0",
+            "batch_seen": "7",
+            "batch_bought": "0",
+            "batch_sold": "500001",
+            "total_bought": "0",
+            "total_sold": "500001",
+            "fees_paid": "4801"
+          }
+        },
+        "accumulators": {
+          "acc_user_buy": "1200001",
+          "acc_user_sell": "500001",
+          "acc_buyer_paid": "1200005",
+          "acc_seller_recv": "500002",
+          "acc_fees": "12002",
+          "intents_settled": "2"
+        }
+      }
+    ],
+    "after": {
+      "market": {
+        "total_supply": "100000000",
+        "maker_base": "97800000",
+        "maker_quote": "718735",
+        "maker_trading_quote": "700003",
+        "maker_fee_income": "8732",
+        "risk_allowance": "1000",
+        "risk_drawn_peak": "0",
+        "platform_fees": "2910",
+        "deployer_fees": "360",
+        "total_user_base": "2200000",
+        "total_user_quote": "9288002",
+        "last_price": "1000003",
+        "last_settled_batch": "7",
+        "batch_id": "8"
+      },
+      "positions": {
+        "buyer": {
+          "base": "1200001",
+          "quote": "8792794",
+          "last_buy_ts": "1000",
+          "external_base": "0",
+          "batch_seen": "7",
+          "batch_bought": "1200001",
+          "batch_sold": "0",
+          "total_bought": "1200001",
+          "total_sold": "0",
+          "fees_paid": "7201"
+        },
+        "seller": {
+          "base": "999999",
+          "quote": "495208",
+          "last_buy_ts": "700",
+          "external_base": "0",
+          "batch_seen": "7",
+          "batch_bought": "0",
+          "batch_sold": "500001",
+          "total_bought": "0",
+          "total_sold": "500001",
+          "fees_paid": "4801"
+        }
+      },
+      "maker_net": "700000",
+      "fee_split": {
+        "platform": "2910",
+        "maker": "8732",
+        "deployer": "360"
+      }
+    }
+  }
+}

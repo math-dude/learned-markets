@@ -1,4 +1,4 @@
-//! Settlement module boundary (scaffold).
+//! Shared trade-intent validation and the original v1 settlement scaffold.
 //!
 //! What exists today:
 //! * Versioned request/result types referencing market, batch and intents.
@@ -10,9 +10,7 @@
 //!   two are atomic. The only engine today is [`NotImplementedEngine`], which
 //!   returns `SettlementNotImplemented` *before* any intent is touched.
 //!
-//! Deliberately absent: token custody, deposits, fund reservations, fill
-//! mathematics, fees, asset transfers, and any generic CPI. Escrow versus
-//! another settlement model is an open decision.
+//! The atomic simulation ledger reuses [`validate_trade_intent`] before recording fills.
 
 use std::collections::BTreeSet;
 
@@ -114,69 +112,24 @@ pub fn validate_batch<'info>(
     let mut seen = BTreeSet::new();
     let mut intents = Vec::with_capacity(request.intents.len());
     for (i, item) in request.intents.iter().enumerate() {
-        require!(seen.insert(item.intent), GateError::DuplicateSettlementIntent);
-        let accts = &remaining[i * SETTLEMENT_ACCOUNTS_PER_INTENT..(i + 1) * SETTLEMENT_ACCOUNTS_PER_INTENT];
-        require_keys_eq!(accts[0].key(), item.intent, GateError::SettlementAccountsMismatch);
-
-        // Account<T>::try_from enforces program ownership and discriminators.
-        let intent: Account<'info, Intent> = Account::try_from(&accts[0])
-            .map_err(|_| error!(GateError::SettlementAccountsMismatch))?;
-        let participant: Account<'info, Participant> = Account::try_from(&accts[1])
-            .map_err(|_| error!(GateError::SettlementAccountsMismatch))?;
-        let wallet_binding: Account<'info, WalletBinding> = Account::try_from(&accts[2])
-            .map_err(|_| error!(GateError::SettlementAccountsMismatch))?;
-
-        let expected_intent = Pubkey::create_program_address(
-            &[
-                INTENT_SEED,
-                participant.key().as_ref(),
-                &intent.nonce.to_le_bytes(),
-                &[intent.bump],
-            ],
-            &crate::ID,
-        )
-        .map_err(|_| error!(GateError::NonCanonicalRegistryAccount))?;
-        require_keys_eq!(intent.key(), expected_intent, GateError::NonCanonicalRegistryAccount);
-        require_keys_eq!(intent.participant, participant.key(), GateError::IntentOwnerMismatch);
-        require!(intent.state == IntentState::Open, GateError::IntentNotOpen);
-        require!(now <= intent.deadline, GateError::IntentExpired);
         require!(
-            intent.binding_version == participant.binding_version,
-            GateError::StaleIntentBinding
+            seen.insert(item.intent),
+            GateError::DuplicateSettlementIntent
         );
-        require_keys_eq!(intent.target, request.market, GateError::IntentTargetMismatch);
-        require!(intent.kind == IntentKind::Trade, GateError::WrongIntentKind);
-        payload::validate_contents(intent.kind, &item.contents)?;
-        let hash = payload::payload_hash(
-            &config.app_scope,
-            &config.network,
-            intent.kind,
-            &intent.target,
-            &item.contents,
-        );
-        require!(hash == intent.payload_hash, GateError::PayloadHashMismatch);
-
-        // Full current eligibility, rechecked at the settlement boundary.
-        let badge_accounts = BadgeAccounts {
-            credential: shared.credential.as_ref(),
-            schema: shared.schema.as_ref(),
-            schema_mint: shared.schema_mint.as_ref(),
-            attestation: &accts[3],
-            badge_mint: &accts[4],
-            badge_token_account: &accts[5],
-        };
-        gate::require_eligible(
+        let accts = &remaining
+            [i * SETTLEMENT_ACCOUNTS_PER_INTENT..(i + 1) * SETTLEMENT_ACCOUNTS_PER_INTENT];
+        let (intent, participant, _) = validate_trade_intent(
             config,
-            &participant,
-            &wallet_binding,
-            &badge_accounts,
+            shared,
+            accts,
+            item.intent,
+            request.market,
+            &item.contents,
             now,
-            GateMode::Standing,
         )?;
-
         intents.push(ValidatedIntent {
-            participant: participant.key(),
             intent,
+            participant,
             contents: item.contents.clone(),
             _private: (),
         });
@@ -210,4 +163,91 @@ pub fn execute<E: SettlementEngine>(
         status: SettlementStatus::Settled,
         consumed_intents: consumed,
     })
+}
+
+/// Return only intents bound to this market, a live participant and verified curve.
+pub fn validate_trade_intent<'info>(
+    config: &Account<'info, Config>,
+    shared: &SasBadgeShared<'info>,
+    accts: &'info [AccountInfo<'info>],
+    intent_key: Pubkey,
+    market: Pubkey,
+    contents: &[u8],
+    now: i64,
+) -> Result<(Account<'info, Intent>, Pubkey, payload::TradeContents)> {
+    require!(
+        accts.len() >= SETTLEMENT_ACCOUNTS_PER_INTENT,
+        GateError::SettlementAccountsMismatch
+    );
+    require_keys_eq!(
+        accts[0].key(),
+        intent_key,
+        GateError::SettlementAccountsMismatch
+    );
+
+    // Account<T>::try_from enforces program ownership and discriminators.
+    let intent: Account<'info, Intent> =
+        Account::try_from(&accts[0]).map_err(|_| error!(GateError::SettlementAccountsMismatch))?;
+    let participant: Account<'info, Participant> =
+        Account::try_from(&accts[1]).map_err(|_| error!(GateError::SettlementAccountsMismatch))?;
+    let wallet_binding: Account<'info, WalletBinding> =
+        Account::try_from(&accts[2]).map_err(|_| error!(GateError::SettlementAccountsMismatch))?;
+
+    let expected_intent = Pubkey::create_program_address(
+        &[
+            INTENT_SEED,
+            participant.key().as_ref(),
+            &intent.nonce.to_le_bytes(),
+            &[intent.bump],
+        ],
+        &crate::ID,
+    )
+    .map_err(|_| error!(GateError::NonCanonicalRegistryAccount))?;
+    require_keys_eq!(
+        intent.key(),
+        expected_intent,
+        GateError::NonCanonicalRegistryAccount
+    );
+    require_keys_eq!(
+        intent.participant,
+        participant.key(),
+        GateError::IntentOwnerMismatch
+    );
+    require!(intent.state == IntentState::Open, GateError::IntentNotOpen);
+    require!(now <= intent.deadline, GateError::IntentExpired);
+    require!(
+        intent.binding_version == participant.binding_version,
+        GateError::StaleIntentBinding
+    );
+    require_keys_eq!(intent.target, market, GateError::IntentTargetMismatch);
+    require!(intent.kind == IntentKind::Trade, GateError::WrongIntentKind);
+    let curve = payload::TradeContents::decode(contents)?;
+    let hash = payload::payload_hash(
+        &config.app_scope,
+        &config.network,
+        intent.kind,
+        &intent.target,
+        contents,
+    );
+    require!(hash == intent.payload_hash, GateError::PayloadHashMismatch);
+
+    // Full current eligibility, rechecked at the settlement boundary.
+    let badge_accounts = BadgeAccounts {
+        credential: shared.credential.as_ref(),
+        schema: shared.schema.as_ref(),
+        schema_mint: shared.schema_mint.as_ref(),
+        attestation: &accts[3],
+        badge_mint: &accts[4],
+        badge_token_account: &accts[5],
+    };
+    gate::require_eligible(
+        config,
+        &participant,
+        &wallet_binding,
+        &badge_accounts,
+        now,
+        GateMode::Standing,
+    )?;
+
+    Ok((intent, participant.key(), curve))
 }
