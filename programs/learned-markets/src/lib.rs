@@ -6,12 +6,15 @@
 //! * Intents: `Trade` and `Nomination` intents with persistent per-participant nonces.
 //! * Settlement: `settle_batch` validates and then returns `SettlementNotImplemented`.
 
+pub mod accounting;
+pub mod assets;
 pub mod constants;
 pub mod error;
 pub mod events;
 pub mod gate;
 pub mod instructions;
 pub mod payload;
+pub mod references;
 pub mod sas;
 pub mod settlement;
 pub mod state;

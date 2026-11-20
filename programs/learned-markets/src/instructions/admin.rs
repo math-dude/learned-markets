@@ -3,7 +3,7 @@ use anchor_lang::prelude::*;
 use crate::{
     constants::*,
     error::GateError,
-    events::ParticipantStatusChanged,
+    events::{ConfigInitialized, ConfigUpdated, ParticipantStatusChanged},
     sas,
     state::{Config, Participant, ParticipantStatus, CONFIG_VERSION},
 };
@@ -120,6 +120,12 @@ pub fn handle_initialize_config(
         allowed_verification_method: args.allowed_verification_method,
         admission_paused: false,
     });
+    emit!(ConfigInitialized {
+        config: config.key(),
+        admin: config.admin,
+        settlement_authority: config.settlement_authority,
+        admission_paused: config.admission_paused,
+    });
     Ok(())
 }
 
@@ -155,6 +161,13 @@ pub fn handle_update_config(ctx: Context<UpdateConfig>, args: UpdateConfigArgs) 
         require!(authority != Pubkey::default(), GateError::InvalidConfig);
         config.settlement_authority = authority;
     }
+    emit!(ConfigUpdated {
+        config: config.key(),
+        authorizing_admin: ctx.accounts.admin.key(),
+        admin: config.admin,
+        settlement_authority: config.settlement_authority,
+        admission_paused: config.admission_paused,
+    });
     Ok(())
 }
 

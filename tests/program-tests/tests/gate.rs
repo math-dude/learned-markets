@@ -1,6 +1,8 @@
 //! On-chain acceptance tests for the registry, the shared eligibility guard,
 //! gated intents and the settlement scaffold.
 
+use base64::{engine::general_purpose::STANDARD, Engine};
+use borsh::BorshDeserialize;
 use program_tests::*;
 use solana_instruction::{AccountMeta, Instruction};
 
@@ -34,6 +36,17 @@ fn market() -> Address {
 
 // ---------------------------------------------------------------- config
 
+fn config_event<T: BorshDeserialize>(logs: &[String], name: &str) -> Option<T> {
+    let discriminator = sha256(&[b"event:", name.as_bytes()]);
+    logs.iter()
+        .filter_map(|log| log.strip_prefix("Program data: "))
+        .filter_map(|data| STANDARD.decode(data).ok())
+        .find_map(|data| {
+            data.strip_prefix(&discriminator[..8])
+                .map(|payload| T::try_from_slice(payload).expect("invalid config event payload"))
+        })
+}
+
 #[test]
 fn config_init_requires_deployment_authority() {
     let mut env = Env::bare();
@@ -49,11 +62,15 @@ fn config_init_requires_deployment_authority() {
 
     env.set_upgrade_authority(&lm_id(), Some(deployer.pubkey()));
     let ix = env.ix_initialize_config(&deployer.pubkey(), NETWORK);
-    ok(env.send(&[ix], &[&deployer]));
+    let tx = ok(env.send(&[ix], &[&deployer]));
     let c = env.config();
     assert_eq!(c.app_scope, APP_SCOPE);
     assert_eq!(c.schema_mint, env.schema_mint);
     assert_eq!(c.sas_authority, sas_authority_pda());
+    assert_eq!(
+        config_event::<(Address, Address, Address, bool)>(&tx.logs, "ConfigInitialized"),
+        Some((config_pda(), c.admin, c.settlement_authority, false))
+    );
 
     // Second initialization fails (PDA exists).
     let ix = env.ix_initialize_config(&deployer.pubkey(), NETWORK);
@@ -67,9 +84,24 @@ fn config_updates_require_admin() {
     let ix = env.ix_update_config(&mallory.pubkey(), Some(true), None);
     expect_err(env.send(&[ix], &[&mallory]), "NotAdmin");
     let admin = env.admin.insecure_clone();
-    let ix = env.ix_update_config(&admin.pubkey(), Some(true), None);
-    ok(env.send(&[ix], &[&admin]));
-    assert!(env.config().admission_paused);
+    let before = env.account(&config_pda()).unwrap();
+    let invalid = env.ix_update_config(&admin.pubkey(), Some(true), Some(Address::default()));
+    let failure = env.send(&[invalid], &[&admin]).unwrap_err();
+    assert_eq!(failure.custom_code(), Some(err_code("InvalidConfig")));
+    assert_eq!(env.account(&config_pda()).unwrap(), before);
+    type ConfigUpdated = (Address, Address, Address, Address, bool);
+    assert!(config_event::<ConfigUpdated>(&failure.logs, "ConfigUpdated").is_none());
+
+    let new_admin = env.new_wallet(91);
+    let ix = env.ix_update_config(&admin.pubkey(), Some(true), Some(new_admin.pubkey()));
+    let tx = ok(env.send(&[ix], &[&admin]));
+    let c = env.config();
+    assert!(c.admission_paused);
+    assert_eq!(c.admin, new_admin.pubkey());
+    assert_eq!(
+        config_event::<ConfigUpdated>(&tx.logs, "ConfigUpdated"),
+        Some((config_pda(), admin.pubkey(), c.admin, c.settlement_authority, true))
+    );
 }
 
 // ---------------------------------------------------------------- registration

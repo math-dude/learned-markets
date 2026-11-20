@@ -3,6 +3,23 @@ use anchor_lang::prelude::*;
 use crate::state::{IntentKind, ParticipantStatus};
 
 #[event]
+pub struct ConfigInitialized {
+    pub config: Pubkey,
+    pub admin: Pubkey,
+    pub settlement_authority: Pubkey,
+    pub admission_paused: bool,
+}
+
+#[event]
+pub struct ConfigUpdated {
+    pub config: Pubkey,
+    pub authorizing_admin: Pubkey,
+    pub admin: Pubkey,
+    pub settlement_authority: Pubkey,
+    pub admission_paused: bool,
+}
+
+#[event]
 pub struct ParticipantRegistered {
     pub participant: Pubkey,
     pub participant_id: [u8; 32],

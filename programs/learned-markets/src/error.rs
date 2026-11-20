@@ -131,4 +131,34 @@ pub enum GateError {
     DuplicateSettlementIntent,
     #[msg("Settlement is not implemented")]
     SettlementNotImplemented,
+
+    // Validation foundation
+    #[msg("Account address does not match the expected reference")]
+    ReferenceAddressMismatch,
+    #[msg("Data account is owned by the wrong program")]
+    DataAccountOwnerMismatch,
+    #[msg("Executable account cannot be used as a data account")]
+    ExecutableDataAccount,
+    #[msg("Account data or balance could not be borrowed")]
+    AccountBorrowFailed,
+    #[msg("Account discriminator or data layout does not match the expected type")]
+    InvalidReferenceData,
+    #[msg("Token program is unsupported")]
+    UnsupportedTokenProgram,
+    #[msg("Token mint is uninitialized or malformed")]
+    InvalidTokenMint,
+    #[msg("Token account is uninitialized or malformed")]
+    InvalidTokenAccount,
+    #[msg("Token-2022 extension layout is malformed or unsupported")]
+    InvalidTokenExtensions,
+    #[msg("Token mint does not match the expected mint")]
+    TokenMintMismatch,
+    #[msg("Token account authority does not match the expected authority")]
+    TokenAuthorityMismatch,
+    #[msg("Balance is insufficient")]
+    InsufficientBalance,
+    #[msg("Protected amount exceeds the observed balance")]
+    ProtectedAmountExceedsBalance,
+    #[msg("Observed backing is less than the supplied liabilities")]
+    BackingDeficit,
 }
