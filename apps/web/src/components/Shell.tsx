@@ -9,29 +9,12 @@ const NAV = [
   { to: '/proof', label: 'Pump vs us', icon: InfoIcon },
 ]
 
-/** The damper mark: an oscillation settling to rest. */
-export function DamperMark() {
-  return (
-    <svg viewBox="0 0 40 40" width="40" height="40" aria-hidden="true">
-      <rect width="40" height="40" rx="10" fill="#15101f" />
-      <path
-        d="M7 22c1.6-9 3.4-12 5.2-12 3.2 0 2.6 17 6 17 2.6 0 2.4-9.5 5-9.5 1.9 0 2.1 4.2 4 4.2 1.3 0 2.6-1.2 5.8-1.5"
-        fill="none"
-        stroke="#a78bfa"
-        strokeWidth="2.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  )
-}
-
 export function ShellFrame({ bar, children }: { bar: ReactNode; children: ReactNode }) {
   return (
     <div className="shell">
       <nav aria-label="Main" className="sidenav">
         <NavLink to="/" aria-label="damper home" className="sidenav-logo">
-          <DamperMark />
+          <img src="/damper-icon.svg" width="40" height="40" alt="" />
         </NavLink>
         {NAV.map(({ to, label, icon: Icon, end }) => (
           <NavLink key={to} to={to} end={end} aria-label={label} title={label} className={({ isActive }) => 'sidenav-link' + (isActive ? ' active' : '')}>
