@@ -84,7 +84,7 @@ class QuoterVecEnv(_TensorVecEnv):
         out = w.step(residual_params(w.state, w.tape.pressure, w.tape.idle, self._actions, self.cfg, self.frozen))
         done = out.events.ended | out.events.launched
         live = w.state.stage > 0
-        self.reward_sum += float(out.reward.sum(1).mean())
+        self.reward_sum += float(out.people_reward.sum(1).mean())
         self.closeness_sum += float((out.closeness * live).sum() / live.sum().clamp(min=1))
         self.traders_sum += float(out.result.traders.sum(1).float().mean())
         self.reward_steps += 1

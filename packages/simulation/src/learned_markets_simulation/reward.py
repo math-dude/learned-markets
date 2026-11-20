@@ -28,6 +28,12 @@ def batch_reward(
     return torch.where(live, r, torch.zeros_like(r))
 
 
+def gap_penalty(ret: torch.Tensor, live: torch.Tensor, sim: SimConfig) -> torch.Tensor:
+    """Smoothness charge per coin for one batch, [W, C]: weight x the move beyond the free band."""
+    excess = (ret.abs() - sim.gap_free).clamp(min=0.0)
+    return torch.where(live, sim.gap_weight * excess, torch.zeros_like(excess))
+
+
 def platform_reward(reward: torch.Tensor) -> torch.Tensor:
     """The auction network's reward, [W]: the sum over coins.
 

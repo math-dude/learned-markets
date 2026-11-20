@@ -107,7 +107,7 @@ class Tape:
             torch.full((W, C), 1 - (s.t % cfg.epoch) / cfg.epoch, device=dev),
             (n_line / lever_values[:, 1:2]).clamp(max=1.5).expand(W, C),
             (live.sum(1, keepdim=True).float() / C).expand(W, C),
-            (torch.log(lever_values[:, 0:1] / 1e9) / 5).expand(W, C),
+            (torch.log(lever_values[:, 0:1].clamp(min=1e6) / 1e9) / 5).expand(W, C),
         ]  # fmt: skip
         obs = torch.stack(cols, dim=2)
         return torch.where(live.unsqueeze(2), obs, torch.zeros_like(obs))

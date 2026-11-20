@@ -60,7 +60,7 @@ def quick_compare(act: Callable | None, kind: str, seed: int, n_worlds: int, ste
     for _ in range(steps):
         out = world.step(quoter_params(world, act) if kind == "learned" else None)
         live = world.state.stage > 0
-        reward += float(out.reward.sum(1).mean())
+        reward += float(out.people_reward.sum(1).mean())
         closeness += float((out.closeness * live).sum() / live.sum().clamp(min=1))
         traders += float(out.result.traders.sum(1).float().mean())
     return {"market": kind, "platform_reward": reward / steps, "closeness": closeness / steps,

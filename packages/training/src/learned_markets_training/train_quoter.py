@@ -31,13 +31,16 @@ def main() -> None:
     ap.add_argument("--freeze", default="", help="comma-separated action names held at the rule-based stand-in")
     ap.add_argument("--resume", default="")
     ap.add_argument("--eval-steps", type=int, default=600)
+    ap.add_argument(
+        "--gap-weight", type=float, default=0.0, help="weight of the smoothness charge on large single-batch moves"
+    )
     ap.add_argument("--save-every", type=int, default=100, help="rollouts between checkpoints")
     args = ap.parse_args()
 
     run_dir = OUT / "checkpoints" / args.name
     run_dir.mkdir(parents=True, exist_ok=True)
     frozen = tuple(PARAM_NAMES.index(n) for n in args.freeze.split(",") if n)
-    sim = sim_config()
+    sim = sim_config(gap_weight=args.gap_weight)
     env = QuoterVecEnv(market_config(args.worlds), sim, seed=args.seed, frozen=frozen)
     (run_dir / "config.json").write_text(json.dumps({**vars(args), "frozen_idx": frozen}, indent=1))
 
@@ -49,12 +52,17 @@ def main() -> None:
             gamma=args.gamma, gae_lambda=0.95, ent_coef=args.ent, clip_range=0.2, max_grad_norm=0.5,
             policy_kwargs=POLICY_KWARGS, device="cuda", seed=args.seed, verbose=0,
         )  # fmt: skip
-    model.learn(total_timesteps=args.timesteps, callback=LogCallback(env, run_dir, save_every=args.save_every), reset_num_timesteps=not args.resume)
+    model.learn(
+        total_timesteps=args.timesteps,
+        callback=LogCallback(env, run_dir, save_every=args.save_every),
+        reset_num_timesteps=not args.resume,
+    )
     model.save(run_dir / "final")
 
     # Held-out seed, same crowd settings: learned against the two fixed markets.
-    rows = [quick_compare(policy_fn(model), "learned", 10_001, 64, args.eval_steps, sim)]
-    rows += [quick_compare(None, kind, 10_001, 64, args.eval_steps, sim) for kind in ("rule", "curve")]
+    plain = sim_config()
+    rows = [quick_compare(policy_fn(model), "learned", 10_001, 64, args.eval_steps, plain)]
+    rows += [quick_compare(None, kind, 10_001, 64, args.eval_steps, plain) for kind in ("rule", "curve")]
     for row in rows:
         print(json.dumps(row), flush=True)
     (run_dir / "quick_compare.json").write_text(json.dumps(rows, indent=1))
