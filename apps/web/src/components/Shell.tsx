@@ -1,7 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { clock } from '../lib/format'
-import { market, useMarket } from '../market/engine'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { NavLink, useNavigate } from 'react-router-dom'
 import { BoardIcon, InfoIcon, PlusIcon, PortfolioIcon, SearchIcon } from './icons'
 import { CoinTile } from './CoinBits'
 
@@ -11,12 +9,7 @@ const NAV = [
   { to: '/how-it-works', label: 'How it works', icon: InfoIcon },
 ]
 
-export function Shell() {
-  useEffect(() => {
-    market.start()
-    return () => market.stop()
-  }, [])
-
+export function ShellFrame({ bar, children }: { bar: ReactNode; children: ReactNode }) {
   return (
     <div className="shell">
       <nav aria-label="Main" className="sidenav">
@@ -31,45 +24,16 @@ export function Shell() {
         </NavLink>
       </nav>
       <div className="main-col">
-        <TopBar />
-        <Outlet />
+        {bar}
+        {children}
       </div>
     </div>
   )
 }
 
-function TopBar() {
-  const s = useMarket()
-  const { pathname } = useLocation()
-  const onBoard = pathname === '/'
-  return (
-    <header className="topbar">
-      <Search />
-      <span style={{ marginLeft: 'auto' }} />
-      {onBoard ? (
-        <span className="chip" title="Coins you hold that survived each epoch in a row">
-          <span className="muted">your picks survived</span>
-          <span className="tnum" style={{ fontWeight: 800, color: 'var(--violet-hi)' }}>
-            {s.streak} epochs
-          </span>
-        </span>
-      ) : (
-        <span className="chip">
-          <span className="muted">next epoch</span>
-          <span className="tnum" style={{ fontWeight: 700, fontFamily: 'var(--mono)' }}>
-            {clock(s.epoch)}
-          </span>
-        </span>
-      )}
-      <NavLink to="/portfolio" className="chip chip-strong tnum" style={{ color: 'var(--text)' }}>
-        {s.balance.toFixed(2)} SOL
-      </NavLink>
-    </header>
-  )
-}
+type SearchCoin = { key: string; name: string; ticker: string; tint: string; where: string; to: string }
 
-function Search() {
-  const s = useMarket()
+export function Search({ coins }: { coins: SearchCoin[] }) {
   const navigate = useNavigate()
   const inputRef = useRef<HTMLInputElement>(null)
   const [q, setQ] = useState('')
@@ -90,10 +54,8 @@ function Search() {
   const results = useMemo(() => {
     const t = q.trim().toLowerCase()
     if (!t) return []
-    const seated = market.seated(s).map((c) => ({ key: 'c' + c.id, name: c.name, ticker: c.ticker, tint: c.tint, where: 'Board', to: `/coin/${c.ticker}` }))
-    const line = s.line.map((l) => ({ key: 'l' + l.id, name: l.name, ticker: l.ticker, tint: l.tint, where: 'The Line', to: '/' }))
-    return [...seated, ...line].filter((r) => r.name.toLowerCase().includes(t) || r.ticker.toLowerCase().includes(t)).slice(0, 8)
-  }, [q, s])
+    return coins.filter((r) => r.name.toLowerCase().includes(t) || r.ticker.toLowerCase().includes(t)).slice(0, 8)
+  }, [q, coins])
 
   const go = (to: string) => {
     navigate(to)
@@ -109,7 +71,7 @@ function Search() {
         <input
           ref={inputRef}
           type="search"
-          placeholder="Search for coins and users..."
+          placeholder="Search for coins…"
           aria-label="Search for coins"
           role="combobox"
           aria-expanded={open && results.length > 0}

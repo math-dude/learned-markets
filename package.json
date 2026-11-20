@@ -11,14 +11,15 @@
     "node": ">=24.12"
   },
   "scripts": {
-    "dev": "npm run dev -w apps/web",
+    "dev": "node scripts/dev-web.mjs",
     "build": "npm run build -w apps/web",
     "lint": "npm run lint -w apps/web",
     "typecheck": "tsc -p packages/attestations && tsc -p apps/attestation-service && tsc -p packages/client && tsc -p apps/settler",
     "test": "npm run test -w @learned-markets/attestations && npm run test -w @learned-markets/attestation-service && npm test -w packages/client && npm test -w apps/settler",
     "test:programs": "anchor build -- --features learned-markets/demo-credit && cargo test -p learned-markets && (cd tests/program-tests && cargo test --features demo-credit) && anchor build && (cd tests/program-tests && cargo test --test ledger default_build_disables_localnet_credit -- --exact)",
     "rollout": "node scripts/rollout.ts",
-    "generate:python": "node scripts/generate-python-client.mjs"
+    "generate:python": "node scripts/generate-python-client.mjs",
+    "test:web": "npm run test:e2e -w web"
   },
   "devDependencies": {
     "@solana-program/system": "0.15.0",

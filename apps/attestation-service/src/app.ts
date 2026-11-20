@@ -222,10 +222,19 @@ export function createApp(deps: { db: Db; chain: Chain; config: ServiceConfig; n
 
     // ----------------------------------------------------------------- lookup
 
+    app.get('/v1/network', async c => {
+        const cfg = await chain.config();
+        if (cfg.network !== config.network) throw new HttpError(409, 'NetworkMismatch', 'program and service network names differ');
+        return c.json({ network: cfg.network, genesisHash: await chain.genesisHash() });
+    });
+
     app.get('/v1/me', async c => {
         const s = requireSession(c);
         const report = await chain.eligibility(s.wallet);
-        if (!report.eligible) revokeWalletSessions(db, s.wallet, now());
+        if (!report.eligible || report.participant?.address !== s.participant) {
+            revokeWalletSessions(db, s.wallet, now());
+            return c.json(jsonSafe({ ...report, eligible: false }));
+        }
         return c.json(jsonSafe(report));
     });
 
@@ -293,6 +302,10 @@ export function createApp(deps: { db: Db; chain: Chain; config: ServiceConfig; n
         const fail = (code: string, message: string) => {
             throw new HttpError(409, code, message);
         };
+        if (b.expectedTarget !== undefined && intent.target !== assertAddress(b.expectedTarget, 'expectedTarget'))
+            fail('IntentTargetMismatch', 'intent belongs to a different action or batch');
+        if (b.expectedKind !== undefined && b.expectedKind !== (intent.kind === IntentKind.Trade ? 'trade' : 'nomination'))
+            fail('IntentKindMismatch', 'intent has a different kind');
         if (intent.participant !== s.participant) fail('IntentOwnerMismatch', 'intent belongs to another participant');
         if (intent.wallet !== s.wallet) fail('WalletNotCurrent', 'intent was submitted by another wallet');
         if (intent.state !== IntentState.Open) fail('IntentNotOpen', 'intent is not open');

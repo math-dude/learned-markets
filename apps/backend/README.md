@@ -5,8 +5,9 @@ Quantities are whole tokens, cash is lamports, prices are micro-lamports per tok
 and sell fee rates are integer ppm. The simulator, trainer and backend share
 `learned_markets_core.market.step_batch`.
 
-The future web client calls this HTTP API. The backend reads program accounts and
-builds unsigned program instructions through checked-in Codama Python bindings.
+The web client calls `learned_markets_backend.web:app` through the same-origin `/api` routes. This single-worker service owns the paper market, runs the clock and checks protected requests with the participant service. The base auctioneer in `api:app` is a separate manual operator harness. Run the integrated web app with `npm run dev`. See [web setup](../web/README.md).
+
+The stateless service below reads program accounts and builds unsigned program instructions through checked-in Codama Python bindings.
 
 ## Run
 

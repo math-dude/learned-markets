@@ -354,7 +354,11 @@ test('intents are admitted only after the matching gated intent is confirmed', a
     const modified = toHex(encodeTrade({ side: 'buy', points: [{ price: 100n, quantity: 5001n }] }));
     assert.equal((await h.req('POST', '/v1/intents/admit', { cookie, body: { intent: prep.json.intent, contentsHex: modified } })).json.error, 'PayloadHashMismatch');
 
-    const ok = await h.req('POST', '/v1/intents/admit', { cookie, body: { intent: prep.json.intent } });
+    for (const [expected, code] of [[{ expectedTarget: CONFIG.admin }, 'IntentTargetMismatch'], [{ expectedKind: 'nomination' }, 'IntentKindMismatch']] as const) {
+        const denied = await h.req('POST', '/v1/intents/admit', { cookie, body: { intent: prep.json.intent, ...expected } });
+        assert.equal(denied.json.error, code);
+    }
+    const ok = await h.req('POST', '/v1/intents/admit', { cookie, body: { intent: prep.json.intent, expectedTarget: market, expectedKind: 'trade' } });
     assert.equal(ok.status, 201, JSON.stringify(ok.json));
     assert.equal(ok.json.observedSlot, '101');
     assert.equal((await h.req('POST', '/v1/intents/admit', { cookie, body: { intent: prep.json.intent } })).json.error, 'IntentAlreadyAdmitted');

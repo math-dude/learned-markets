@@ -1,30 +1,18 @@
 import { useState, type PointerEvent } from 'react'
-import { useStore } from '../../lib/store'
 import { num, signedPct } from '../../lib/format'
-import type { Candle, RoundSim } from './roundSim'
+export interface Candle { o: number; h: number; l: number; c: number; v: number }
 
-type Range = '5m' | '1h' | '6h' | '24h'
-const RANGES: Range[] = ['5m', '1h', '6h', '24h']
-const GROUP: Record<Range, number> = { '5m': 1, '1h': 4, '6h': 8, '24h': 16 }
-const DURATION: Record<Range, number> = { '5m': 300, '1h': 3600, '6h': 21600, '24h': 86400 }
 /** Plot area insets inside the chart box (right side holds price tags). */
 const LEFT = 8
 const RIGHT = 84
 
-const ago = (sec: number) => (sec < 60 ? Math.round(sec) + 's ago' : sec < 3600 ? Math.round(sec / 60) + 'm ago' : (sec / 3600).toFixed(1) + 'h ago')
-
-export function PriceChart({ sim, price, ticker }: { sim: RoundSim; price: number; ticker: string }) {
-  const st = useStore(sim.store)
-  const [range, setRange] = useState<Range>('1h')
+export function CandleChart({ candles, price, ticker, unit, caption }: {
+  candles: Candle[]; price: number; ticker: string; unit: 'SOL' | 'lamports'
+  caption: (index: number) => string
+}) {
   const [hoverIdx, setHoverIdx] = useState<number | null>(null)
-
-  const f = GROUP[range]
-  const src = st.candles.slice(-44 * f)
-  const agg: Candle[] = []
-  for (let i = 0; i < src.length; i += f) {
-    const g = src.slice(i, i + f)
-    agg.push({ o: g[0].o, c: g[g.length - 1].c, h: Math.max(...g.map((x) => x.h)), l: Math.min(...g.map((x) => x.l)), v: g.reduce((a, x) => a + x.v, 0) })
-  }
+  if (!candles.length) return <section className="card"><h2>Price history</h2><p>The chart starts with the first fill.</p></section>
+  const agg = [...candles]
   // The live price may have moved since the last round (other traders); show it on the last candle.
   const lastK = { ...agg[agg.length - 1] }
   lastK.c = price
@@ -38,7 +26,7 @@ export function PriceChart({ sim, price, ticker }: { sim: RoundSim; price: numbe
   const top = hi + pad
   const bot = lo - pad * 2.2
   const yp = (v: number) => ((top - v) / (top - bot)) * 100
-  const vmax = Math.max(...agg.map((k) => k.v))
+  const vmax = Math.max(1, ...agg.map((k) => k.v))
   const n = agg.length
 
   const hIdx = hoverIdx === null ? null : Math.min(n - 1, hoverIdx)
@@ -56,14 +44,7 @@ export function PriceChart({ sim, price, ticker }: { sim: RoundSim; price: numbe
   return (
     <section aria-label="Price chart" style={{ padding: '14px 20px 6px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-        <span style={{ fontWeight: 600, fontSize: 16 }}>Price</span>
-        <div role="group" aria-label="Chart range" style={{ display: 'flex', gap: 6 }}>
-          {RANGES.map((r) => (
-            <button key={r} type="button" className="pill-btn sm" aria-pressed={range === r} onClick={() => setRange(r)}>
-              {r}
-            </button>
-          ))}
-        </div>
+        <span style={{ fontWeight: 600, fontSize: 16 }}>Price · {unit} per token</span>
       </div>
       <div className="chart">
         {[25, 50, 75].map((p) => (
@@ -96,7 +77,7 @@ export function PriceChart({ sim, price, ticker }: { sim: RoundSim; price: numbe
               {hk.c.toFixed(5)}
             </span>
             <div role="status" className="chart-tip tnum" style={{ left: hIdx > n * 0.6 ? `calc(${xAt(hIdx)} - 232px)` : `calc(${xAt(hIdx)} + 12px)` }}>
-              <span className="muted">{hIdx === n - 1 ? 'Current candle' : ago((n - 1 - hIdx) * (DURATION[range] / n))}</span>
+              <span className="muted">{caption(hIdx)}</span>
               <TipRow label="Open" value={hk.o.toFixed(5)} />
               <TipRow label="High" value={hk.h.toFixed(5)} />
               <TipRow label="Low" value={hk.l.toFixed(5)} />
@@ -110,7 +91,7 @@ export function PriceChart({ sim, price, ticker }: { sim: RoundSim; price: numbe
                 <span className="muted">vs now</span>
                 <span style={{ fontWeight: 600, color: price >= hk.c ? 'var(--green)' : 'var(--red)' }}>{signedPct((price / hk.c - 1) * 100, 2)}</span>
               </span>
-              <TipRow label="1 SOL bought" value={`${num(1 / hk.c)} ${ticker}`} />
+              <TipRow label="1 SOL bought" value={`${num((unit === 'SOL' ? 1 : 1e9) / hk.c)} ${ticker}`} />
             </div>
           </>
         )}

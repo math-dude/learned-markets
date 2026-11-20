@@ -1,23 +1,24 @@
+import { lazy, Suspense } from 'react'
 import { Route, Routes } from 'react-router-dom'
-import { Shell } from './components/Shell'
-import { BoardPage } from './pages/BoardPage'
-import { CoinPage } from './pages/CoinPage'
-import { HowItWorksPage } from './pages/HowItWorksPage'
-import { LaunchPage } from './pages/LaunchPage'
+import ActivityPage from './pages/ActivityPage'
 import { NotFoundPage } from './pages/NotFoundPage'
-import { PortfolioPage } from './pages/PortfolioPage'
+import { PaperBoard, PaperCoinPage, PaperGuide, PaperLaunch, PaperPortfolio, PaperShell } from './paper/MarketPages'
+
+const PrivyWallet = lazy(() => import('./wallet/PrivyWallet'))
 
 export default function App() {
-  return (
-    <Routes>
-      <Route element={<Shell />}>
-        <Route index element={<BoardPage />} />
-        <Route path="coin/:ticker" element={<CoinPage />} />
-        <Route path="portfolio" element={<PortfolioPage />} />
-        <Route path="how-it-works" element={<HowItWorksPage />} />
-        <Route path="launch" element={<LaunchPage />} />
-        <Route path="*" element={<NotFoundPage />} />
-      </Route>
-    </Routes>
-  )
+  const routes = <Routes>
+    <Route path="activity" element={<ActivityPage />} />
+    <Route element={<PaperShell />}>
+      <Route index element={<PaperBoard />} />
+      <Route path="coin/:ticker" element={<PaperCoinPage />} />
+      <Route path="portfolio" element={<PaperPortfolio />} />
+      <Route path="launch" element={<PaperLaunch />} />
+      <Route path="how-it-works" element={<PaperGuide />} />
+      <Route path="*" element={<NotFoundPage />} />
+    </Route>
+  </Routes>
+  return import.meta.env.VITE_PRIVY_APP_ID
+    ? <Suspense fallback={<p>Connecting wallet…</p>}><PrivyWallet>{routes}</PrivyWallet></Suspense>
+    : routes
 }

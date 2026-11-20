@@ -28,22 +28,15 @@ balances after each batch. The current interface is described in
 
 ## Run locally
 
-To start the web event feed, use Node and npm from the repository root:
+Start the React app, Python auctioneer and participant service from the repository root.
 
-```bash
+```sh
 npm ci
+cp -n apps/web/.env.example apps/web/.env.local
 npm run dev
 ```
 
-Open the local URL printed by Vite. The [Python backend](apps/backend/README.md)
-serves quotes, clearing and confirmed ledger account reads. It uses
-Codama-generated Python bindings for program access. A future trading client
-can call this API.
-
-```sh
-uv sync --locked --all-packages --all-extras
-uv run --package learned-markets-backend uvicorn learned_markets_backend.service:app --port 8000
-```
+Open http://localhost:5173. The Board is public. Portfolio opens a Privy Solana wallet and guides an enrolled participant through the signed session challenge. Orders and nominations require confirmed on-chain admission. The Python auctioneer maintains paper balances and clears batches. The default network is Surfpool at the loopback RPC on port 8899. See the [web setup](apps/web/README.md) for initialization, enrollment and testing, and the [backend guide](apps/backend/README.md) for Codama ledger access.
 
 Program `nuX7BMKKWz9WG6EDRn5dXnSZArRW8uLkyKC5iTenqQz` has a locally tested
 parity ledger. The current build's deployment and live transaction delivery are

@@ -1,0 +1,33 @@
+.paper-page { display: flex; flex-direction: column; gap: 18px; padding: clamp(16px, 3vw, 36px); max-width: 1440px; width: 100%; }
+.paper-page h1, .paper-page h2, .paper-grid h1, .paper-grid h2 { margin: 0; }
+.paper-page h1, .paper-grid h1 { font-size: 26px; }
+.paper-page h2, .paper-grid h2 { font-size: 19px; }
+.paper-page p { margin: 0; line-height: 1.5; }
+.paper-label { margin-left: auto; color: var(--violet-hi); font-weight: 600; }
+.paper-warning { padding: 10px 18px; color: var(--gold); background: var(--surface); }
+.paper-grid { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(280px, 1fr); align-items: start; gap: 18px; }
+main > .paper-grid { margin: 20px; }
+.paper-page > .paper-grid { margin: 0; }
+.paper-grid .panel-head { min-height: 70px; }
+.paper-hero { background: radial-gradient(ellipse at center, rgba(124,58,237,.18), transparent 69%); text-align: center; }
+.paper-king, .paper-coin-head { display: flex; align-items: center; gap: 16px; text-align: left; }
+.paper-king { color: var(--text); }
+.paper-king strong, .paper-stat strong, .paper-balance strong { display: block; margin: 5px 0; font-size: 26px; }
+.paper-crown { position: absolute; top: -16px; left: -8px; }
+.paper-tape { align-self: center; padding-inline: 16px; }
+.paper-row { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-top: 1px solid var(--border); color: var(--text); }
+a.paper-row:hover { background: var(--row); }
+.paper-row > :last-child { margin-left: auto; text-align: right; }
+.paper-row-name { display: grid; gap: 5px; }
+.paper-page small, .paper-row small, .paper-stat small { color: var(--muted); }
+.paper-empty { padding: 16px; color: var(--muted); }
+.paper-form label { display: grid; gap: 6px; }
+.paper-tabs { display: flex; gap: 8px; }
+.paper-form .btn-primary, .paper-page .btn-primary { padding: 12px 18px; }
+.paper-page details code { overflow-wrap: anywhere; }
+@media (max-width: 760px) {
+  .paper-grid { grid-template-columns: minmax(0, 1fr); }
+  .paper-row { flex-wrap: wrap; }
+  .paper-hero { gap: 12px; }
+  .paper-label { margin-left: 0; }
+}

@@ -32,6 +32,7 @@ export type ParticipantRecord = ParticipantAccount & { address: Address };
 
 export interface Chain {
     /** Full eligibility (registry + badge) at confirmed commitment. Throws RpcUnavailableError. */
+    genesisHash(): Promise<string>;
     eligibility(wallet: Address): Promise<EligibilityReport>;
     inspectAttestation(attestation: Address): Promise<unknown>;
     config(): Promise<GateConfig>;
@@ -62,6 +63,10 @@ export class RpcChain implements Chain {
     private async account(address: Address) {
         const { context, value } = await this.rpc.getAccountInfo(address, { encoding: 'base64', commitment: 'confirmed' }).send();
         return value ? { slot: context.slot, owner: value.owner, data: new Uint8Array(getBase64Encoder().encode(value.data[0])) } : null;
+    }
+
+    genesisHash() {
+        return guarded(() => this.rpc.getGenesisHash().send());
     }
 
     eligibility(wallet: Address) {
