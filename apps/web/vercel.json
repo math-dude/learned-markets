@@ -1,0 +1,12 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "vite",
+  "installCommand": "npm install",
+  "buildCommand": "vite build",
+  "outputDirectory": "dist",
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "https://chungus.taild12bf7.ts.net/api/:path*" },
+    { "source": "/v1/:path*", "destination": "https://chungus.taild12bf7.ts.net/v1/:path*" },
+    { "source": "/((?!api/|v1/|assets/|memes/).*)", "destination": "/index.html" }
+  ]
+}
