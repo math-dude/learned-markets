@@ -107,7 +107,7 @@ Configuration:
 
 ## Toolchain
 
-- **Rust via rustup** (`cargo-build-sbf` requires it), Rust ≥ 1.98 for the agave 4.4 crates, Solana CLI 4.4, Anchor CLI 1.2.2, Node ≥ 24.12 (the TypeScript runs directly with type stripping, so there's no build step).
+- **Rust via rustup** (`cargo-build-sbf` requires it), Rust ≥ 1.98 for the agave 4.4 crates, Solana CLI 4.4, Anchor CLI 1.2.2, Bun 1.3.5 (package manager and script runner, as everywhere in the repo), Node ≥ 24.12 as the runtime (the TypeScript runs directly with type stripping, so there's no build step; the service needs `node:sqlite`, which Bun's runtime lacks).
 - `tests/program-tests` is its own Cargo workspace. litesvm 0.18 pins `solana-address ~2.7`, while `solana-attestation 2.0.0` requires `^2.8`, so the two can't share a dependency graph. The harness loads the compiled `.so` files and encodes instructions itself. Discriminators and error codes come from the IDL, and the TS tests check the same bytes.
 
 ```sh
@@ -115,7 +115,7 @@ export PATH="$HOME/.cargo/bin:$HOME/.local/share/solana/install/active_release/b
 anchor build                                         # programs + IDL
 cargo test -p learned-markets                        # unit tests + shared vector generation check
 (cd tests/program-tests && cargo test)               # on-chain suite (LiteSVM + real SAS)
-npm install && npm run typecheck && npm test         # TS package + service
+bun install && bun run typecheck && bun run test    # TS package + service
 ```
 
 ## Rollout

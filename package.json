@@ -15,7 +15,7 @@
     "build": "bun run --cwd apps/web build",
     "lint": "bun run --cwd apps/web lint",
     "typecheck": "tsc -p packages/attestations && tsc -p apps/attestation-service",
-    "test": "npm run test -w @learned-markets/attestations && npm run test -w @learned-markets/attestation-service",
+    "test": "bun run --filter @learned-markets/attestations test && bun run --filter @learned-markets/attestation-service test",
     "test:programs": "anchor build && cargo test -p learned-markets && cd tests/program-tests && cargo test",
     "rollout": "node scripts/rollout.ts"
   },
