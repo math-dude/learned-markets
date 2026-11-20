@@ -1,27 +1,27 @@
-# Onchain client
+# On-chain client
 
-This package is the shared **TypeScript SDK for the learned-markets Anchor
-program**. Put the TypeScript onchain client implementation here so the web app
-and future TypeScript services can share it.
+Import account decoders and instruction builders from `@learned-markets/client` or
+`@learned-markets/client/generated`. The checked-in Codama bindings reflect the current
+M1 IDL, including board initialization, token custody and stages. The active settlement
+interface uses the Python market core and records whole-token and lamport balances.
+Its program instructions will require regenerated bindings. See
+[the settlement interface](../../docs/ai-gen/design/settlement-interface.md).
 
-It will contain:
+Regenerate after building the program with `anchor build`:
 
-- Account and instruction types generated from the Anchor IDL using Codama.
-- Functions for constructing program instructions and transactions.
-- Helpers for fetching and decoding program accounts.
-- Hand-written convenience wrappers around the generated client, when needed.
+```sh
+npm run generate -w packages/client
+npm test -w packages/client
+```
 
-Use `@solana/kit`. Keep generated output separate from hand-written wrappers;
-do not edit generated files directly. The exact client API will follow the
-onchain program as its interface is designed.
+## Earlier full-market experiment
 
-This is separate from `apps/backend`, the Python/FastAPI server, and `apps/web`,
-the user interface. Server routes, matching logic, training, and UI components
-belong in their respective components.
+The `@learned-markets/client/settlement-v2` subpath preserves the superseded full-market
+experiment. Its interpolated curves and per-position fee schedule are specific to that design.
 
-## Current state
-
-Only the package manifest, TypeScript configuration, Solana Kit, and Codama tools
-are present. There is no source entrypoint, generated SDK, or codegen command yet.
-The workspace package name is `@learned-markets/client`; consumers can use it once
-its exports and implementation exist.
+The generator reads `target/idl/learned_markets.json`. Arithmetic uses bigint for
+token amounts, timestamps, prices and batch IDs. JSON service requests use decimal
+strings for wide integers. The shared tests check reveal bytes, hashes, integer
+interpolation, fee rounding and the worked two-chunk ledger in
+`fixtures/settlement-vectors.json`. Settlement transaction assembly takes instruction
+builders supplied by the caller. The full-market M2 was paused before its IDL existed.
