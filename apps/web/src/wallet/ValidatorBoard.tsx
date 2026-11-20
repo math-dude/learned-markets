@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom'
 import { CoinTile } from '../components/CoinBits'
 import { Crown } from '../components/icons'
 import { CandleChart } from '../pages/coin/PriceChart'
+import { healthColor } from '../lib/health'
 import type { ChainState } from './ChainMarket'
 
 type Market = ChainState['markets'][number]
@@ -349,7 +350,7 @@ export function SurvivalPanel({ market }: { market: Market }) {
   return (
     <section className="card survival-panel">
       <small>{market.stage === 'Line' ? 'In the Line' : 'Survival budget'}</small>
-      <strong>
+      <strong style={{ color: healthColor(market) }}>
         {market.stage === 'Line'
           ? market.heat.toFixed(1) + ' heat'
           : Math.max(0, market.survival ?? 0).toFixed(1)}
@@ -357,7 +358,10 @@ export function SurvivalPanel({ market }: { market: Market }) {
       {market.stage !== 'Line' && <small>activity units remaining</small>}
       <div className="survival-track">
         <i
-          style={{ width: Math.min(100, (Math.max(0, market.survival ?? market.heat) / 300) * 100) + '%' }}
+          style={{
+            width: Math.min(100, (Math.max(0, market.survival ?? market.heat) / 300) * 100) + '%',
+            background: healthColor(market),
+          }}
         />
       </div>
       <p>

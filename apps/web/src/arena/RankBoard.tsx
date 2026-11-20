@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { CoinTile } from '../components/CoinBits'
 import { Crown } from '../components/icons'
 import type { ChainState } from '../wallet/ChainMarket'
+import { healthColor } from '../lib/health'
 
 type Market = ChainState['markets'][number]
 type Round = NonNullable<ChainState['rounds']>[number]
@@ -131,7 +132,7 @@ export function RankBoard({ state, rounds, sort }: { state: ChainState; rounds: 
               <span className="rank-sub">
                 <span className="mono">${m.ticker}</span>
                 <span className="rank-people">● {holders}</span>
-                <span className={'rank-timer' + (danger ? ' red' : '')}>
+                <span className="rank-timer" style={{ color: healthColor(m) }}>
                   ⏱ {m.stage === 'Line' ? m.heat.toFixed(1) + ' heat' : Math.max(0, m.survival ?? 0).toFixed(0) + ' left'}
                 </span>
                 <span className={change >= 0 ? 'green' : 'red'}>

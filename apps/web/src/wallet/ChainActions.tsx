@@ -158,6 +158,7 @@ export function ChainOrder({
   return (
     <form
       className="card paper-form"
+      data-outcome={step ? 'sending' : outcome?.state}
       onSubmit={async (e) => {
         e.preventDefault()
         setNote('')
@@ -295,9 +296,10 @@ export function ChainOrder({
         {step || (pending ? 'Check signed order' : (side === 'buy' ? 'Buy $' : 'Sell $') + ticker)}
       </button>
       {outcome && (
-        <p role="status" className="order-status" data-state={outcome.state}>
+        <p role="status" className="order-status" data-state={outcome.state} key={outcome.state}>
           <i />
-          {outcome.text}
+          <span>{outcome.text}</span>
+          {outcome.state === 'working' && <b className="order-progress" />}
         </p>
       )}
       {note && (

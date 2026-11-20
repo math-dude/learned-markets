@@ -10,6 +10,7 @@ from contextlib import asynccontextmanager, suppress
 import httpx
 import torch
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.middleware.gzip import GZipMiddleware
 from pydantic import BaseModel, Field
 from solana.rpc.async_api import AsyncClient
 from solders.pubkey import Pubkey
@@ -93,6 +94,8 @@ async def lifespan(app):
 
 
 app = FastAPI(title="Learned Markets on-chain", lifespan=lifespan)
+# The board is polled every second or two and compresses about tenfold.
+app.add_middleware(GZipMiddleware, minimum_size=4096, compresslevel=1)
 
 
 @app.get("/api/chain")
@@ -238,9 +241,9 @@ async def market_board(wallet: str | None = None, market: str | None = None):
                 if (pos := decode(accounts[key], LedgerPosition))
             }
             # Average-cost basis of each open position, from this participant's confirmed fills.
-            basis = {}
+            basis, trades = {}, {}
             for row in db.execute(
-                """SELECT w.market, w.details FROM web_orders w JOIN admitted_intents a USING(intent)
+                """SELECT w.intent, w.market, w.details FROM web_orders w JOIN admitted_intents a USING(intent)
                 WHERE a.participant=? AND w.status='filled' ORDER BY w.batch, w.rowid""",
                 (str(participant),),
             ):
@@ -250,14 +253,19 @@ async def market_board(wallet: str | None = None, market: str | None = None):
                 if fill["side"] == "buy":
                     book["tokens"] += quantity
                     book["cost"] -= cash
+                    trades[row["intent"]] = {"entry": fill["clearing_price"], "exit": None, "pnl": None}
                 else:
                     sold = book["cost"] * min(quantity, book["tokens"]) // max(1, book["tokens"])
+                    # Average entry of the tokens sold, in the chart's price unit.
+                    entry = book["cost"] * 1_000_000 // max(1, book["tokens"])
                     book["tokens"] = max(0, book["tokens"] - quantity)
                     book["cost"] -= sold
                     book["realized"] += cash - sold
+                    trades[row["intent"]] = {"entry": str(entry), "exit": fill["clearing_price"], "pnl": str(cash - sold)}
             account["basis"] = {m: {k: str(v) for k, v in book.items()} for m, book in basis.items()}
+            tickers = {r["address"]: r["ticker"] for r in rows}
             account["orders"] = [
-                dict(row)
+                {**dict(row), "ticker": tickers.get(row["market"]), **trades.get(row["intent"], {})}
                 for row in db.execute(
                     """SELECT w.* FROM web_orders w
                 JOIN admitted_intents a USING(intent) WHERE a.participant=? ORDER BY a.admitted_at DESC LIMIT 16""",

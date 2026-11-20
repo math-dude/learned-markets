@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { CoinTile } from '../components/CoinBits'
+import { healthColor } from '../lib/health'
 import type { ChainState } from '../wallet/ChainMarket'
 
 type Account = NonNullable<ChainState['account']>
@@ -16,6 +17,17 @@ export function Portfolio({ account, state }: { account: Account; state: ChainSt
   const inCoins = open.reduce((n, x) => n + value(x), 0)
   const risk = open.find((x) => x.m.stage !== 'Line' && x.m.survival !== null && x.m.survival < 25)
   const cash = Number(account.cash ?? 0)
+  // Account profit: realized on every sale, plus open positions against their average entry.
+  // A coin that was cut is worth nothing, so its whole cost counts as a loss.
+  const byAddress = new Map(state.markets.map((m) => [m.address, m]))
+  let pnl = 0
+  for (const [address, b] of Object.entries(account.basis ?? {})) {
+    const m = byAddress.get(address)
+    const worth = m?.live ? (Number(b.tokens) * Number(m.price)) / 1e6 : 0
+    pnl += Number(b.realized) + (Number(b.tokens) > 0 ? worth - Number(b.cost) : 0)
+  }
+  const signed = (lamports: number) => (lamports > 0 ? '+' : lamports < 0 ? '−' : '') + sol(Math.abs(lamports))
+  const px = (micro?: string | null) => (micro ? Number((Number(micro) / 1e6).toPrecision(4)).toString() : '—')
   return (
     <div className="pf">
       <section className="pf-tiles">
@@ -35,15 +47,20 @@ export function Portfolio({ account, state }: { account: Account; state: ChainSt
         </div>
         <div className="pf-tile">
           <small>Total</small>
-          <strong className="green">
+          <strong>
             {sol(cash + inCoins)} <em>SOL</em>
           </strong>
           <span>balance + coins at last clearing price</span>
         </div>
         <div className="pf-tile">
-          <small>Orders</small>
-          <strong className="violet">{account.orders?.length ?? 0}</strong>
-          <span>{account.orders?.filter((o) => o.status === 'filled').length ?? 0} filled in batches</span>
+          <small>Profit / loss</small>
+          <strong key={Math.round(pnl / 1e4)} className={pnl >= 0 ? 'green' : 'red'}>
+            {signed(pnl)} <em>SOL</em>
+          </strong>
+          <span>
+            {state.sol_usd ? (pnl < 0 ? '−$' : '$') + Math.abs((pnl / 1e9) * state.sol_usd).toFixed(2) + ' · ' : ''}
+            realized + open positions
+          </span>
         </div>
       </section>
       {risk && (
@@ -64,13 +81,17 @@ export function Portfolio({ account, state }: { account: Account; state: ChainSt
         <div className="pf-row head">
           <span>Coin</span>
           <span>Size</span>
-          <span>Price</span>
+          <span>Entry · price</span>
           <span>Value</span>
-          <span>Survival</span>
+          <span>Profit / loss</span>
+          <span>Health</span>
           <span />
         </div>
         {open.map((x) => {
           const surv = x.m.stage === 'Line' ? x.m.heat : Math.max(0, x.m.survival ?? 0)
+          const b = account.basis?.[x.m.address]
+          const cost = Number(b?.cost ?? 0)
+          const gain = cost > 0 ? value(x) - cost : 0
           return (
             <div className={'pf-row' + (x === risk ? ' risky' : '')} key={x.m.address}>
               <span className="pf-coin">
@@ -85,12 +106,24 @@ export function Portfolio({ account, state }: { account: Account; state: ChainSt
                 </span>
               </span>
               <span className="mono">{x.tokens.toLocaleString()}</span>
-              <span className="mono">{Number((Number(x.m.price) / 1e6).toPrecision(4))}</span>
-              <span className="mono">{sol(value(x))} SOL</span>
+              <span>
+                {cost > 0 ? Number((cost / x.tokens).toPrecision(4)) : '—'}
+                <small className="sub">now {Number((Number(x.m.price) / 1e6).toPrecision(4))}</small>
+              </span>
+              <span>{sol(value(x))} SOL</span>
+              <span className={gain >= 0 ? 'green' : 'red'}>
+                {cost > 0 ? signed(gain) + ' SOL' : '—'}
+                {cost > 0 && <small className="sub">{((value(x) / cost - 1) * 100).toFixed(1).replace('-', '−')}%</small>}
+              </span>
               <span className="pf-timer">
-                <b className={x === risk ? 'red' : ''}>{x.m.stage === 'Line' ? surv.toFixed(1) + ' heat' : surv.toFixed(0)}</b>
+                <b style={{ color: healthColor(x.m) }}>{x.m.stage === 'Line' ? surv.toFixed(1) + ' heat' : surv.toFixed(0)}</b>
                 <i>
-                  <i style={{ width: Math.min(100, (surv / (x.m.stage === 'Line' ? 2 : 120)) * 100) + '%' }} />
+                  <i
+                    style={{
+                      width: Math.min(100, (surv / (x.m.stage === 'Line' ? 2 : 120)) * 100) + '%',
+                      background: healthColor(x.m),
+                    }}
+                  />
                 </i>
               </span>
               <Link className="pill-btn" to={'/coin/' + x.m.address}>
@@ -120,6 +153,7 @@ export function Portfolio({ account, state }: { account: Account; state: ChainSt
               </span>
               <span className="mono">{x.tokens.toLocaleString()}</span>
               <span />
+              <span />
               <span className="mono red">voided</span>
               <span className="dim">{x.m.ended_reason ?? 'Cut'}</span>
               <span />
@@ -132,15 +166,36 @@ export function Portfolio({ account, state }: { account: Account; state: ChainSt
           <div className="panel-head">
             <h2>Recent orders</h2>
           </div>
-          {account.orders.slice(0, 12).map((o) => (
-            <div className="pf-order" key={o.intent}>
-              <span className={'tag ' + (o.status === 'filled' ? 'tag-new' : o.status === 'unfilled' ? 'tag-dead' : 'tag-rookie')}>{o.status}</span>
-              <span className="dim">
-                {o.details && o.status === 'filled' ? JSON.parse(o.details).quantity + ' tokens filled' : o.details}
-              </span>
-              <code>{o.signature ? o.signature.slice(0, 10) + '…' : ''}</code>
-            </div>
-          ))}
+          <div className="pf-order head">
+            <span>Status</span>
+            <span>Order</span>
+            <span>Entry</span>
+            <span>Exit</span>
+            <span>Profit / loss</span>
+          </div>
+          {account.orders.slice(0, 12).map((o) => {
+            const fill = o.status === 'filled' ? (JSON.parse(o.details) as { side: string; quantity: string }) : null
+            const gain = o.pnl ? Number(o.pnl) : null
+            return (
+              <div className="pf-order" key={o.intent}>
+                <span className={'tag ' + (o.status === 'filled' ? 'tag-new' : o.status === 'unfilled' ? 'tag-dead' : 'tag-rookie')}>{o.status}</span>
+                <span>
+                  {fill ? (
+                    <>
+                      {fill.side === 'buy' ? 'Bought' : 'Sold'} {Number(fill.quantity).toLocaleString()} ${o.ticker ?? ''}
+                    </>
+                  ) : (
+                    <small>{o.details || '$' + (o.ticker ?? '') + ' · waiting for its batch'}</small>
+                  )}
+                </span>
+                <span>{px(o.entry)}</span>
+                <span>{fill?.side === 'sell' ? px(o.exit) : fill ? <small>open</small> : '—'}</span>
+                <span className={gain === null ? 'dim' : gain >= 0 ? 'green' : 'red'}>
+                  {gain === null ? '—' : signed(gain) + ' SOL'}
+                </span>
+              </div>
+            )
+          })}
         </section>
       )}
     </div>

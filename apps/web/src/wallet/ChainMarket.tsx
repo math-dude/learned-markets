@@ -74,7 +74,16 @@ export type ChainState = {
     cash?: string | null
     positions?: Record<string, string>
     basis?: Record<string, { tokens: string; cost: string; realized: string }>
-    orders?: { intent: string; status: string; signature: string | null; details: string }[]
+    orders?: {
+      intent: string
+      status: string
+      signature: string | null
+      details: string
+      ticker?: string | null
+      entry?: string | null
+      exit?: string | null
+      pnl?: string | null
+    }[]
   } | null
 }
 
@@ -289,14 +298,14 @@ export function ChainMarket() {
         <main className="paper-page portfolio-entry">
           {activeMarket ? (
             <MarketHeading market={activeMarket} fills={state?.fills ?? []} solUsd={state?.sol_usd} />
+          ) : portfolio ? (
+            <h1 className="pf-title">Portfolio</h1>
           ) : (
             <header className="validator-mast">
               <div>
                 <span className="eyebrow">damper</span>
                 <h1>
-                  {portfolio
-                    ? 'Your wallet'
-                    : pathname === '/launch'
+                  {pathname === '/launch'
                       ? 'Launch a coin'
                       : pathname === '/how-it-works'
                         ? 'How it works'

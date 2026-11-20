@@ -10,7 +10,7 @@ const TRUTH = '#8b8a99'
 const pair = (pump: number[], ours: number[], truth?: number[]): Series[] => [
   ...(truth ? [{ name: 'True value', color: TRUTH, values: truth, dashed: true }] : []),
   { name: 'pump.fun', color: PUMP, values: pump },
-  { name: 'Learned', color: OURS, values: ours, area: true },
+  { name: 'damper', color: OURS, values: ours, area: true },
 ]
 
 function Stat({ value, label, pump, ours }: { value: string; label: string; pump: string; ours: string }) {

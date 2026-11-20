@@ -762,7 +762,8 @@
 }
 .laxis {
   fill: var(--dim);
-  font: 11px var(--mono);
+  font: 500 12px var(--font);
+  font-variant-numeric: tabular-nums;
 }
 .lend {
   fill: var(--text-2);
@@ -913,7 +914,7 @@
 }
 .pf-row {
   display: grid;
-  grid-template-columns: minmax(200px, 2fr) 1fr 1fr 1fr 1.2fr 72px;
+  grid-template-columns: minmax(200px, 2fr) 1fr 1fr 1fr 1fr 1.1fr 72px;
   align-items: center;
   gap: 12px;
   padding: 12px 18px;
@@ -963,14 +964,41 @@
   height: 100%;
   border-radius: 2px;
   background: var(--accent-2);
+  transition: width 0.8s ease;
 }
 .pf-order {
-  display: flex;
+  display: grid;
+  grid-template-columns: 84px minmax(160px, 2fr) 1fr 1fr 1.2fr;
   align-items: center;
   gap: 12px;
   padding: 10px 18px;
   border-top: 1px solid var(--border);
   font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  animation: order-in 0.35s ease both;
+}
+.pf-order.head {
+  color: var(--muted);
+  animation: none;
+}
+.pf-order small {
+  color: var(--muted);
+}
+@keyframes order-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+.pf-title {
+  margin: 4px 0 16px;
+  font-size: 26px;
+  letter-spacing: -0.02em;
+}
+.pf-row small.sub {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
 }
 .pf-order code {
   margin-left: auto;
