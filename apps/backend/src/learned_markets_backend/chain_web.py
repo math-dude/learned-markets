@@ -4,6 +4,7 @@ import asyncio
 import json
 import logging
 import os
+import time
 from contextlib import asynccontextmanager, suppress
 
 import httpx
@@ -24,6 +25,27 @@ from .generated.instructions.registerParticipant import find_WalletBinding
 from .live_lifecycle import PROFILE, STAGES
 from .validator_market import WINDOW, ValidatorMarket
 from .web_gate import Gate
+
+_SOL_USD = {"price": None, "at": 0.0, "busy": False}
+
+
+def sol_usd():
+    """Last SOL spot price in USD, refreshed in the background at most once a minute; None until known."""
+
+    async def refresh():
+        try:
+            async with httpx.AsyncClient(timeout=6) as http:
+                r = await http.get("https://api.coinbase.com/v2/prices/SOL-USD/spot")
+                _SOL_USD["price"] = float(r.json()["data"]["amount"])
+        except (httpx.HTTPError, KeyError, ValueError):
+            logging.getLogger(__name__).warning("SOL price refresh failed")
+        finally:
+            _SOL_USD["busy"] = False
+
+    if time.time() - _SOL_USD["at"] > 60 and not _SOL_USD["busy"]:
+        _SOL_USD["at"], _SOL_USD["busy"] = time.time(), True
+        _SOL_USD["task"] = asyncio.create_task(refresh())
+    return _SOL_USD["price"]
 
 
 @asynccontextmanager
@@ -215,6 +237,25 @@ async def market_board(wallet: str | None = None, market: str | None = None):
                 for addr, key in positions.items()
                 if (pos := decode(accounts[key], LedgerPosition))
             }
+            # Average-cost basis of each open position, from this participant's confirmed fills.
+            basis = {}
+            for row in db.execute(
+                """SELECT w.market, w.details FROM web_orders w JOIN admitted_intents a USING(intent)
+                WHERE a.participant=? AND w.status='filled' ORDER BY w.batch, w.rowid""",
+                (str(participant),),
+            ):
+                fill = json.loads(row["details"])
+                book = basis.setdefault(row["market"], {"tokens": 0, "cost": 0, "realized": 0})
+                quantity, cash = int(fill["quantity"]), int(fill["cash_delta"])
+                if fill["side"] == "buy":
+                    book["tokens"] += quantity
+                    book["cost"] -= cash
+                else:
+                    sold = book["cost"] * min(quantity, book["tokens"]) // max(1, book["tokens"])
+                    book["tokens"] = max(0, book["tokens"] - quantity)
+                    book["cost"] -= sold
+                    book["realized"] += cash - sold
+            account["basis"] = {m: {k: str(v) for k, v in book.items()} for m, book in basis.items()}
             account["orders"] = [
                 dict(row)
                 for row in db.execute(
@@ -239,6 +280,7 @@ async def market_board(wallet: str | None = None, market: str | None = None):
         "flows": flows,
         "candles": market_candles(db, market) if market else [],
         "batch_slots": WINDOW,
+        "sol_usd": sol_usd(),
         "lifecycle_profile": PROFILE,
         "account": account,
     }

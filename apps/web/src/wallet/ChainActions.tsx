@@ -98,12 +98,14 @@ export function ChainOrder({
   ticker = 'coin',
   marketPrice = '27970074',
   holding = '0',
+  orders = [],
 }: {
   wallet: Wallet
   market: string
   ticker?: string
   marketPrice?: string
   holding?: string
+  orders?: { intent: string; status: string; details: string }[]
   refresh: () => void
 }) {
   const [side, setSide] = useState('buy')
@@ -118,6 +120,28 @@ export function ChainOrder({
   const setPrice = setCustom
   const [step, setStep] = useState('')
   const [note, setNote] = useState('')
+  // The order just placed: its clearing result is shown here as soon as the batch settles.
+  const [placed, setPlaced] = useState('')
+  const order = orders.find((o) => o.intent === placed)
+  let outcome: { state: 'working' | 'filled' | 'missed'; text: string } | null = null
+  if (placed) {
+    if (order?.status === 'filled') {
+      const fill = JSON.parse(order.details) as { side: string; quantity: string; clearing_price: string }
+      outcome = {
+        state: 'filled',
+        text:
+          (fill.side === 'buy' ? 'Bought ' : 'Sold ') +
+          Number(fill.quantity).toLocaleString() +
+          ' ' +
+          ticker +
+          ' at ' +
+          (Number(fill.clearing_price) / 1e6).toLocaleString('en-US', { maximumFractionDigits: 6 }) +
+          ' lamports',
+      }
+    } else if (order && order.status !== 'queued' && order.status !== 'confirming')
+      outcome = { state: 'missed', text: order.details || 'The order did not fill.' }
+    else outcome = { state: 'working', text: order?.status === 'confirming' ? 'Settling on chain…' : 'Clearing in the next batch…' }
+  }
   const recovery = ['lm.trade', import.meta.env.VITE_LM_NETWORK, wallet.address, market].join('.')
   const [pending, setPending] = useState(() => sessionStorage.getItem(recovery))
   async function admit(intent: string) {
@@ -128,7 +152,7 @@ export function ChainOrder({
     }
     sessionStorage.removeItem(recovery)
     setPending(null)
-    setNote('Signed order received. Your portfolio shows its clearing result.')
+    setPlaced(intent)
     refresh()
   }
   return (
@@ -137,7 +161,8 @@ export function ChainOrder({
       onSubmit={async (e) => {
         e.preventDefault()
         setNote('')
-        setStep('Preparing order…')
+        setPlaced('')
+        setStep('Placing order…')
         try {
           if (pending) await admit(pending)
           else {
@@ -160,11 +185,9 @@ export function ChainOrder({
                 ],
               },
             })
-            setStep('Signing order…')
             await wallet.send(tx.transactionBase64, () => {
               sessionStorage.setItem(recovery, tx.intent)
               setPending(tx.intent)
-              setStep('Confirming order…')
             })
             await admit(tx.intent)
           }
@@ -271,6 +294,12 @@ export function ChainOrder({
       <button className="btn-primary" disabled={!!step}>
         {step || (pending ? 'Check signed order' : (side === 'buy' ? 'Buy $' : 'Sell $') + ticker)}
       </button>
+      {outcome && (
+        <p role="status" className="order-status" data-state={outcome.state}>
+          <i />
+          {outcome.text}
+        </p>
+      )}
       {note && (
         <p role="status">
           {note} <Link to="/portfolio">Portfolio</Link>

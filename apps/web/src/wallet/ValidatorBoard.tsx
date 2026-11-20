@@ -295,7 +295,9 @@ export function ValidatorBoard({ state }: { state: ChainState }) {
   )
 }
 
-export function MarketHeading({ market, fills }: { market: Market; fills: Fill[] }) {
+export function MarketHeading({ market, fills, solUsd }: { market: Market; fills: Fill[]; solUsd?: number | null }) {
+  // One billion tokens at the last clearing price.
+  const cap = Number(market.price) / 1e6
   const recent = fills.filter((f) => f.market === market.address)
   const traders = new Set(recent.map((f) => f.participant)).size
   return (
@@ -319,7 +321,11 @@ export function MarketHeading({ market, fills }: { market: Market; fills: Fill[]
       <div className="live-coin-stats">
         <div>
           <small>Market cap</small>
-          <strong>{(Number(market.price) / 1e6).toFixed(3)} SOL</strong>
+          <strong>
+            {solUsd
+              ? '$' + (cap * solUsd).toLocaleString('en-US', { maximumFractionDigits: cap * solUsd < 1000 ? 2 : 0 })
+              : cap.toFixed(3) + ' SOL'}
+          </strong>
         </div>
         <div>
           <small>Traded volume</small>

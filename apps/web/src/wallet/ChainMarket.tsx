@@ -28,6 +28,7 @@ export type ChainState = {
   }[]
   candles: { batch: number; o: string; h: string; l: string; c: string; v: string }[]
   batch_slots: number
+  sol_usd?: number | null
   markets: {
     address: string
     name: string
@@ -72,8 +73,64 @@ export type ChainState = {
     username?: string | null
     cash?: string | null
     positions?: Record<string, string>
+    basis?: Record<string, { tokens: string; cost: string; realized: string }>
     orders?: { intent: string; status: string; signature: string | null; details: string }[]
   } | null
+}
+
+/** Holding, live value and profit against the average entry; it moves with every cleared batch. */
+function PositionCard({
+  ticker,
+  tokens,
+  price,
+  basis,
+  solUsd,
+}: {
+  ticker: string
+  tokens: number
+  price: number
+  basis?: { tokens: string; cost: string; realized: string }
+  solUsd?: number | null
+}) {
+  const value = (tokens * price) / 1e15
+  const cost = Number(basis?.cost ?? 0) / 1e9
+  const realized = Number(basis?.realized ?? 0) / 1e9
+  const open = tokens > 0 && cost > 0 ? value - cost : 0
+  const pnl = open + realized
+  const sol = (n: number) => (n > 0 ? '+' : n < 0 ? '−' : '') + Math.abs(n).toFixed(5) + ' SOL'
+  return (
+    <section className="card">
+      <h2>Your position</h2>
+      <div className="position-metrics">
+        <div>
+          <small>Holding</small>
+          <strong>
+            {tokens.toLocaleString()} {ticker}
+          </strong>
+        </div>
+        <div>
+          <small>Value</small>
+          <strong>{value.toFixed(5)} SOL</strong>
+        </div>
+        {basis && (
+          <div className="position-pnl">
+            <small>Profit / loss</small>
+            <strong key={Math.round(pnl * 1e6)} style={{ color: pnl >= 0 ? 'var(--green)' : 'var(--red)' }}>
+              {sol(pnl)}
+              {tokens > 0 && cost > 0 && <span> {((value / cost - 1) * 100).toFixed(1).replace('-', '−')}%</span>}
+              {solUsd ? <span> · {(pnl < 0 ? '−$' : '$') + Math.abs(pnl * solUsd).toFixed(2)}</span> : null}
+            </strong>
+            <small>
+              {tokens > 0 && cost > 0
+                ? 'Avg entry ' + ((cost * 1e9) / tokens).toLocaleString('en-US', { maximumFractionDigits: 6 }) + ' lamports'
+                : 'Closed'}
+              {realized !== 0 && tokens > 0 ? ' · realized ' + sol(realized) : ''}
+            </small>
+          </div>
+        )}
+      </div>
+    </section>
+  )
 }
 
 export function ChainMarket() {
@@ -108,7 +165,7 @@ export function ChainMarket() {
       } catch {
         if (!controller.signal.aborted) setError('The backend could not read the validator. Reconnecting…')
       } finally {
-        if (!controller.signal.aborted) timer = setTimeout(read, 2000)
+        if (!controller.signal.aborted) timer = setTimeout(read, pathname.startsWith('/coin/') ? 1000 : 2000)
       }
     }
     void read()
@@ -172,7 +229,7 @@ export function ChainMarket() {
       {activeMarket ? (
         <div className="artifact-coin-layout">
           <main className="artifact-coin-main">
-            <MarketHeading market={activeMarket} fills={state?.fills ?? []} />
+            <MarketHeading market={activeMarket} fills={state?.fills ?? []} solUsd={state?.sol_usd} />
             {error && (
               <p role="alert" className="paper-warning">
                 {error}
@@ -190,34 +247,20 @@ export function ChainMarket() {
                 ticker={activeMarket.ticker}
                 marketPrice={activeMarket.price}
                 holding={account?.positions?.[activeMarket.address] ?? '0'}
+                orders={account?.orders}
               />
             ) : (
               <Link className="btn-primary" to="/portfolio">
                 {activeMarket.live ? 'Verify wallet to trade' : 'Market ended'}
               </Link>
             )}
-            <section className="card">
-              <h2>Your position</h2>
-              <div className="position-metrics">
-                <div>
-                  <small>Holding</small>
-                  <strong>
-                    {BigInt(account?.positions?.[activeMarket.address] ?? '0').toLocaleString()}{' '}
-                    {activeMarket.ticker}
-                  </strong>
-                </div>
-                <div>
-                  <small>Value</small>
-                  <strong>
-                    {(
-                      (Number(account?.positions?.[activeMarket.address] ?? 0) * Number(activeMarket.price)) /
-                      1e15
-                    ).toFixed(5)}{' '}
-                    SOL
-                  </strong>
-                </div>
-              </div>
-            </section>
+            <PositionCard
+              ticker={activeMarket.ticker}
+              tokens={Number(account?.positions?.[activeMarket.address] ?? 0)}
+              price={Number(activeMarket.price)}
+              basis={account?.basis?.[activeMarket.address]}
+              solUsd={state?.sol_usd}
+            />
             <SurvivalPanel market={activeMarket} />
             <section className="card maker-card">
               <span className="badge badge-outline">Batch clearing</span>
@@ -242,7 +285,7 @@ export function ChainMarket() {
       ) : (
         <main className="paper-page portfolio-entry">
           {activeMarket ? (
-            <MarketHeading market={activeMarket} fills={state?.fills ?? []} />
+            <MarketHeading market={activeMarket} fills={state?.fills ?? []} solUsd={state?.sol_usd} />
           ) : (
             <header className="validator-mast">
               <div>

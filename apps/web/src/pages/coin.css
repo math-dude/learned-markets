@@ -159,7 +159,16 @@
 .artifact-coin-sidebar .btn-primary{padding:14px;text-align:center;font-size:14px;}
 .artifact-coin-sidebar details{font-size:12px;color:var(--muted);}
 .artifact-coin-sidebar details label{display:grid;gap:7px;margin-top:10px;}
-.position-metrics{display:flex;gap:24px;}
+.position-metrics{display:flex;gap:14px 24px;flex-wrap:wrap;}
+.position-pnl{flex-basis:100%;padding-top:12px;border-top:1px solid var(--border-soft);}
+.position-pnl strong{font-size:17px;font-variant-numeric:tabular-nums;animation:chart-price-in .4s ease;}
+.position-pnl strong span{font-size:12px;font-weight:500;}
+.order-status{display:flex;align-items:center;gap:8px;margin:0;padding:10px 12px;border:1px solid var(--border-soft);border-radius:8px;font-size:13px;color:var(--text-2);}
+.order-status i{width:8px;height:8px;border-radius:50%;background:var(--violet);flex:none;}
+.order-status[data-state=working] i{animation:order-pulse 1s ease-in-out infinite;}
+.order-status[data-state=filled] i{background:var(--green);}
+.order-status[data-state=missed] i{background:var(--red);}
+@keyframes order-pulse{50%{opacity:.25}}
 .position-metrics>div{display:grid;gap:5px;}
 .position-metrics small{color:var(--muted);font-size:11px;}
 .position-metrics strong{font-size:14px;}
