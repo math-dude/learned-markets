@@ -1,6 +1,6 @@
 # Behaviours
 
-## Phenomena we are trying to prevent
+## Problems in existing memecoin markets
 
 - Sniping: bots buying in the launch block and dumping on the first humans
 - Bundling: insiders buying supply through many fresh wallets to fake distribution
@@ -12,10 +12,15 @@
 - Sybil wallets to dodge per-wallet rules (handled by policy: one verified wallet per person)
 - Sandwiching and front-running
 - Fake momentum painted by one actor
-- Picking off the maker's stale quotes
-- Dumping a large position into the maker after a run-up
-- Gaming thresholds and farming reputation
-- Gaming the coin timer (propping a coin near zero, selling just before death)
+
+## Risks to test in our design
+
+- Can traders consistently take the maker's committed batch quote after it becomes stale?
+- Can a large exit after a run-up push the maker beyond its inventory or loss limits?
+- Can traders game thresholds or farm reputation without doing what the rule is meant to reward?
+- Can traders cheaply keep a coin alive near zero or use the predictable cutoff to push losses onto other holders?
+- Does a visible near-zero timer accelerate a sell-off?
+- Can wash trades buy enough extra timer life to justify their fees?
 
 ## Behaviours we don't want to restrict
 

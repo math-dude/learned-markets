@@ -40,15 +40,24 @@ Cleaned from the team doc "Learned Markets: RL & System Design" (2026-11-19). Se
 
 ## Fees and holds (proposed)
 
-One fee formula covers the sell tax and the hold. **Default (v0): a fixed, published rule. Goal: learned and dynamic, per person.** Batches are short, so a buyer's hold and exit-fee schedule is assigned at fill and never changes afterwards.
+One fee formula covers the sell tax and the hold.
 
 ```
 fee = f_base + f_speed(sell rate) + f_hold(time since buy)
 ```
 
 - **Speed term (sell tax):** grows with how fast a person sells relative to their holdings and the batch's depth.
-- **Hold term (soft hold):** an exit fee decaying to zero over the hold period. Selling is always possible, just costlier early (like IPO penalty bids). Hold length scales with how hot the buy was.
-- Shown before a buy is confirmed; fixed at fill.
+- **Hold term (soft hold):** an exit fee decaying to zero over the hold period. Selling is always possible, just costlier early (like IPO penalty bids).
+
+**Preferred design.** The market publishes a curve that maps order inputs to an output size and trading terms.
+
+```
+(identity, size_in, price action) → (size_out, soft-hold duration, initial early-exit fee, other constraints)
+```
+
+Traders in the same batch can receive different terms. The market's action is to choose the mapping or its parameters. A fixed mapping can support the same interface before learning is ready. Traders see the terms before committing, including how the terms depend on fill size when the batch can partially fill an order. The applicable schedule is fixed at fill, subject to the danger-zone release below.
+
+**Submission fallback.** If there isn't time to implement the preferred curve, publish one soft-hold duration and early-exit fee schedule for everyone in each batch. Use a fixed rule to set those terms.
 
 **Rules at every stage**
 
@@ -59,9 +68,9 @@ fee = f_base + f_speed(sell rate) + f_hold(time since buy)
 
 | Stage | Setter | Granularity |
 | --- | --- | --- |
-| v0 (default) | Fixed published rule | Same for everyone |
-| v1 | Stage manager per epoch (published, bounded); optionally maker within a narrow per-batch band | Same for everyone in a batch |
-| v2 (goal) | Learned policy, per person | Each buyer's schedule set at fill from their history |
+| v0 (fixed rule) | Fixed published mapping | Per-order terms if ready, shared batch schedule for the submission fallback |
+| v1 | Stage manager per epoch (published, bounded); optionally maker within a narrow per-batch band | Shared parameters, with per-order terms when the preferred mapping is available |
+| v2 (goal) | Learned mapping or learned parameters | Schedule set at fill using identity, size and price action |
 
 Open: "wealth tax" = sell tax (assumed here) or a holding tax on large positions?
 
