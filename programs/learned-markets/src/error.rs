@@ -161,4 +161,85 @@ pub enum GateError {
     ProtectedAmountExceedsBalance,
     #[msg("Observed backing is less than the supplied liabilities")]
     BackingDeficit,
+    #[msg("Board not initialized")]
+    BoardNotInitialized,
+    #[msg("Line closed")]
+    LineClosed,
+    #[msg("Quote mint not allowed")]
+    QuoteMintNotAllowed,
+    #[msg("Bounds out of range")]
+    BoundsOutOfRange,
+    #[msg("Limits out of range")]
+    LimitsOutOfRange,
+    #[msg("Market closed")]
+    MarketClosed,
+    #[msg("Market settling")]
+    MarketSettling,
+    #[msg("Wrong batch id")]
+    WrongBatchId,
+    #[msg("Previous batch unsettled")]
+    PreviousBatchUnsettled,
+    #[msg("Batch not committed")]
+    BatchNotCommitted,
+    #[msg("Batch not settling")]
+    BatchNotSettling,
+    #[msg("Batch window open")]
+    BatchWindowOpen,
+    #[msg("Intent outside batch window")]
+    IntentOutsideBatchWindow,
+    #[msg("Quote hash mismatch")]
+    QuoteHashMismatch,
+    #[msg("Malformed reveal")]
+    MalformedReveal,
+    #[msg("Terms out of bounds")]
+    TermsOutOfBounds,
+    #[msg("Price move too large")]
+    PriceMoveTooLarge,
+    #[msg("Maker curve exceeded")]
+    MakerCurveExceeded,
+    #[msg("Maker inventory exceeded")]
+    MakerInventoryExceeded,
+    #[msg("Maker budget exceeded")]
+    MakerBudgetExceeded,
+    #[msg("Maker limit exceeded")]
+    MakerLimitExceeded,
+    #[msg("Fill exceeds curve")]
+    FillExceedsCurve,
+    #[msg("Per person batch max exceeded")]
+    PerPersonBatchMaxExceeded,
+    #[msg("Hold cap exceeded")]
+    HoldCapExceeded,
+    #[msg("Fee exceeds proceeds")]
+    FeeExceedsProceeds,
+    #[msg("Duplicate participant in chunk")]
+    DuplicateParticipantInChunk,
+    #[msg("Declared totals exceeded")]
+    DeclaredTotalsExceeded,
+    #[msg("Declared totals mismatch")]
+    DeclaredTotalsMismatch,
+    #[msg("Cannot abort started batch")]
+    CannotAbortStartedBatch,
+    #[msg("Vault invariant violated")]
+    VaultInvariantViolated,
+    #[msg("Invalid stage transition")]
+    InvalidStageTransition,
+    #[msg("Not quoter")]
+    NotQuoter,
+    #[msg("Not board authority")]
+    NotBoardAuthority,
+    #[msg("Not auction authority")]
+    NotAuctionAuthority,
+    #[msg("Already swept")]
+    AlreadySwept,
+    #[msg("Nothing to claim")]
+    NothingToClaim,
+
+    #[msg("Synthetic ledger credits are disabled for this build or network")]
+    LedgerCreditDisabled,
+    #[msg("Ledger fill has zero quantity or exceeds the submitted step curve")]
+    InvalidLedgerFill,
+    #[msg("Seller fee rate must be between 10000 and 250000 ppm")]
+    LedgerFeeRateOutOfRange,
+    #[msg("The supplied user and quoter legs do not conserve tokens")]
+    LedgerTokenMismatch,
 }

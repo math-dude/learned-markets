@@ -67,7 +67,7 @@ async function operator(...args: string[]) {
 
 // ------------------------------------------------------------------ browser-wallet side
 
-class Client {
+export class Client {
     name: string;
     wallet: KeyPairSigner;
     cookie: string | undefined;
@@ -124,7 +124,7 @@ async function expectRejected(label: string, p: () => Promise<{ status: number; 
     if (!pass) throw new Error(`${label}: expected ${code}`);
 }
 
-async function enroll(c: Client) {
+export async function enroll(c: Client) {
     log(`\n== ${c.name} (${c.wallet.address})`);
     const ch = await c.signedChallenge('enroll');
     const req = await c.ok('POST', '/v1/enrollments', { challengeId: ch.challengeId, signature: ch.signature });
@@ -152,7 +152,7 @@ async function enroll(c: Client) {
     return { request: req.requestId, operation: approved.operationId, participantIdHex: approved.participantIdHex, registerSignature: regSig, eligibility: confirmed.eligibility, sessionChallenge: s };
 }
 
-async function intent(c: Client, body: Record<string, unknown>) {
+export async function intent(c: Client, body: Record<string, unknown>) {
     const prepared = await retrying('prepare', () => c.ok('POST', '/v1/intents/prepare', body));
     const sig = await c.signAndSend(prepared.transactionBase64);
     const admitted = await retrying('admit', () => c.ok('POST', '/v1/intents/admit', { intent: prepared.intent, contentsHex: prepared.contentsHex }));
@@ -217,7 +217,7 @@ async function main() {
     log(`\nrecord written to ${out}`);
 }
 
-main().catch(e => {
+if (import.meta.main) main().catch(e => {
     console.error(e instanceof Error ? e.message : e);
     process.exitCode = 1;
 });

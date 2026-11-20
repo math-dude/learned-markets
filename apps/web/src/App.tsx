@@ -1,122 +1,44 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
+import { useEffect, useState } from 'react'
 import './App.css'
 
+type Event = { sig: string; slot: string; index: number; name: string; data: {
+  clearingPrice?: string; batchId?: string; userBuy?: string; userSell?: string; intent?: string
+} }
 function App() {
-  const [count, setCount] = useState(0)
-
-  return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+  const [events, setEvents] = useState<Event[]>([])
+  const [market, setMarket] = useState('')
+  const [status, setStatus] = useState('Connecting to relayer')
+  useEffect(() => {
+    const controller = new AbortController()
+    let timer: ReturnType<typeof setTimeout>
+    async function poll() {
+      try {
+        const url = new URL('/events', import.meta.env.VITE_SETTLER_URL || window.location.origin)
+        const selected = new URLSearchParams(location.search).get('market')
+        if (selected) url.searchParams.set('market', selected)
+        const res = await fetch(url, {signal:controller.signal})
+        if (!res.ok) throw new Error()
+        const payload = await res.json()
+        if (!Array.isArray(payload.events)) throw new Error()
+        setEvents(payload.events)
+        setMarket(payload.market)
+        setStatus(payload.events.length ? 'Live' : 'Waiting for the first market event')
+      } catch { if (!controller.signal.aborted) setStatus('Relayer unavailable') }
+      if (!controller.signal.aborted) timer = setTimeout(poll, 2500)
+    }
+    void poll()
+    return () => { controller.abort(); clearTimeout(timer) }
+  }, [])
+  return <main className="market-feed">
+    <header><h1>Market activity</h1><p role="status">{status}</p></header>
+    {market && <p className="address">{market}</p>}
+    <ol>{events.map(event => <li key={event.sig + ':' + event.index}>
+      <div><strong>{event.name === 'BatchSettled' ? 'Batch ' + event.data.batchId + ' settled' : 'Intent submitted'}</strong>
+        <small>Slot {event.slot}</small></div>
+      {event.name === 'BatchSettled'
+        ? <p>Price {event.data.clearingPrice} quote atoms per coin · Bought {event.data.userBuy} · Sold {event.data.userSell} base atoms</p>
+        : <p className="address">{event.data.intent}</p>}
+    </li>)}</ol>
+  </main>
 }
-
 export default App

@@ -1,5 +1,15 @@
 # Settlement interface for the program
 
+Implementation update, 2026-11-20. Selected as the current backend/program interface.
+The atomic parity ledger is implemented in `programs/learned-markets/src/ledger.rs`
+with separate `LedgerMarket`, `LedgerBalance`, `LedgerPosition` and
+`LedgerPlatform` accounts. Instruction names use the `ledger` prefix to coexist
+with the M1 custody checkpoint. Batch IDs increase strictly, and failed batches
+roll back atomically. The six-batch shared-core episode passes LiteSVM replay.
+Python Codama bindings are generated from the real Anchor IDL.
+
+The original design note follows.
+
 Written 2026-11-20 for whoever builds the settlement engine. It describes what the program must do so that it agrees, to the lamport, with the market core in `packages/core` (the code the simulator, the trainer and the backend all run). The first use is a parity test: replay a simulated episode on Surfpool and compare every balance.
 
 Status: the core side is implemented in `packages/core/src/learned_markets_core/{clearing,ledger,market}.py`. The program side does not exist yet (`settlement.rs` still uses `NotImplementedEngine`). Everything marked **proposed** is this note's suggestion, not a team decision.

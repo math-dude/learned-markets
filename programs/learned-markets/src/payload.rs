@@ -53,9 +53,9 @@ pub enum Side {
     Sell,
 }
 
-/// One point of a curve order: at `price` (quote atoms per whole base token,
-/// i.e. per 10^decimals base atoms) the participant is willing to trade up to
-/// `quantity` base atoms in total.
+/// Coordinate units follow the target market. The simulation ledger uses micro-lamports
+/// per whole token for price and whole tokens for quantity. Custody markets use
+/// quote atoms per whole base token and base atoms, respectively.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct CurvePoint {
     pub price: u64,

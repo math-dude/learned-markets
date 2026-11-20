@@ -1,7 +1,7 @@
 [project]
 name = "learned-markets-backend"
 version = "0.1.0"
-description = "Add your description here"
+description = "Shared-core quoter API and Codama client for the Learned Markets program"
 readme = "README.md"
 authors = [
     { name = "Eremeyen", email = "erenonder1905@gmail.com" }
@@ -10,8 +10,15 @@ requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.162.5",
     "learned-markets-core",
+    "anchorpy>=0.21.0",
+    "borsh-construct>=0.1.0",
+    "solana>=0.36.6",
+    "solders>=0.26.0",
     "uvicorn>=0.54.0",
 ]
+
+[project.optional-dependencies]
+ppo = ["stable-baselines3>=2.9.2"]
 
 [build-system]
 requires = ["uv_build>=0.9.7,<0.10.0"]

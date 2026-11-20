@@ -1,0 +1,14 @@
+{
+  "name": "@learned-markets/settler",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/*.test.ts"
+  },
+  "dependencies": {
+    "@learned-markets/attestations": "0.1.0",
+    "@learned-markets/client": "0.0.0",
+    "@solana/kit": "8.3.0"
+  }
+}
