@@ -27,11 +27,11 @@ currently contains the scaffold, not a working exchange.
 
 ## Run locally
 
-To start the current web starter, use Bun and Node from the repository root:
+To start the current web starter, use Node and npm from the repository root:
 
 ```bash
-bun install --frozen-lockfile
-bun run dev
+npm ci
+npm run dev
 ```
 
 Open the local URL printed by Vite. The backend and training packages do not have

@@ -18,17 +18,17 @@ Run all commands below from the repository root.
 | [`packages/client`](../packages/client/README.md) | Shared TypeScript SDK for interacting with the Anchor program; not generated yet |
 | `tests` | Anchor-generated Rust integration test |
 
-The root Bun workspace manages only `apps/web` and `packages/client`. The root uv
-workspace manages only the three Python packages. Training and backend depend on
-the local simulation package. Bun manages TypeScript dependencies and scripts;
-Node runs the frontend tooling.
+The root npm workspace manages the TypeScript packages under `apps/*` and
+`packages/*`. The root uv workspace manages only the three Python packages.
+Training and backend depend on the local simulation package. npm manages
+TypeScript dependencies and scripts; Node runs everything.
 
 ## Setup
 
 Install the toolchains listed below, then run from the repository root:
 
 ```bash
-bun install --frozen-lockfile
+npm ci
 uv sync --all-packages --locked
 anchor build
 ```
@@ -41,9 +41,9 @@ update that ID to match if you regenerate the program keypair.
 ## Development and checks
 
 ```bash
-bun run dev       # Vite starter at http://localhost:5173
-bun run build     # Web TypeScript check and production build
-bun run lint      # Generator-provided web lint command
+npm run dev       # Vite starter at http://localhost:5173
+npm run build     # Web TypeScript check and production build
+npm run lint      # Generator-provided web lint command
 anchor build      # Onchain program and IDL
 uv run ruff check apps/backend packages/simulation packages/training
 ```
@@ -98,11 +98,11 @@ lockfiles record the project's dependencies.
 | NumPy / Gymnasium | 2.5.4 / 1.4.0 |
 | PyTorch / Stable Baselines3 | 2.15.0 / 2.9.2 |
 | FastAPI / Uvicorn | 0.162.5 / 0.54.0 |
-| Node / Bun | 22.17.0 / 1.3.5 |
+| Node / npm | ≥ 24.12 / 11.19.0 |
 | React / Vite / TypeScript | 19.3.1 / 8.3.8 / 7.0.2 |
 | Solana Kit / Codama | 8.6.0 / 1.11.0 |
 
-Commit `Cargo.lock`, `bun.lock`, and `uv.lock`. Anchor and Solana versions are
+Commit `Cargo.lock`, `package-lock.json`, and `uv.lock`. Anchor and Solana versions are
 pinned in `Anchor.toml`; Rust and Python have their own toolchain pins.
 
 Likely later Python dependencies: Numba, Polars, PyArrow, ONNX, ONNX Runtime, and
