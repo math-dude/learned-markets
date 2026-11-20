@@ -106,6 +106,22 @@ async def market_board(wallet: str | None = None, market: str | None = None):
             Pubkey.from_string(market)
     except ValueError as exc:
         raise HTTPException(422, "Invalid Solana wallet") from exc
+    # Every client polls about once a second; identical views within a moment share one build,
+    # which leaves the settlement loop the processor time it needs.
+    hit = _BOARDS.get((wallet, market))
+    if hit and time.time() - hit[0] < 0.8:
+        return hit[1]
+    board = await build_board(owner, wallet, market)
+    if len(_BOARDS) > 256:
+        _BOARDS.clear()
+    _BOARDS[(wallet, market)] = (time.time(), board)
+    return board
+
+
+_BOARDS = {}
+
+
+async def build_board(owner, wallet, market):
     rpc = app.state.rpc
     db = app.state.engine.db
     rows = db.execute("SELECT address,name,ticker,image FROM web_markets ORDER BY rowid DESC").fetchall()
