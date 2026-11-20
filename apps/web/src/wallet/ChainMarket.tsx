@@ -4,7 +4,7 @@ import { Search, ShellFrame } from '../components/Shell'
 import { AccessPanel } from './AccessPanel'
 import { gateRequest, useWallet } from './access'
 import { ChainLaunch, ChainOrder } from './ChainActions'
-import { MarketHistory, ValidatorBoard } from './ValidatorBoard'
+import { MarketHeading, MarketHistory, SurvivalPanel, ValidatorBoard } from './ValidatorBoard'
 
 export type ChainState = {
   network: string
@@ -16,9 +16,12 @@ export type ChainState = {
     market: string
     batch: number
     side: string
+    participant: string
+    signature: string
     quantity: string
     price: string | null
   }[]
+  candles: { batch: number; o: string; h: string; l: string; c: string; v: string }[]
   batch_slots: number
   markets: {
     address: string
@@ -27,6 +30,10 @@ export type ChainState = {
     kind: string
     price: string
     stage: string
+    live: boolean
+    survival: number | null
+    heat: number
+    activity: number
     reserve_cash: string
     reserve_tokens: string
   }[]
@@ -52,10 +59,17 @@ export function ChainMarket() {
     let timer: ReturnType<typeof setTimeout>
     async function read() {
       try {
-        const response = await fetch('/api/chain' + (address ? '?wallet=' + encodeURIComponent(address) : ''), {
-          signal: AbortSignal.any([controller.signal, AbortSignal.timeout(12_000)]),
-          cache: 'no-store',
-        })
+        const response = await fetch(
+          '/api/chain?' +
+            new URLSearchParams({
+              ...(address ? { wallet: address } : {}),
+              ...(pathname.startsWith('/coin/') ? { market: pathname.slice(6) } : {}),
+            }),
+          {
+            signal: AbortSignal.any([controller.signal, AbortSignal.timeout(12_000)]),
+            cache: 'no-store',
+          },
+        )
         if (!response.ok) throw new Error()
         const snapshot: ChainState = await response.json()
         if (!controller.signal.aborted) {
@@ -73,7 +87,7 @@ export function ChainMarket() {
       controller.abort()
       clearTimeout(timer)
     }
-  }, [address, revision])
+  }, [address, revision, pathname])
   const account = state?.account?.wallet === address ? state?.account : null
   const [sessionWallet, setSessionWallet] = useState('')
   useEffect(() => {
@@ -125,7 +139,66 @@ export function ChainMarket() {
         </header>
       }
     >
-      {pathname === '/' && state ? (
+      {activeMarket ? (
+        <div className="artifact-coin-layout">
+          <main className="artifact-coin-main">
+            <MarketHeading market={activeMarket} fills={state?.fills ?? []} />
+            {error && (
+              <p role="alert" className="paper-warning">
+                {error}
+              </p>
+            )}
+            <MarketHistory market={activeMarket} fills={state?.fills ?? []} candles={state?.candles ?? []} />
+          </main>
+          <aside className="artifact-coin-sidebar">
+            {activeMarket.live && admitted && wallet ? (
+              <ChainOrder
+                key={activeMarket.address}
+                wallet={wallet}
+                market={activeMarket.address}
+                refresh={update}
+                ticker={activeMarket.ticker}
+                marketPrice={activeMarket.price}
+                holding={account?.positions?.[activeMarket.address] ?? '0'}
+              />
+            ) : (
+              <Link className="btn-primary" to="/portfolio">
+                {activeMarket.live ? 'Verify wallet to trade' : 'Market ended'}
+              </Link>
+            )}
+            <section className="card">
+              <h2>Your position</h2>
+              <div className="position-metrics">
+                <div>
+                  <small>Holding</small>
+                  <strong>
+                    {BigInt(account?.positions?.[activeMarket.address] ?? '0').toLocaleString()}{' '}
+                    {activeMarket.ticker}
+                  </strong>
+                </div>
+                <div>
+                  <small>Value</small>
+                  <strong>
+                    {(
+                      (Number(account?.positions?.[activeMarket.address] ?? 0) * Number(activeMarket.price)) /
+                      1e15
+                    ).toFixed(5)}{' '}
+                    SOL
+                  </strong>
+                </div>
+              </div>
+            </section>
+            <SurvivalPanel market={activeMarket} />
+            <section className="card maker-card">
+              <span className="badge badge-outline">Batch clearing</span>
+              <p>
+                The maker trades the remaining imbalance. Every fill in a round shares the same clearing
+                price.
+              </p>
+            </section>
+          </aside>
+        </div>
+      ) : pathname === '/' && state ? (
         <>
           {error && (
             <p className="paper-warning" role="alert">
@@ -136,25 +209,29 @@ export function ChainMarket() {
         </>
       ) : (
         <main className="paper-page portfolio-entry">
-          <header className="validator-mast">
-            <div>
-              <span className="eyebrow">Learned Markets</span>
-              <h1>
-                {portfolio
-                  ? 'Your wallet'
-                  : pathname === '/launch'
-                    ? 'Launch a coin'
-                    : pathname === '/how-it-works'
-                      ? 'How it works'
-                      : (activeMarket?.name ?? 'Board')}
-              </h1>
-            </div>
-            {pathname === '/' && (
-              <Link className="chip chip-strong" to="/launch">
-                Launch a coin ↗
-              </Link>
-            )}
-          </header>
+          {activeMarket ? (
+            <MarketHeading market={activeMarket} fills={state?.fills ?? []} />
+          ) : (
+            <header className="validator-mast">
+              <div>
+                <span className="eyebrow">Learned Markets</span>
+                <h1>
+                  {portfolio
+                    ? 'Your wallet'
+                    : pathname === '/launch'
+                      ? 'Launch a coin'
+                      : pathname === '/how-it-works'
+                        ? 'How it works'
+                        : 'Board'}
+                </h1>
+              </div>
+              {pathname === '/' && (
+                <Link className="chip chip-strong" to="/launch">
+                  Launch a coin ↗
+                </Link>
+              )}
+            </header>
+          )}
           {error && <p role="alert">{error}</p>}
           {portfolio ? (
             <section className="card account-entry">
@@ -213,7 +290,8 @@ export function ChainMarket() {
                   ? verify
                   : state && (
                       <p>
-                        Participant registration opens when the operator initializes the gate on this validator.
+                        Participant registration opens when the operator initializes the gate on this
+                        validator.
                       </p>
                     ))}
             </section>
@@ -227,40 +305,10 @@ export function ChainMarket() {
             </section>
           ) : pathname === '/launch' && admitted && wallet ? (
             <ChainLaunch wallet={wallet} refresh={update} />
-          ) : activeMarket ? (
-            <div className="paper-grid">
-              <MarketHistory market={activeMarket} fills={state?.fills ?? []} />
-              <section className="card account-entry">
-                <small>{activeMarket.stage} · Last clearing price</small>
-                <h2>
-                  {activeMarket.price === '0' ? 'Awaiting first fill' : activeMarket.price + ' micro-lamports'}
-                </h2>
-                {activeMarket.kind === 'ledger' &&
-                  activeMarket.stage === 'Open' &&
-                  (admitted && wallet ? (
-                    <ChainOrder
-                      key={activeMarket.address}
-                      wallet={wallet}
-                      market={activeMarket.address}
-                      refresh={update}
-                    />
-                  ) : (
-                    <Link to="/portfolio">Verify wallet to trade</Link>
-                  ))}
-              </section>
-            </div>
           ) : (
             <section className="card">
-              <h2>
-                {pathname === '/launch'
-                  ? 'Verify your wallet to launch a market'
-                  : state
-                    ? 'Market unavailable'
-                    : 'Loading markets…'}
-              </h2>
-              <Link to={pathname === '/launch' ? '/portfolio' : '/'}>
-                {pathname === '/launch' ? 'View participant wallet' : 'View board'}
-              </Link>
+              <h2>{pathname === '/launch' ? 'Verify your wallet to launch a coin' : 'Connecting…'}</h2>
+              <Link to="/portfolio">View wallet</Link>
             </section>
           )}
         </main>

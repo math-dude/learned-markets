@@ -22,7 +22,7 @@ from solders.system_program import ID as SYSTEM
 from solders.transaction import Transaction
 
 
-async def main(wallet):
+async def main(wallet, refill=False):
     url = os.environ.get("LM_RPC_URL", "http://127.0.0.1:8899")
     async with httpx.AsyncClient(timeout=6) as http:
         version = (await http.post(url, json={"jsonrpc": "2.0", "id": 1, "method": "getVersion"})).json()
@@ -40,10 +40,15 @@ async def main(wallet):
         if participant.currentWallet != wallet or participant.status.to_json()["kind"] != "Active":
             raise RuntimeError("Inactive participant")
         balance = ledger_balance_address(binding.participant)
-        if await LedgerBalance.fetch(rpc, balance):
+        existing = await LedgerBalance.fetch(rpc, balance)
+        if existing and not refill:
             raise SystemExit("Trading balance already exists.")
+        amount = 2_000_000_000 - (existing.cash if existing else 0)
+        if amount <= 0:
+            print("Test balance already funded.")
+            return
         ix = CreditLedgerBalance(
-            {"amount": 2_000_000_000},
+            {"amount": amount},
             {
                 "admin": admin.pubkey(),
                 "config": CONFIG,
@@ -69,4 +74,6 @@ async def main(wallet):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("wallet", type=Pubkey.from_string)
-    asyncio.run(main(parser.parse_args().wallet))
+    parser.add_argument("--refill", action="store_true", help="Restore this test balance to 2 ledger SOL")
+    args = parser.parse_args()
+    asyncio.run(main(args.wallet, args.refill))

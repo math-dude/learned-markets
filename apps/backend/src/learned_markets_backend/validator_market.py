@@ -42,6 +42,7 @@ from .generated.accounts.participant import Participant
 from .generated.instructions.initializeLedgerPosition import InitializeLedgerPosition
 from .generated.instructions.openLedgerMarket import OpenLedgerMarket
 from .generated.instructions.registerParticipant import find_WalletBinding
+from .live_lifecycle import STAGES, LiveLifecycle
 from .policy import rule_quote
 
 CONFIG = Pubkey.find_program_address([b"config"], PROGRAM_ID)[0]
@@ -64,6 +65,7 @@ class ValidatorMarket:
         CREATE TABLE IF NOT EXISTS web_hold_terms (market TEXT, participant TEXT, terms TEXT NOT NULL, PRIMARY KEY(market,participant));
         """)
         self.lock = asyncio.Lock()
+        self.lifecycle = LiveLifecycle(self, CONFIG, WINDOW)
 
     def signer(self):
         path = Path(os.environ.get("LM_KEYS_DIR", "keys")) / "settlement-authority.json"
@@ -175,6 +177,7 @@ class ValidatorMarket:
                 if group["market"] not in seen:
                     await self.settle(group["market"], group["batch"])
                     seen.add(group["market"])
+            await self.lifecycle.advance(slot)
 
     async def settle(self, address, batch):
         market = Pubkey.from_string(address)
@@ -257,12 +260,14 @@ class ValidatorMarket:
                 )
         if not orders:
             return
+        board = self.lifecycle.snapshot() or {"coins": []}
+        life = next((c for c in board["coins"] if c["address"] == address), None)
         public = PublicMarket(
             tick=tick_of_price(m.lastPrice) if m.lastPrice else MarketConfig().launch_tick,
-            stage="Line",
+            stage=STAGES[life["stage"]] if life and life["stage"] else "Line",
             reserve_cash=m.reserveCash,
             reserve_tokens=m.reserveTokens,
-            timer=0.0,
+            timer=life["timer"] if life else 0.0,
             batch_id=batch,
         )
         req = ClearRequest(

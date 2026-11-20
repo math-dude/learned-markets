@@ -7,24 +7,28 @@ import os
 from contextlib import asynccontextmanager, suppress
 
 import httpx
+import torch
 from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel, Field
 from solana.rpc.async_api import AsyncClient
 from solders.pubkey import Pubkey
 
 from .chain import PROGRAM_ID, ledger_balance_address, ledger_market_address, ledger_position_address
+from .charting import market_candles
 from .generated.accounts.config import Config
 from .generated.accounts.ledgerBalance import LedgerBalance
 from .generated.accounts.ledgerMarket import LedgerMarket
 from .generated.accounts.ledgerPosition import LedgerPosition
 from .generated.accounts.walletBinding import WalletBinding
 from .generated.instructions.registerParticipant import find_WalletBinding
+from .live_lifecycle import PROFILE, STAGES
 from .validator_market import WINDOW, ValidatorMarket
 from .web_gate import Gate
 
 
 @asynccontextmanager
 async def lifespan(app):
+    torch.set_num_threads(2)
     url = os.environ.get("LM_RPC_URL", "http://127.0.0.1:8899")
     async with AsyncClient(url, commitment="confirmed", timeout=8) as rpc, httpx.AsyncClient(timeout=8) as http:
         app.state.rpc = rpc
@@ -65,9 +69,11 @@ app = FastAPI(title="Learned Markets on-chain", lifespan=lifespan)
 
 
 @app.get("/api/chain")
-async def market_board(wallet: str | None = None):
+async def market_board(wallet: str | None = None, market: str | None = None):
     try:
         owner = Pubkey.from_string(wallet) if wallet else None
+        if market:
+            Pubkey.from_string(market)
     except ValueError as exc:
         raise HTTPException(422, "Invalid Solana wallet") from exc
     rpc = app.state.rpc
@@ -97,6 +103,8 @@ async def market_board(wallet: str | None = None):
         return cls.decode(raw.data) if raw and raw.owner == PROGRAM_ID and not raw.executable else None
 
     gate = decode(values[config], Config)
+    board = app.state.engine.lifecycle.snapshot() or {"coins": []}
+    lives = {c["address"]: c for c in board["coins"]}
     markets = []
     for row in rows:
         key = Pubkey.from_string(row["address"])
@@ -107,15 +115,22 @@ async def market_board(wallet: str | None = None):
                     **dict(row),
                     "kind": "ledger",
                     "price": str(value.lastPrice),
-                    "stage": "Open" if value.live else "Closed",
+                    "stage": STAGES.get(lives.get(str(key), {}).get("stage"), "Line")
+                    if value.live
+                    else lives.get(str(key), {}).get("ended_reason", "Closed"),
+                    "live": value.live,
+                    "survival": lives.get(str(key), {}).get("timer"),
+                    "activity": lives.get(str(key), {}).get("activity", 0),
+                    "heat": lives.get(str(key), {}).get("heat", 0),
                     "reserve_cash": str(value.reserveCash),
                     "reserve_tokens": str(value.reserveTokens),
                 }
             )
     fills = []
     for record in db.execute(
-        """SELECT intent,market,batch,details FROM web_orders WHERE status='filled'
-        AND signature IS NOT NULL ORDER BY batch DESC,rowid DESC LIMIT 80"""
+        """SELECT intent,market,batch,details,signature FROM web_orders WHERE status='filled'
+        AND signature IS NOT NULL AND (? IS NULL OR market=?) ORDER BY batch DESC,rowid DESC LIMIT 240""",
+        (market, market),
     ):
         detail = json.loads(record["details"])
         fills.append(
@@ -124,6 +139,8 @@ async def market_board(wallet: str | None = None):
                 "market": record["market"],
                 "batch": record["batch"],
                 "side": detail["side"],
+                "participant": detail["participant"],
+                "signature": record["signature"],
                 "quantity": detail["quantity"],
                 "price": detail.get("clearing_price"),
             }
@@ -165,7 +182,9 @@ async def market_board(wallet: str | None = None):
         "gate_ready": gate is not None,
         "markets": markets,
         "fills": fills,
+        "candles": market_candles(db, market) if market else [],
         "batch_slots": WINDOW,
+        "lifecycle_profile": PROFILE,
         "account": account,
     }
 

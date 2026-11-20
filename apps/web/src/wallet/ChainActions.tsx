@@ -95,14 +95,21 @@ export function ChainOrder({
   wallet,
   market,
   refresh,
+  ticker = 'coin',
+  marketPrice = '27970074',
+  holding = '0',
 }: {
   wallet: Wallet
   market: string
+  ticker?: string
+  marketPrice?: string
+  holding?: string
   refresh: () => void
 }) {
   const [side, setSide] = useState('buy')
   const [quantity, setQuantity] = useState('')
-  const [price, setPrice] = useState('')
+  const [budget, setBudget] = useState('0.01')
+  const [price, setPrice] = useState(marketPrice === '0' ? '27970074' : marketPrice)
   const [step, setStep] = useState('')
   const [note, setNote] = useState('')
   const recovery = ['lm.trade', import.meta.env.VITE_LM_NETWORK, wallet.address, market].join('.')
@@ -131,7 +138,21 @@ export function ChainOrder({
             const tx = await gateRequest<{ intent: string; transactionBase64: string }>('intents/prepare', {
               kind: 'trade',
               target: market,
-              trade: { side, points: [{ price, quantity }] },
+              trade: {
+                side,
+                points: [
+                  {
+                    price,
+                    quantity:
+                      side === 'buy'
+                        ? (
+                            (((BigInt(Math.floor(Number(budget) * 1e9)) * 1000000n) / BigInt(price)) * 100n) /
+                            101n
+                          ).toString()
+                        : quantity,
+                  },
+                ],
+              },
             })
             setStep('Sign order in Privy…')
             await wallet.send(tx.transactionBase64, () => {
@@ -148,7 +169,7 @@ export function ChainOrder({
         }
       }}
     >
-      <h2>Limit order</h2>
+      <h2>Trade</h2>
       <div className="paper-tabs">
         {['buy', 'sell'].map((s) => (
           <button
@@ -163,32 +184,69 @@ export function ChainOrder({
           </button>
         ))}
       </div>
-      <label>
-        Whole tokens
-        <input
-          className="input-box"
-          value={quantity}
-          onChange={(e) => setQuantity(e.target.value)}
-          required={!pending}
-          pattern="[1-9][0-9]*"
-          inputMode="numeric"
-          disabled={!!pending}
-        />
+      <label className="artifact-amount-label">
+        {side === 'buy' ? 'You pay' : 'You sell'}
+        <div className="artifact-amount">
+          <input
+            value={side === 'buy' ? budget : quantity}
+            onChange={(e) => (side === 'buy' ? setBudget(e.target.value) : setQuantity(e.target.value))}
+            required={!pending}
+            type="number"
+            min={side === 'buy' ? '0.000001' : '1'}
+            step={side === 'buy' ? '0.000001' : '1'}
+            disabled={!!pending}
+            aria-label={side === 'buy' ? 'Amount in SOL' : 'Tokens to sell'}
+          />
+          <span>{side === 'buy' ? 'SOL' : ticker}</span>
+        </div>
       </label>
-      <label>
-        {side === 'buy' ? 'Maximum' : 'Minimum'} price (micro-lamports per token)
-        <input
-          className="input-box"
-          value={price}
-          onChange={(e) => setPrice(e.target.value)}
-          required={!pending}
-          pattern="[1-9][0-9]*"
-          inputMode="numeric"
-          disabled={!!pending}
-        />
-      </label>
+      <div className="trade-presets">
+        {(side === 'buy' ? ['0.005', '0.01', '0.025', '0.05'] : ['25', '50', '75', '100']).map((value) => (
+          <button
+            type="button"
+            key={value}
+            disabled={!!pending || !!step}
+            onClick={() =>
+              side === 'buy'
+                ? setBudget(value)
+                : setQuantity(((BigInt(holding) * BigInt(value)) / 100n).toString())
+            }
+          >
+            {value}
+            {side === 'sell' ? '%' : ''}
+          </button>
+        ))}
+      </div>
+      <details>
+        <summary>Limit price</summary>
+        <label>
+          Micro-lamports per token
+          <input
+            className="input-box"
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
+            required={!pending}
+            pattern="[1-9][0-9]*"
+            inputMode="numeric"
+            disabled={!!pending}
+          />
+        </label>
+      </details>
+      <div className="trade-estimate">
+        <span>Estimated tokens</span>
+        <strong>
+          {side === 'buy' && Number(price) > 0
+            ? Math.floor((Number(budget) * 1e15) / Number(price) / 1.01).toLocaleString()
+            : Number(quantity || 0).toLocaleString()}{' '}
+          {ticker}
+        </strong>
+      </div>
+      <div className="trade-estimate">
+        <span>Execution</span>
+        <strong>Next clearing round</strong>
+      </div>
       <button className="btn-primary" disabled={!!step}>
-        {step || (pending ? 'Check signed order' : 'Submit ' + side + ' order')}
+        {step || (pending ? 'Check signed order' : (side === 'buy' ? 'Buy $' : 'Sell $') + ticker)}
       </button>
       {note && (
         <p role="status">

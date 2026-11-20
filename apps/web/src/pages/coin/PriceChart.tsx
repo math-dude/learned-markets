@@ -1,120 +1,216 @@
-import { useState, type PointerEvent } from 'react'
+import { useId, useState, type PointerEvent } from 'react'
 import { num, signedPct } from '../../lib/format'
-export interface Candle { o: number; h: number; l: number; c: number; v: number }
-
-/** Plot area insets inside the chart box (right side holds price tags). */
-const LEFT = 8
-const RIGHT = 84
-
-export function CandleChart({ candles, price, ticker, unit, caption }: {
-  candles: Candle[]; price: number; ticker: string; unit: 'SOL' | 'lamports'
-  caption: (index: number) => string
-}) {
-  const [hoverIdx, setHoverIdx] = useState<number | null>(null)
-  if (!candles.length) return <section className="card"><h2>Price history</h2><p>The chart starts with the first fill.</p></section>
-  const agg = [...candles]
-  // The live price may have moved since the last round (other traders); show it on the last candle.
-  const lastK = { ...agg[agg.length - 1] }
-  lastK.c = price
-  lastK.h = Math.max(lastK.h, price)
-  lastK.l = Math.min(lastK.l, price)
-  agg[agg.length - 1] = lastK
-
-  const lo = Math.min(...agg.map((k) => k.l))
-  const hi = Math.max(...agg.map((k) => k.h))
-  const pad = (hi - lo) * 0.12 || 0.0001
-  const top = hi + pad
-  const bot = lo - pad * 2.2
-  const yp = (v: number) => ((top - v) / (top - bot)) * 100
-  const vmax = Math.max(1, ...agg.map((k) => k.v))
-  const n = agg.length
-
-  const hIdx = hoverIdx === null ? null : Math.min(n - 1, hoverIdx)
-  const hk = hIdx === null ? null : agg[hIdx]
-  const xAt = (i: number) => `calc(${LEFT}px + (100% - ${LEFT + RIGHT}px) * ${((i + 0.5) / n).toFixed(4)})`
-  const up = (k: Candle) => k.c >= k.o
-  const tagColor = up(lastK) ? 'var(--green)' : 'var(--red)'
-
-  const onMove = (e: PointerEvent<HTMLDivElement>) => {
-    const r = e.currentTarget.getBoundingClientRect()
-    const i = Math.max(0, Math.min(n - 1, Math.floor(((e.clientX - r.left) / r.width) * n)))
-    if (i !== hoverIdx) setHoverIdx(i)
-  }
-
-  return (
-    <section aria-label="Price chart" style={{ padding: '14px 20px 6px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-        <span style={{ fontWeight: 600, fontSize: 16 }}>Price · {unit} per token</span>
-      </div>
-      <div className="chart">
-        {[25, 50, 75].map((p) => (
-          <div key={p} aria-hidden="true" className="chart-grid" style={{ top: `${p}%` }} />
-        ))}
-        <div
-          role="img"
-          aria-label={`${ticker} price candles. Drag across to see the price at any point.`}
-          onPointerMove={onMove}
-          onPointerDown={onMove}
-          onPointerLeave={() => setHoverIdx(null)}
-          style={{ position: 'absolute', left: LEFT, right: RIGHT, top: 0, bottom: 0, cursor: 'crosshair', touchAction: 'none' }}
-        >
-          {agg.map((k, i) => {
-            const color = up(k) ? 'var(--green)' : 'var(--red)'
-            return (
-              <div key={i} style={{ position: 'absolute', top: 0, bottom: 0, left: `${((i / n) * 100).toFixed(3)}%`, width: `${(100 / n).toFixed(3)}%` }}>
-                <div style={{ position: 'absolute', left: '50%', width: 1, marginLeft: -0.5, top: `${yp(k.h).toFixed(2)}%`, height: `${Math.max(0.3, yp(k.l) - yp(k.h)).toFixed(2)}%`, background: color }} />
-                <div style={{ position: 'absolute', left: '15%', right: '15%', top: `${yp(Math.max(k.o, k.c)).toFixed(2)}%`, height: `${Math.max(0.4, Math.abs(yp(k.o) - yp(k.c))).toFixed(2)}%`, minHeight: 1, background: color, borderRadius: 1 }} />
-                <div style={{ position: 'absolute', left: '15%', right: '15%', bottom: 0, height: `${((k.v / vmax) * 14).toFixed(2)}%`, background: color, opacity: 0.25 }} />
-              </div>
-            )
-          })}
-        </div>
-        {hk && hIdx !== null && (
-          <>
-            <div aria-hidden="true" className="crosshair-v" style={{ left: xAt(hIdx) }} />
-            <div aria-hidden="true" className="crosshair-h" style={{ top: `${yp(hk.c).toFixed(2)}%` }} />
-            <span className="price-tag tnum" style={{ top: `${yp(hk.c).toFixed(2)}%`, background: '#3F3F46', color: 'var(--text)', zIndex: 2 }}>
-              {hk.c.toFixed(5)}
-            </span>
-            <div role="status" className="chart-tip tnum" style={{ left: hIdx > n * 0.6 ? `calc(${xAt(hIdx)} - 232px)` : `calc(${xAt(hIdx)} + 12px)` }}>
-              <span className="muted">{caption(hIdx)}</span>
-              <TipRow label="Open" value={hk.o.toFixed(5)} />
-              <TipRow label="High" value={hk.h.toFixed(5)} />
-              <TipRow label="Low" value={hk.l.toFixed(5)} />
-              <span className="kv">
-                <span className="muted">Close</span>
-                <span style={{ fontWeight: 700, color: up(hk) ? 'var(--green)' : 'var(--red)' }}>
-                  {hk.c.toFixed(5)} <span style={{ fontWeight: 400 }}>{signedPct((hk.c / hk.o - 1) * 100, 2)}</span>
-                </span>
-              </span>
-              <span className="kv" style={{ paddingTop: 5, borderTop: '1px solid var(--chip)' }}>
-                <span className="muted">vs now</span>
-                <span style={{ fontWeight: 600, color: price >= hk.c ? 'var(--green)' : 'var(--red)' }}>{signedPct((price / hk.c - 1) * 100, 2)}</span>
-              </span>
-              <TipRow label="1 SOL bought" value={`${num((unit === 'SOL' ? 1 : 1e9) / hk.c)} ${ticker}`} />
-            </div>
-          </>
-        )}
-        <div aria-hidden="true" style={{ position: 'absolute', left: 0, right: 0, top: `${yp(price).toFixed(1)}%`, borderTop: `1px dashed ${tagColor}`, opacity: 0.5, transition: 'top 0.6s ease' }} />
-        <span className="price-tag tnum" style={{ top: `${yp(price).toFixed(1)}%`, background: tagColor, color: 'var(--bg)', transition: 'top 0.6s ease' }}>
-          {price.toFixed(5)}
-        </span>
-        <span className="axis-label tnum" style={{ top: 8 }}>
-          {top.toFixed(5)}
-        </span>
-        <span className="axis-label tnum" style={{ bottom: 8 }}>
-          {bot.toFixed(5)}
-        </span>
-      </div>
-    </section>
-  )
+export interface Candle {
+  o: number
+  h: number
+  l: number
+  c: number
+  v: number
 }
 
-function TipRow({ label, value }: { label: string; value: string }) {
+export function CandleChart({
+  candles,
+  price,
+  ticker,
+  unit,
+  caption,
+}: {
+  candles: Candle[]
+  price: number
+  ticker: string
+  unit: 'SOL' | 'lamports'
+  caption: (index: number) => string
+}) {
+  const [hover, setHover] = useState<number | null>(null)
+  const [mode, setMode] = useState<'Price' | 'Candles'>('Candles')
+  const [range, setRange] = useState(60)
+  const gradient = useId().replaceAll(':', '')
+  const offset = Math.max(0, candles.length - range)
+  const data = candles.slice(offset)
+  if (!data.length)
+    return (
+      <section className="card">
+        <h2>Price history</h2>
+        <p>The chart starts with the first confirmed fill.</p>
+      </section>
+    )
+  const low = Math.min(price, ...data.map((c) => c.l))
+  const high = Math.max(price, ...data.map((c) => c.h))
+  const padding = Math.max((high - low) * 0.18, high * 0.002, 0.000001)
+  const top = high + padding
+  const bottom = Math.max(0, low - padding)
+  // Price occupies its own plot. Volume has a separate lane underneath.
+  const y = (value: number) => 24 + ((top - value) / (top - bottom)) * 230
+  const x = (i: number) => 24 + ((i + 0.5) / data.length) * 856
+  const volume = Math.max(1, ...data.map((c) => c.v))
+  const index = hover === null ? data.length - 1 : Math.min(hover, data.length - 1)
+  const selected = data[index]
+  const change = (price / data[0].o - 1) * 100
+  const color = change >= 0 ? 'var(--green)' : 'var(--red)'
+  const points = data.map((c, i) => x(i) + ',' + y(c.c)).join(' ')
+  const digits = unit === 'SOL' ? 7 : 5
+  const display = (value: number) => value.toLocaleString('en-US', { maximumFractionDigits: digits })
+  function move(event: PointerEvent<SVGSVGElement>) {
+    const rect = event.currentTarget.getBoundingClientRect()
+    const position = (((event.clientX - rect.left) / rect.width) * 1000 - 24) / 856
+    setHover(Math.max(0, Math.min(data.length - 1, Math.floor(position * data.length))))
+  }
   return (
-    <span className="kv">
-      <span className="muted">{label}</span>
-      <span>{value}</span>
-    </span>
+    <section className="market-chart" aria-label="Price chart">
+      <header className="market-chart-head">
+        <div>
+          <small>
+            {ticker} / {unit === 'SOL' ? 'SOL' : 'lamports'}
+          </small>
+          <strong key={price} className="chart-live-price">
+            {display(price)} <span style={{ color }}>{signedPct(change, 2)}</span>
+          </strong>
+        </div>
+        <div className="paper-tabs">
+          {(['Price', 'Candles'] as const).map((value) => (
+            <button
+              key={value}
+              className="pill-btn"
+              aria-pressed={mode === value}
+              onClick={() => setMode(value)}
+            >
+              {value}
+            </button>
+          ))}
+        </div>
+      </header>
+      <div className="chart-toolbar">
+        <span>{caption(offset + index)}</span>
+        <div>
+          {[20, 60, 240].map((value) => (
+            <button
+              className="chart-range"
+              aria-pressed={range === value}
+              key={value}
+              onClick={() => {
+                setRange(value)
+                setHover(null)
+              }}
+            >
+              {value} batches
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="chart-ohlc">
+        <span>
+          O <b>{display(selected.o)}</b>
+        </span>
+        <span>
+          H <b>{display(selected.h)}</b>
+        </span>
+        <span>
+          L <b>{display(selected.l)}</b>
+        </span>
+        <span>
+          C <b>{display(selected.c)}</b>
+        </span>
+      </div>
+      <svg
+        preserveAspectRatio="none"
+        className="price-canvas"
+        viewBox="0 0 1000 350"
+        role="img"
+        aria-label={ticker + ' confirmed price history. ' + data.length + ' batches.'}
+        onPointerMove={move}
+        onPointerDown={move}
+        onPointerLeave={() => setHover(null)}
+      >
+        <defs>
+          <linearGradient id={gradient} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity=".2" />
+            <stop offset="100%" stopColor={color} stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        {[0, 0.25, 0.5, 0.75, 1].map((t) => (
+          <g key={t}>
+            <line
+              x1="20"
+              x2="888"
+              y1={24 + t * 230}
+              y2={24 + t * 230}
+              stroke="var(--border-soft)"
+              strokeDasharray="3 6"
+            />
+            <text x="906" y={28 + t * 230} className="chart-axis">
+              {display(top - t * (top - bottom))}
+            </text>
+          </g>
+        ))}
+        {mode === 'Price' ? (
+          <g className="chart-series">
+            <polygon
+              points={x(0) + ',270 ' + points + ' ' + x(data.length - 1) + ',270'}
+              fill={'url(#' + gradient + ')'}
+            />
+            <polyline
+              points={points}
+              fill="none"
+              stroke={color}
+              strokeWidth="2.5"
+              strokeLinejoin="round"
+              vectorEffect="non-scaling-stroke"
+            />
+            <circle
+              cx={x(data.length - 1)}
+              cy={y(data.at(-1)!.c)}
+              r="4"
+              fill={color}
+              className="chart-last-dot"
+            />
+          </g>
+        ) : (
+          data.map((c, i) => {
+            const up = c.c >= c.o
+            const fill = up ? 'var(--green)' : 'var(--red)'
+            const width = Math.min(24, (856 / data.length) * 0.65)
+            return (
+              <g key={offset + i}>
+                <line x1={x(i)} x2={x(i)} y1={y(c.h)} y2={y(c.l)} stroke={fill} />
+                <rect
+                  x={x(i) - width / 2}
+                  y={y(Math.max(c.o, c.c))}
+                  width={width}
+                  height={Math.max(2, Math.abs(y(c.o) - y(c.c)))}
+                  fill={fill}
+                  rx="1"
+                />
+              </g>
+            )
+          })
+        )}
+        <line x1="20" x2="888" y1="280" y2="280" stroke="var(--border-soft)" />
+        {data.map((c, i) => (
+          <rect
+            key={offset + i}
+            x={x(i) - Math.min(24, (856 / data.length) * 0.65) / 2}
+            y={328 - (c.v / volume) * 32}
+            width={Math.min(24, (856 / data.length) * 0.65)}
+            height={(c.v / volume) * 32}
+            fill={c.c >= c.o ? 'var(--green)' : 'var(--red)'}
+            opacity=".35"
+          />
+        ))}
+        <text x="906" y="307" className="chart-axis">
+          VOLUME
+        </text>
+        {hover !== null && (
+          <g pointerEvents="none">
+            <line x1={x(index)} x2={x(index)} y1="20" y2="330" stroke="var(--muted)" strokeDasharray="4 4" />
+            <circle cx={x(index)} cy={y(selected.c)} r="5" fill="var(--bg)" stroke={color} strokeWidth="2" />
+          </g>
+        )}
+      </svg>
+      <footer className="chart-footer">
+        <span>{caption(offset)}</span>
+        <span>{hover === null ? 'Confirmed batches' : num(selected.v) + ' tokens traded'}</span>
+        <span>{caption(offset + data.length - 1)}</span>
+      </footer>
+    </section>
   )
 }
