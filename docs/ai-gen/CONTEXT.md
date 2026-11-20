@@ -4,6 +4,8 @@ Design docs produced with Claude in design sessions, cleaned 2026-11-19. Human-w
 
 A consumer memecoin exchange on Solana designed to prevent the toxic behaviours of today's launchpads (pump.fun and similar). Built for UBC Hackathon 2026 (DeFi & Onchain Apps, Best use of Solana, QuickNode Streams bounty). Submission due **Fri Nov 20, 2026, 12:00 PM CST**.
 
+See [UBC 2026 Hackathon](../HACKATHON.md) for organizer sources, track requirements, and the submission checklist.
+
 ## Read this first
 
 - **Guiding principle (decided 2026-11-16):** on our exchange, people make money by predicting which memes and trends get more popular. They do **not** make money by deploying fastest, sniping, or spreading supply across wallets. Check every mechanism against this.
