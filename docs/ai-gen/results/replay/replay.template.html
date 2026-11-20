@@ -44,6 +44,20 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--ours); outl
 .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--c); flex: none; }
 .readout .num { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: clamp(1.7rem, 3.2vw, 2.4rem); line-height: 1.1; }
 .readout .what { color: var(--ink-2); font-size: 0.875rem; }
+.plays { display: flex; flex-direction: column; gap: 12px; }
+.playhead { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; }
+.playhead b { font-family: var(--display); font-size: 1.15rem; }
+.playhead span { color: var(--ink-2); font-family: var(--mono); font-size: 0.9rem; }
+.duel { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.side { border: 1px solid var(--line); border-top: 4px solid var(--c); border-radius: 8px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.side h3 { margin: 0; font-size: 1rem; font-weight: 600; }
+.side ol { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.side li { display: grid; grid-template-columns: 5.2em minmax(0, 1fr); gap: 10px; }
+.side li i { font-style: normal; color: var(--ink-3); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; padding-top: 3px; }
+.side li span { font-variant-numeric: tabular-nums; }
+.side .why { background: var(--panel); border-radius: 6px; padding: 10px 12px; font-size: 0.95rem; margin-top: 2px; }
+.side .why b { display: block; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-2); margin-bottom: 2px; }
+@media (max-width: 760px) { .duel { grid-template-columns: minmax(0, 1fr); } }
 .transport { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
 .transport button.play { background: var(--ink); color: var(--bg); border-color: var(--ink); font-weight: 600; min-width: 108px; }
 .transport input[type="range"] { flex: 1; min-width: 160px; accent-color: var(--ink); }
@@ -72,6 +86,13 @@ svg .bandlabel { fill: var(--ink-3); font-size: 11px; }
   <div class="tabs" role="tablist" aria-label="Scenes" id="tabs"></div>
   <div class="scene-head"><h2 id="title"></h2><p id="lede"></p></div>
   <div class="chips" id="chips" hidden></div>
+  <div class="plays" id="plays" hidden>
+    <div class="playhead"><b id="playtitle"></b><span id="playclock"></span></div>
+    <div class="duel">
+      <section class="side" style="--c:var(--pump)"><h3>On pump.fun's curve</h3><ol id="play-pump"></ol><div class="why" id="why-pump"></div></section>
+      <section class="side" style="--c:var(--ours)"><h3>On our market</h3><ol id="play-ours"></ol><div class="why" id="why-ours"></div></section>
+    </div>
+  </div>
   <div class="stage">
     <div class="chart" id="chart">
       <div class="legend" id="legend"></div>
@@ -81,6 +102,8 @@ svg .bandlabel { fill: var(--ink-3); font-size: 11px; }
     <div class="readouts" id="readouts"></div>
   </div>
   <div class="transport">
+    <button id="back" type="button" hidden>Back</button>
+    <button id="next" type="button" hidden>Next</button>
     <button class="play" id="play" type="button">Replay</button>
     <input id="scrub" type="range" min="0" max="1000" value="1000" aria-label="Position in the replay">
     <span class="clock" id="clock"></span>
@@ -109,15 +132,57 @@ const MONEY = {
     take: "The exchange collects more in fees on our market (104 SOL against 71) while traders lose less." },
 };
 
+const tok = (n) => (n / 1e6).toFixed(n < 1e6 ? 2 : 1) + "M";
+const share = (n) => (n / 1e7).toFixed(n < 1e7 ? 2 : 1) + "%";
+const signed = (v) => (v >= 0 ? "+" : "") + (v * 100).toFixed(0) + "%";
+
+// One play = one 10-second batch in which the wallet acted. Each side gets four lines and a reason.
+function describe(r, mine, other) {
+  if (!r) return { lines: [["Order", "Nothing left to do"], ["Result", "Already out of the coin"]], why: ["", ""] };
+  const L = [];
+  if (r.side === "buy") {
+    L.push(["Order", "Bids for " + tok(r.asked) + " tokens, " + share(r.asked) + " of the coin, at any price"]);
+    if (mine === "pump") L.push(["Market", r.accepted >= r.asked ? "Takes the whole order" : r.accepted <= 1 ? "Wallet is out of money" : "Wallet can only afford " + tok(r.accepted)]);
+    else L.push(["Market", r.accepted === 0 ? "Refuses it: the wallet is at the holding cap" : r.accepted < r.asked ? "Cuts it to " + tok(r.accepted) + " before the auction runs (cap " + share(r.cap) + " per person)" : "Accepts it in full"]);
+    L.push(["Fill", r.got > 0 ? "Buys " + tok(r.got) + " for " + r.cash.toFixed(2) + " SOL" + (mine === "ours" && r.got < r.accepted ? ", sharing the batch with " + Math.max(r.others - 1, 0) + " other traders" : "") : "Buys nothing"]);
+    L.push(["After", "Price " + signed(r.price_move) + " this batch. Wallet holds " + share(r.holds)]);
+  } else {
+    L.push(["Order", "Offers all " + tok(r.asked) + " tokens for sale at any price"]);
+    L.push(["Market", r.got >= r.asked ? "Sells all of it" : "Sells " + tok(r.got) + " of it"]);
+    L.push(["Fill", "Receives " + (-r.cash).toFixed(2) + " SOL after a " + (r.fee_rate * 100).toFixed(0) + "% exit fee"]);
+    L.push(["After", "Price " + signed(r.price_move) + " this batch. Wallet holds " + share(r.holds)]);
+  }
+  let why;
+  if (mine === "pump") why = r.side === "buy"
+    ? ["Why nothing stops it", r.accepted <= 1 ? "The only limit on a buyer is their own money." : "Nothing limits one buyer, so each order drags the price further up the curve."]
+    : ["Why nothing stops it", "Exit costs a flat 1% however fast you leave, and every sale pushes the price down for whoever is still holding."];
+  else if (r.side === "sell") why = ["Rule that bites: early-exit fee", "Selling soon after buying costs more. This wallet paid " + (r.fee_rate * 100).toFixed(0) + "% to leave, against 1% on pump."];
+  else if (r.accepted < r.asked) why = ["Rule that bites: holding cap", "One verified person is one wallet and may hold about 2% of a coin, so the order is cut before it can touch the price." +
+    (r.got < r.accepted && r.got > 0 ? " What is left clears in a 10-second batch at one price for everyone, so being first buys nothing." : "")];
+  else why = ["Rule that bites: one price per batch", "Everyone who bids in the same 10 seconds pays the same price and shares the supply."];
+  return { lines: L, why };
+}
+
+function playScene(id, tab, title, lede, key, metric, axis, readWhat, take) {
+  const P = D.plays[key], ts = [...new Set([...P.pump, ...P.ours].map((r) => r.t))].sort((a, b) => a - b);
+  const at = (rows, t) => rows.find((r) => r.t === t) || null;
+  const carry = (rows) => { let lastV = metric === "price" ? 1 : 0; return ts.map((t) => { const r = at(rows, t); if (r) lastV = metric === "price" ? r.price : r.holds / 1e7; return lastV; }); };
+  const sc = { id, tab, title, lede, scale: metric === "price" ? "log" : "linear", zero: metric !== "price", axis, isPlay: true,
+    x: ts.map((t) => t / 6), steps: ts.map((t) => ({ t, pump: at(P.pump, t), ours: at(P.ours, t) })),
+    series: [{ k: "pump", v: carry(P.pump) }, { k: "ours", v: carry(P.ours) }] };
+  sc.read = (s, i) => ({ num: axis(metric === "price" ? Math.max(...s.v.slice(0, i + 1)) : s.v[i]), what: readWhat });
+  sc.take = take;
+  return sc;
+}
+
 function scenes() {
-  const w = D.whale, p = D.pnd;
+  const w = D.whale, p = D.pnd, last = (rows) => rows[rows.length - 1];
   return [
-    { id: "whale", tab: "Whale", title: "Two wallets try to buy an entire coin",
-      lede: "They bid for everything, every batch. How much of the supply does the biggest holder end up with?",
-      x: w.minutes, scale: "linear", axis: (v) => v.toFixed(0) + "%", zero: true,
-      series: [{ k: "pump", v: w.pump }, { k: "ours", v: w.ours }],
-      read: (s, i) => ({ num: pct(s.v[i], 1), what: "of supply held by the largest wallet" }),
-      take: () => "On pump's curve one wallet holds a third of the coin within two minutes. On our market nobody gets past the 2% cap." },
+    playScene("whale", "Whale", "A whale tries to buy an entire coin",
+      "One wallet with 50 SOL bids for 3% of a new coin every 10 seconds. Step through what each market does with every order.",
+      "whale", "holds", (v) => v.toFixed(1) + "%", "of the coin held by this wallet",
+      () => "After two minutes the wallet owns " + share(last(D.plays.whale.pump).holds) + " of the coin on pump's curve and has multiplied its price. On our market it holds " +
+        share(last(D.plays.whale.ours).holds) + " and the price has not moved. Across 32 runs the largest holder ends at " + w.pump[w.pump.length - 1].toFixed(0) + "% on pump and " + w.ours[w.ours.length - 1].toFixed(0) + "% on ours."),
     { id: "meme", tab: "Same meme", title: "", lede: "", chips: D.memes.map((m) => m.title), pick: 1, scale: "log", axis: mult, build(sc) {
         const m = D.memes[sc.pick];
         sc.title = m.title; sc.x = m.minutes;
@@ -127,14 +192,13 @@ function scenes() {
         sc.take = () => "Over this meme's life the price sat " + (m.pump_off * 100).toFixed(0) + "% away from real interest on pump's curve and " +
           (m.ours_off * 100).toFixed(0) + "% away on ours. Ours was closer for " + (m.ours_closer_share * 100).toFixed(0) + "% of the " + m.memes + " memes of this kind.";
       } },
-    { id: "pump-and-dump", tab: "Pump and dump", title: "Two wallets pump a coin, then dump it",
-      lede: "They buy as hard as they can for two and a half minutes, wait, then sell everything. Real interest in the meme never moves.",
-      x: p.minutes, scale: "log", axis: mult,
-      bands: [{ a: 0, b: p.buy_until_min, label: "they buy" }, { a: p.dump_from_min, b: p.dump_from_min + 2.5, label: "they dump" }],
-      series: [{ k: "interest", v: p.interest }, { k: "pump", v: p.pump }, { k: "ours", v: p.ours }],
-      read: (s, i) => ({ num: mult(Math.max(...s.v.slice(0, i + 1))), what: "highest price so far, as a multiple of launch" }),
-      take: () => "Across 32 runs the pumped coin peaked at " + p.peak_pump_median + "x its launch price on pump's curve and " + p.peak_ours_median +
-        "x on ours. Anyone who chased that candle on pump bought at many times what the meme was worth." },
+    playScene("pump-and-dump", "Pump and dump", "A wallet pumps a coin, then dumps it",
+      "It buys as hard as it can for two and a half minutes, waits, then sells everything at any price. Step through each order.",
+      "pnd", "price", mult, "highest price so far, as a multiple of launch",
+      () => "On pump's curve the wallet takes " + share(Math.max(...D.plays.pnd.pump.map((r) => r.holds))) + " of the coin, the price climbs 20 to 40% a batch and then falls about 45% a batch on the way out. On ours it tops out at " +
+        share(Math.max(...D.plays.pnd.ours.map((r) => r.holds))) + " and pays a " + (Math.max(...D.plays.pnd.ours.map((r) => r.fee_rate)) * 100).toFixed(0) +
+        "% exit fee. This wallet ended " + sol(last(D.plays.pnd.pump).wealth, 1) + " on pump and " + sol(last(D.plays.pnd.ours).wealth, 2) +
+        " on ours, where the coin had risen on other people's buying. Across 32 runs the pumped coin peaks at " + p.peak_pump_median + "x launch on pump and " + p.peak_ours_median + "x on ours."),
     { id: "money", tab: "Who keeps the money", title: "Where the money ends up", chips: Object.values(MONEY).map((m) => m.chip), pick: 0, scale: "linear", build(sc) {
         const key = Object.keys(MONEY)[sc.pick], m = MONEY[key];
         sc.lede = "A full market for five and a half hours: launches, a line of new coins, cuts, and a mix of attackers. Same crowd on both.";
@@ -173,8 +237,23 @@ function setScene(i, keepPos) {
   const rows = [0, 0.25, 0.5, 0.75, 1].map((f) => Math.round(f * (sc.x.length - 1)));
   $("table").innerHTML = "<table><tr><th>Minute</th>" + sc.series.map((s) => "<th>" + NAME[s.k] + "</th>").join("") + "</tr>" +
     rows.map((i) => "<tr><td>" + sc.x[i].toFixed(0) + "</td>" + sc.series.map((s) => "<td>" + sc.axis(s.v[i]) + "</td>").join("") + "</tr>").join("") + "</table>";
-  if (!keepPos) pos = 1;
+  const play = !!sc.isPlay;
+  $("plays").hidden = !play; $("back").hidden = !play; $("next").hidden = !play;
+  $("scrub").max = play ? sc.steps.length - 1 : 1000; $("scrub").step = 1;
+  if (!keepPos) pos = play ? 0 : 1;
   draw();
+}
+
+function drawPlay(sc, idx) {
+  const st = sc.steps[idx], secs = st.t * 10;
+  $("playtitle").textContent = "Play " + (idx + 1) + " of " + sc.steps.length;
+  $("playclock").textContent = Math.floor(secs / 60) + ":" + String(secs % 60).padStart(2, "0") + " after launch";
+  for (const side of ["pump", "ours"]) {
+    const d = describe(st[side], side, st[side === "pump" ? "ours" : "pump"]);
+    $("play-" + side).replaceChildren(...d.lines.map(([k, v]) => { const li = document.createElement("li"), a = document.createElement("i"), b = document.createElement("span"); a.textContent = k; b.textContent = v; li.append(a, b); return li; }));
+    const why = $("why-" + side); why.hidden = !d.why[0]; why.replaceChildren();
+    if (d.why[0]) { const b = document.createElement("b"); b.textContent = d.why[0]; why.append(b, d.why[1]); }
+  }
 }
 
 let G = null;
@@ -205,14 +284,19 @@ function draw() {
   svg.setAttribute("viewBox", "0 0 " + W + " " + H); svg.innerHTML = h;
   G = { sc, X, m, W, x0, x1, n };
   for (const s of sc.series) { const el = $("readouts").querySelector('[data-k="' + s.k + '"]'); if (!el) continue; const r = sc.read(s, idx); el.querySelector(".num").textContent = r.num; el.querySelector(".what").textContent = r.what; }
-  $("scrub").value = Math.round(pos * 1000); $("clock").textContent = "minute " + sc.x[idx].toFixed(0);
+  if (sc.isPlay) { drawPlay(sc, idx); $("scrub").value = idx; $("clock").textContent = ""; }
+  else { $("scrub").value = Math.round(pos * 1000); $("clock").textContent = "minute " + sc.x[idx].toFixed(0); }
   $("takeaway").textContent = sc.take(idx);
-  $("play").textContent = playing ? "Pause" : (pos >= 1 ? "Replay" : "Play");
+  $("play").textContent = playing ? "Pause" : (pos >= 1 ? "Replay" : sc.isPlay ? "Auto-play" : "Play");
+  if (sc.isPlay) { $("back").disabled = idx === 0; $("next").disabled = idx === n - 1; }
 }
 
+function stepTo(i) { const n = SC[cur].steps.length; pos = Math.min(n - 1, Math.max(0, i)) / (n - 1); draw(); }
+function stepNow() { return Math.round(pos * (SC[cur].steps.length - 1)); }
 function tick(now) {
   if (!playing) return;
-  pos = Math.min(1, pos + (now - last) / 9000); last = now; draw();
+  if (SC[cur].isPlay) { if (now - last > 2200) { last = now; stepTo(stepNow() + 1); } }
+  else { pos = Math.min(1, pos + (now - last) / 9000); last = now; draw(); }
   if (pos >= 1) { playing = false; draw(); return; }
   raf = requestAnimationFrame(tick);
 }
@@ -225,8 +309,13 @@ SC.forEach((sc, i) => {
   $("tabs").append(b);
 });
 $("play").onclick = () => (playing ? (stop(), draw()) : play());
-$("scrub").oninput = (e) => { stop(); pos = e.target.value / 1000; draw(); };
-document.addEventListener("keydown", (e) => { if (e.code === "Space" && e.target.tagName !== "BUTTON" && e.target.tagName !== "INPUT") { e.preventDefault(); $("play").click(); } });
+$("scrub").oninput = (e) => { stop(); if (SC[cur].isPlay) stepTo(+e.target.value); else { pos = e.target.value / 1000; draw(); } };
+$("back").onclick = () => { stop(); stepTo(stepNow() - 1); };
+$("next").onclick = () => { stop(); stepTo(stepNow() + 1); };
+document.addEventListener("keydown", (e) => {
+  if (SC[cur].isPlay && e.target.tagName !== "INPUT" && (e.code === "ArrowRight" || e.code === "ArrowLeft")) { e.preventDefault(); stop(); stepTo(stepNow() + (e.code === "ArrowRight" ? 1 : -1)); }
+  if (e.code === "Space" && e.target.tagName !== "BUTTON" && e.target.tagName !== "INPUT") { e.preventDefault(); $("play").click(); }
+});
 $("svg").addEventListener("pointermove", (e) => {
   if (!G) return; const box = $("svg").getBoundingClientRect(), k = G.W / box.width, vx = (e.clientX - box.left) * k;
   const f = Math.min(1, Math.max(0, (vx - G.m.l) / (G.W - G.m.l - G.m.r))), i = Math.round(f * (G.n - 1));
@@ -239,7 +328,7 @@ $("svg").addEventListener("pointermove", (e) => {
 function hideTip() { $("tip").hidden = true; const c = document.getElementById("cross"); if (c) c.setAttribute("visibility", "hidden"); }
 $("svg").addEventListener("pointerleave", hideTip);
 addEventListener("resize", draw);
-$("fine").textContent = "Everything here is a simulation: 512 simulated traders per world, calibrated on a month of pump.fun trading. The whale, same-meme and pump-and-dump scenes use six established coins per world with no launch queue, which is the setting most favourable to our market. Lines are the median of 32 worlds, or a single median example where a price is shown.";
+$("fine").textContent = "Everything here is a simulation: 512 simulated traders per world, calibrated on a month of pump.fun trading. The whale, same-meme and pump-and-dump scenes use six established coins per world with no launch queue, which is the setting most favourable to our market. The whale and pump-and-dump scenes follow one wallet through one run, with every number taken from that run; the 32-run figures in the text are medians.";
 const start = SC.findIndex((s) => "#" + s.id === location.hash);
 setScene(start < 0 ? 0 : start);
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(draw);

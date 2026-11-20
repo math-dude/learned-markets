@@ -12,9 +12,11 @@ from __future__ import annotations
 
 import argparse
 import json
+from dataclasses import replace
 
 import numpy as np
-import torch
+from learned_markets_core import ROOKIE
+from learned_markets_core.units import prices
 from learned_markets_simulation.params import A_HOARDER, A_NONE, A_PUMPER, BATCH_SECONDS, REGIMES, RETAIL
 from learned_markets_simulation.world import World
 from stable_baselines3 import PPO
@@ -53,6 +55,52 @@ def money_run(kind: str, act, seed: int, n_worlds: int, steps: int, every: int) 
             out["fees"].append(fees)
             out["top10"].append(float(world.tape.top10[live].mean()) * 100)
     return {k: _r(v) for k, v in out.items()}
+
+
+def play_by_play(kind: str, act, seed: int, script: int, steps: int, world_idx: int = 0) -> list[dict]:
+    """What one attacking wallet asked for, what the market let through, and what it cost, batch by batch.
+
+    Same setup as `paired_run` (six seated coins, no launches); follows seat 0 of one world.
+    """
+    cfg = replace(market_config(8, baseline=kind == "pump"), cut_round=10**9, epoch=10**9)
+    sim = replace(
+        sim_config(attacker_rate=1.0, attacker_script=script, n_attacker_seats=2),
+        launch_rate=0.0,
+        reflexivity=(0.0, 0.0),
+    )
+    world = World(cfg, sim, seed=seed, quoter="pump" if kind == "pump" else "params", initial_coins=6)
+    world.state.stage[:, :6] = ROOKIE
+    table = prices(world.dev)
+    w, rows, start = world_idx, [], float(world.wealth()[world_idx, 0])
+    for t in range(steps):
+        params = quoter_params(world, act) if kind != "pump" else None
+        cap = world.state.cap_tokens(world.quote(params).cap_share, cfg)
+        tick_before, hold_before = world.state.tick.clone(), world.state.hold.clone()
+        out = world.step(params)
+        o, res = out.orders, out.result
+        mine = ((o.w == w) & (o.p == 0)).nonzero().squeeze(1)
+        if mine.numel() == 0 or int(o.qty[mine[0]].max()) == 0:
+            continue
+        i = mine[0]
+        c = int(o.c[i])
+        before, after = float(table[tick_before[w, c]]), float(table[world.state.tick[w, c]])
+        held = int(hold_before[w, c, 0])
+        rows.append({
+            "t": t, "side": "buy" if int(o.side[i]) == 0 else "sell",
+            "asked": int(o.qty[i].max()), "accepted": int(res.accepted[i].max()), "got": int(res.fill[i]),
+            "room": max(int(cap[w, c]) - held, 0), "cap": int(cap[w, c]), "held_before": held,
+            "holds": int(world.state.hold[w, c, 0]), "cash": round(-float(res.cash_delta[i]) / SOL, 4),
+            "fee_rate": round(float(res.fee_rate[i]), 4), "fee": round(float(res.fee[i]) / SOL, 4),
+            "price_move": round(after / before - 1, 4), "price": round(after / float(table[cfg.launch_tick]), 3),
+            "others": int(res.traders[w, c]), "quoter_sold": int(res.q_sell[w, c]),
+            "wealth": round((float(world.wealth()[w, 0]) - start) / SOL, 3),
+        })  # fmt: skip
+    return rows
+
+
+def _pick(rows: list[dict], buys: tuple[int, ...]) -> list[dict]:
+    """Keep the chosen buy batches and every sell, so the page steps through a readable number of plays."""
+    return [r for r in rows if r["side"] == "sell" or r["t"] in buys]
 
 
 def main() -> None:
@@ -113,16 +161,21 @@ def main() -> None:
     }  # fmt: skip
 
     money = {k: money_run(k, a, 20_001, 64, 2000, 20) for k, a in (("pump", None), ("ours", act))}
-    data = {"whale": whale, "memes": memes, "pnd": pnd, "money": money,
+    plays = {
+        "whale": {k: _pick(play_by_play(k, a, args.seed, A_HOARDER, 12), tuple(range(12))) for k, a in (("pump", None), ("ours", act))},
+        "pnd": {k: _pick(play_by_play(k, a, args.seed, A_PUMPER, 60), (0, 1, 2, 5, 9, 14))[:14] for k, a in (("pump", None), ("ours", act))},
+    }  # fmt: skip
+    data = {"whale": whale, "memes": memes, "pnd": pnd, "money": money, "plays": plays,
             "note": "Simulated crowd calibrated on pump.fun data; identical crowd and seeds on both markets."}  # fmt: skip
     with open(args.out, "w") as fh:
         json.dump(data, fh, separators=(",", ":"))
-    last = lambda k, f: {m: money[m][f][-1] for m in money}  # noqa: ARG005
+    last = lambda k, f: {m: money[m][f][-1] for m in money}
     print(json.dumps({"whale_end": {"pump": whale["pump"][-1], "ours": whale["ours"][-1]},
                       "retail_end": last(0, "retail"), "dead_end": last(0, "dead"), "fees_end": last(0, "fees"),
                       "top10_end": last(0, "top10"), "bytes": len(json.dumps(data)),
                       "pnd": {k: pnd[k] for k in ("peak_pump_median", "peak_ours_median", "same_target_worlds")},
                       "pnd_attacker_end": {"pump": pnd["attacker_pump"][-1], "ours": pnd["attacker_ours"][-1]},
+                      "plays": {sc: {k: [(r["t"], r["side"], r["asked"], r["accepted"], r["got"], r["holds"], r["cash"], r["fee_rate"], r["price_move"], r["wealth"]) for r in v] for k, v in d.items()} for sc, d in plays.items()},
                       "pnd_example_peak": {"pump": max(pnd["pump"]), "ours": max(pnd["ours"]), "interest": max(pnd["interest"])}}, indent=1))  # fmt: skip
 
 
