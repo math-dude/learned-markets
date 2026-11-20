@@ -1,3 +1,5 @@
+> Superseded for the current backend and parity program on 2026-11-20 by [Eren's settlement interface](design/settlement-interface.md), selected by the user. M1 token custody remains a local checkpoint. This full-market design is retained for reference.
+
 # Settlement v2: full build spec for the on-chain market
 
 This spec is written for a coding agent that has no other context. It covers the whole on-chain market:
