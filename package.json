@@ -1,11 +1,28 @@
 {
   "name": "learned-markets",
   "private": true,
+  "type": "module",
   "packageManager": "bun@1.3.5",
-  "workspaces": ["apps/web", "packages/client"],
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "engines": {
+    "node": ">=24.12"
+  },
   "scripts": {
     "dev": "bun run --cwd apps/web dev",
     "build": "bun run --cwd apps/web build",
-    "lint": "bun run --cwd apps/web lint"
+    "lint": "bun run --cwd apps/web lint",
+    "typecheck": "tsc -p packages/attestations && tsc -p apps/attestation-service",
+    "test": "bun run --filter @learned-markets/attestations test && bun run --filter @learned-markets/attestation-service test",
+    "test:programs": "anchor build && cargo test -p learned-markets && cd tests/program-tests && cargo test",
+    "rollout": "node scripts/rollout.ts"
+  },
+  "devDependencies": {
+    "@solana-program/system": "0.15.0",
+    "@solana/kit": "8.3.0",
+    "@types/node": "24.19.2",
+    "typescript": "5.9.3"
   }
 }

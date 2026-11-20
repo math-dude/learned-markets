@@ -1,0 +1,22 @@
+{
+  "name": "@learned-markets/attestations",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "bin": {
+    "lm-attest": "./src/cli.ts"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.ts",
+    "cli": "node src/cli.ts"
+  },
+  "dependencies": {
+    "@solana-program/token-2022": "0.19.0",
+    "@solana/attestation": "2.1.0",
+    "@solana/kit": "8.3.0",
+    "@solana/sysvars": "8.3.0"
+  }
+}
