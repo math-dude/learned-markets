@@ -1,0 +1,474 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Coin page</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>x-dc{display:none}</style>
+<script src="./dc-lite.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:#09090B}
+a{color:#A78BFA;text-decoration:none}a:hover{color:#DDD6FE}
+@keyframes lmfill{0%{background:rgba(124,58,237,.35)}100%{background:transparent}}
+.lm-fillrow{animation:lmfill 1.4s ease-out both}
+@keyframes lmpop{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.08);opacity:1}100%{transform:scale(1)}}
+.lm-pop{display:inline-block;animation:lmpop .5s cubic-bezier(.2,.8,.2,1) both}
+@keyframes lmwarn{0%,100%{box-shadow:0 0 0 1px #FB7185}50%{box-shadow:0 0 0 1px #FB7185,0 0 22px rgba(251,113,133,.35)}}
+.lm-warn{animation:lmwarn 1.6s ease-in-out infinite}
+</style>
+</helmet>
+<div style="min-height: 1000px; box-sizing: border-box; background: #09090B; color: #F4F4F5; font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 15px; display: flex; position: relative">
+
+  <nav aria-label="Main" style="flex: none; width: 72px; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 16px 0; border-right: 1px solid #222226">
+    <div aria-hidden="true" style="width: 40px; height: 40px; border-radius: 6px; background: #6D28D9; margin-bottom: 12px"></div>
+    <a href="board.html" aria-label="Board" style="width: 44px; height: 44px; border-radius: 6px; display: flex; align-items: center; justify-content: center; background: #232327"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#A1A1AA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></a>
+    <a href="#" aria-label="The Line" style="width: 44px; height: 44px; border-radius: 6px; display: flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#A1A1AA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h6"/></svg></a>
+    <a href="portfolio.html" aria-label="Portfolio" style="width: 44px; height: 44px; border-radius: 6px; display: flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#A1A1AA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18v13H3z"/><path d="M8 7V4h8v3"/></svg></a>
+    <a href="#" aria-label="How it works" style="width: 44px; height: 44px; border-radius: 6px; display: flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#A1A1AA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg></a>
+    <a href="#" aria-label="Launch a meme" style="margin-top: 16px; width: 48px; height: 48px; border-radius: 6px; background: #6D28D9; display: flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></a>
+  </nav>
+
+  <div style="flex: 1; min-width: 0; display: flex; flex-direction: column">
+    <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 16px; padding: 14px 20px; border-bottom: 1px solid #222226">
+      <label style="flex: 1 1 360px; max-width: 760px; display: flex; align-items: center; gap: 10px; padding: 11px 16px; border-radius: 6px; background: #151518; color: #A1A1AA">
+        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#A1A1AA" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        <input type="search" placeholder="Search for coins and users..." aria-label="Search for coins" style="flex: 1; min-width: 0; background: transparent; border: none; outline: none; color: #F4F4F5; font: inherit">
+        <span style="padding: 2px 8px; border-radius: 6px; background: #2A2A2F; font-size: 13px">⌘K</span>
+      </label>
+      <span style="margin-left: auto"></span>
+      <span style="display: inline-flex; align-items: center; gap: 8px; padding: 9px 14px; border-radius: 6px; background: #151518; font-size: 14px"><span style="color: #A1A1AA">next epoch</span><span style="font-weight: 700; font-variant-numeric: tabular-nums; font-family: 'SF Mono', ui-monospace, Menlo, monospace">{{epochText}}</span></span>
+      <span style="padding: 9px 14px; border-radius: 6px; background: #151518; font-weight: 600; font-variant-numeric: tabular-nums">{{balanceText}} SOL</span>
+    </header>
+
+    <div style="display: flex; flex-wrap: wrap; flex: 1">
+
+      <main style="flex: 999 1 640px; min-width: 0; display: flex; flex-direction: column; border-right: 1px solid #222226">
+
+        <section aria-label="Coin" style="display: flex; flex-wrap: wrap; align-items: center; gap: 18px; padding: 18px 20px; border-bottom: 1px solid #222226">
+          <a href="board.html" style="color: #A1A1AA; font-size: 14px; display: inline-flex; align-items: center; gap: 6px"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>Board</a>
+          <div aria-hidden="true" style="width: 72px; height: 72px; flex: none; border-radius: 6px; background: #2C2528; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px">CAT</div>
+          <div style="display: flex; flex-direction: column; gap: 6px; min-width: 0">
+            <span style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap"><span style="font-weight: 700; font-size: 24px">Cat in Box</span><span style="color: #A1A1AA">$CAT</span><span style="padding: 3px 9px; border-radius: 6px; border: 1px solid #A78BFA; color: #A78BFA; font-size: 12px; font-weight: 700">smoothing</span><span style="padding: 3px 9px; border-radius: 6px; background: {{rankBg}}; color: {{rankColor}}; font-size: 12px; font-weight: 700">{{rankText}}</span></span>
+            <span style="display: flex; align-items: baseline; gap: 12px; font-variant-numeric: tabular-nums"><span class="{{priceClass}}" style="font-size: 28px; font-weight: 700">{{priceText}}</span><span style="color: #A1A1AA; font-size: 14px">SOL</span><span style="color: {{dayColor}}; font-weight: 600">{{dayText}} 24h</span></span>
+          </div>
+          <div style="margin-left: auto; display: flex; flex-wrap: wrap; gap: 28px; font-variant-numeric: tabular-nums">
+            <div style="display: flex; flex-direction: column; gap: 4px"><span style="color: #A1A1AA; font-size: 13px">Market cap</span><span style="font-weight: 700; font-size: 18px">{{mcText}}</span></div>
+            <div style="display: flex; flex-direction: column; gap: 4px"><span style="color: #A1A1AA; font-size: 13px">Organic volume</span><span style="font-weight: 700; font-size: 18px">{{ovText}}</span></div>
+            <div style="display: flex; flex-direction: column; gap: 4px"><span style="color: #A1A1AA; font-size: 13px">Maker's share</span><span style="font-weight: 700; font-size: 18px">18%</span></div>
+            <div style="display: flex; flex-direction: column; gap: 4px"><span style="color: #A1A1AA; font-size: 13px">Holders</span><span style="font-weight: 700; font-size: 18px">1,204</span></div>
+          </div>
+        </section>
+
+        <section aria-label="Price chart" style="padding: 14px 20px 6px">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px">
+            <span style="font-weight: 600; font-size: 16px">Price</span>
+            <div style="display: flex; gap: 6px">
+              <sc-for list="{{ranges}}" as="r" hint-placeholder-count="4">
+                <button type="button" onClick="{{r.pick}}" style="padding: 5px 12px; border-radius: 6px; border: 1px solid {{r.border}}; background: {{r.bg}}; color: #F4F4F5; font: inherit; font-size: 13px; cursor: pointer">{{r.label}}</button>
+              </sc-for>
+            </div>
+          </div>
+          <div style="position: relative; height: 250px; border-radius: 6px; background: #0E0E10; border: 1px solid #1C1C20; overflow: hidden">
+            <div aria-hidden="true" style="position: absolute; left: 0; right: 0; top: 25%; border-top: 1px solid #1C1C20"></div>
+            <div aria-hidden="true" style="position: absolute; left: 0; right: 0; top: 50%; border-top: 1px solid #1C1C20"></div>
+            <div aria-hidden="true" style="position: absolute; left: 0; right: 0; top: 75%; border-top: 1px solid #1C1C20"></div>
+            <div role="img" aria-label="Price candles. Drag across to see the price at any point." onPointerMove="{{hover}}" onPointerDown="{{hover}}" onPointerLeave="{{unhover}}" style="position: absolute; left: 8px; right: 84px; top: 0; bottom: 0; cursor: crosshair; touch-action: none">
+              <sc-for list="{{candles}}" as="k" hint-placeholder-count="40">
+                <div style="position: absolute; top: 0; bottom: 0; left: {{k.left}}; width: {{k.w}}">
+                  <div style="position: absolute; left: 50%; width: 1px; margin-left: -0.5px; top: {{k.wickTop}}; height: {{k.wickH}}; background: {{k.color}}"></div>
+                  <div style="position: absolute; left: 15%; right: 15%; top: {{k.bodyTop}}; height: {{k.bodyH}}; min-height: 1px; background: {{k.color}}; border-radius: 1px"></div>
+                  <div style="position: absolute; left: 15%; right: 15%; bottom: 0; height: {{k.volH}}; background: {{k.color}}; opacity: 0.25"></div>
+                </div>
+              </sc-for>
+            </div>
+            <sc-if value="{{hovering}}" hint-placeholder-val="{{ false }}">
+            <div aria-hidden="true" style="position: absolute; top: 0; bottom: 0; left: {{hx}}; border-left: 1px dashed #71717A; pointer-events: none"></div>
+            <div aria-hidden="true" style="position: absolute; left: 0; right: 0; top: {{hy}}; border-top: 1px dashed #71717A; pointer-events: none"></div>
+            <span style="position: absolute; right: 10px; top: {{hy}}; transform: translateY(-50%); padding: 2px 7px; border-radius: 6px; background: #3F3F46; color: #F4F4F5; font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; pointer-events: none; z-index: 2">{{hClose}}</span>
+            <div role="status" style="position: absolute; top: 10px; left: {{tipLeft}}; width: 220px; padding: 10px 12px; border-radius: 6px; background: #19191C; border: 1px solid #333338; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: flex; flex-direction: column; gap: 5px; font-size: 13px; font-variant-numeric: tabular-nums; pointer-events: none; z-index: 3">
+              <span style="color: #A1A1AA">{{hWhen}}</span>
+              <span style="display: flex; justify-content: space-between"><span style="color: #A1A1AA">Open</span><span>{{hOpen}}</span></span>
+              <span style="display: flex; justify-content: space-between"><span style="color: #A1A1AA">High</span><span>{{hHigh}}</span></span>
+              <span style="display: flex; justify-content: space-between"><span style="color: #A1A1AA">Low</span><span>{{hLow}}</span></span>
+              <span style="display: flex; justify-content: space-between"><span style="color: #A1A1AA">Close</span><span style="font-weight: 700; color: {{hColor}}">{{hClose}} <span style="font-weight: 400">{{hChg}}</span></span></span>
+              <span style="display: flex; justify-content: space-between; padding-top: 5px; border-top: 1px solid #2A2A2F"><span style="color: #A1A1AA">vs now</span><span style="color: {{hNowColor}}; font-weight: 600">{{hNow}}</span></span>
+              <span style="display: flex; justify-content: space-between"><span style="color: #A1A1AA">1 SOL bought</span><span>{{hBuy}} CAT</span></span>
+            </div>
+          </sc-if>
+            <div aria-hidden="true" style="position: absolute; left: 0; right: 0; top: {{lastTop}}; border-top: 1px dashed {{tagColor}}; opacity: 0.5; transition: top 0.6s ease"></div>
+            <span style="position: absolute; right: 10px; top: {{lastTop}}; transform: translateY(-50%); padding: 2px 7px; border-radius: 6px; background: {{tagColor}}; color: #09090B; font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; transition: top 0.6s ease">{{priceText}}</span>
+            <span style="position: absolute; left: 10px; top: 8px; color: #71717A; font-size: 12px; font-variant-numeric: tabular-nums">{{hiText}}</span>
+            <span style="position: absolute; left: 10px; bottom: 8px; color: #71717A; font-size: 12px; font-variant-numeric: tabular-nums">{{loText}}</span>
+          </div>
+        </section>
+
+        <section aria-label="This round" style="margin: 12px 20px; padding: 14px 16px; border-radius: 6px; background: #151518; border: 1px solid #222226; display: flex; flex-direction: column; gap: 12px">
+          <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap">
+            <span style="font-weight: 600">Round {{roundNo}}</span>
+            <span style="color: #A1A1AA; font-size: 14px">{{roundStatus}}</span>
+            <span style="margin-left: auto; font-size: 13px; color: #A1A1AA">no order book · everyone in a round fills at one price</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 14px; font-variant-numeric: tabular-nums">
+            <span style="color: #34D399; font-weight: 600">Buys {{buyText}} SOL <span style="color: #A1A1AA; font-weight: 400">· {{buyCount}} orders</span></span>
+            <span style="color: #FB7185; font-weight: 600"><span style="color: #A1A1AA; font-weight: 400">{{sellCount}} orders · </span>Sells {{sellText}} SOL</span>
+          </div>
+          <div style="display: flex; align-items: center; height: 34px">
+            <div style="flex: 1; display: flex; justify-content: flex-end; height: 34px">
+              <div style="height: 34px; width: {{buyLeftW}}; background: #34D399; border-radius: 6px 0 0 6px; transition: width {{barT}}"></div>
+              <div style="height: 34px; width: {{matchW}}; background: {{matchBgB}}; border-radius: {{matchRB}}; box-shadow: {{matchGlow}}; transition: width {{barT}}, background 1.2s cubic-bezier(.4,0,.2,1), box-shadow 1.2s cubic-bezier(.4,0,.2,1)"></div>
+            </div>
+            <div aria-hidden="true" style="width: 2px; height: 46px; background: {{centerBg}}; box-shadow: {{centerGlow}}; flex: none; transition: background 0.9s cubic-bezier(.4,0,.2,1), box-shadow 0.9s cubic-bezier(.4,0,.2,1)"></div>
+            <div style="flex: 1; display: flex; height: 34px">
+              <div style="height: 34px; width: {{matchW}}; background: {{matchBgS}}; border-radius: {{matchRS}}; box-shadow: {{matchGlow}}; transition: width {{barT}}, background 1.2s cubic-bezier(.4,0,.2,1), box-shadow 1.2s cubic-bezier(.4,0,.2,1)"></div>
+              <div style="height: 34px; width: {{sellLeftW}}; background: #FB7185; border-radius: 0 6px 6px 0; transition: width {{barT}}"></div>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; height: 14px">
+            <div style="flex: 1; display: flex; justify-content: flex-end"><div style="height: 14px; width: {{makerLeftW}}; background: #7C3AED; border-radius: 6px 0 0 6px; transition: width 0.9s cubic-bezier(.45,0,.2,1)"></div></div>
+            <div aria-hidden="true" style="width: 2px; flex: none"></div>
+            <div style="flex: 1; display: flex"><div style="height: 14px; width: {{makerRightW}}; background: #7C3AED; border-radius: 0 6px 6px 0; transition: width 0.9s cubic-bezier(.45,0,.2,1)"></div></div>
+          </div>
+          <div style="display: flex; gap: 18px; flex-wrap: wrap; font-size: 13px; color: #A1A1AA">
+            <span style="display: inline-flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 2px; background: #D9B45B"></span>matched, cancels out</span>
+            <span style="display: inline-flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 2px; background: #7C3AED"></span>maker absorbs part of the leftover</span>
+            <span style="margin-left: auto; color: {{resultColor}}; font-weight: 600; font-variant-numeric: tabular-nums">{{resultText}}</span>
+          </div>
+        </section>
+
+        <section aria-label="Trades" style="padding: 6px 20px 20px">
+          <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 0 10px">
+            <span style="font-weight: 600; font-size: 16px">Trades</span>
+            <span style="color: #A1A1AA; font-size: 13px">filled each round</span>
+          </div>
+          <div style="overflow-x: auto">
+            <div style="min-width: 560px; display: grid; grid-template-columns: 1.3fr 0.7fr 1fr 1fr 1fr 0.9fr; font-size: 14px; font-variant-numeric: tabular-nums">
+              <span style="padding: 8px 10px; color: #A1A1AA; font-size: 13px; border-bottom: 1px solid #222226">Account</span>
+              <span style="padding: 8px 10px; color: #A1A1AA; font-size: 13px; border-bottom: 1px solid #222226">Side</span>
+              <span style="padding: 8px 10px; color: #A1A1AA; font-size: 13px; border-bottom: 1px solid #222226; text-align: right">SOL</span>
+              <span style="padding: 8px 10px; color: #A1A1AA; font-size: 13px; border-bottom: 1px solid #222226; text-align: right">CAT</span>
+              <span style="padding: 8px 10px; color: #A1A1AA; font-size: 13px; border-bottom: 1px solid #222226; text-align: right">Price</span>
+              <span style="padding: 8px 10px; color: #A1A1AA; font-size: 13px; border-bottom: 1px solid #222226; text-align: right">Round</span>
+            </div>
+            <sc-for list="{{fills}}" as="f" hint-placeholder-count="8">
+              <div class="{{f.cls}}" style="min-width: 560px; display: grid; grid-template-columns: 1.3fr 0.7fr 1fr 1fr 1fr 0.9fr; font-size: 14px; font-variant-numeric: tabular-nums; border-bottom: 1px solid #18181B; border-radius: 6px">
+                <span style="padding: 8px 10px; color: {{f.whoColor}}; font-weight: {{f.whoWeight}}">{{f.who}}</span>
+                <span style="padding: 8px 10px; color: {{f.sideColor}}; font-weight: 600">{{f.side}}</span>
+                <span style="padding: 8px 10px; text-align: right">{{f.sol}}</span>
+                <span style="padding: 8px 10px; text-align: right">{{f.cat}}</span>
+                <span style="padding: 8px 10px; text-align: right">{{f.price}}</span>
+                <span style="padding: 8px 10px; text-align: right; color: #A1A1AA">{{f.round}}</span>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+      </main>
+
+      <aside style="flex: 1 1 340px; min-width: 0; max-width: 460px; display: flex; flex-direction: column; gap: 14px; padding: 18px 20px">
+
+        <section aria-label="Trade" style="padding: 14px; border-radius: 6px; background: #151518; border: 1px solid #222226; display: flex; flex-direction: column; gap: 12px">
+          <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px">
+            <sc-for list="{{sides}}" as="s" hint-placeholder-count="3">
+              <button type="button" onClick="{{s.pick}}" style="padding: 9px 0; border-radius: 6px; border: 1px solid {{s.border}}; background: {{s.bg}}; color: {{s.color}}; font: inherit; font-weight: 700; cursor: pointer">{{s.label}}</button>
+            </sc-for>
+          </div>
+          <sc-if value="{{isSwitch}}" hint-placeholder-val="{{ false }}">
+            <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: 6px; background: #0E0E10; border: 1px solid #222226; font-size: 14px"><span style="color: #A1A1AA">Switch $CAT into</span><span style="font-weight: 600">Pixel Pepe · $PXL</span></div>
+          </sc-if>
+          <label style="display: flex; flex-direction: column; gap: 6px">
+            <span style="color: #A1A1AA; font-size: 13px">{{amountLabel}}</span>
+            <span style="display: flex; align-items: center; gap: 8px; padding: 11px 12px; border-radius: 6px; background: #0E0E10; border: 1px solid {{amountBorder}}">
+              <input type="text" inputmode="decimal" value="{{amount}}" onChange="{{setAmount}}" aria-label="Amount" style="flex: 1; min-width: 0; background: transparent; border: none; outline: none; color: #F4F4F5; font: inherit; font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums">
+              <span style="color: #A1A1AA; font-weight: 600">{{amountUnit}}</span>
+            </span>
+          </label>
+          <div style="display: flex; gap: 6px">
+            <sc-for list="{{quick}}" as="q" hint-placeholder-count="4">
+              <button type="button" onClick="{{q.pick}}" style="flex: 1; padding: 6px 0; border-radius: 6px; border: 1px solid #333338; background: transparent; color: #F4F4F5; font: inherit; font-size: 13px; cursor: pointer">{{q.label}}</button>
+            </sc-for>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 7px; font-size: 14px; font-variant-numeric: tabular-nums">
+            <span style="display: flex; justify-content: space-between"><span style="color: #A1A1AA">Fee</span><span>{{feeText}}</span></span>
+            <span style="display: flex; justify-content: space-between"><span style="color: #A1A1AA">Estimated fill</span><span>{{estText}}</span></span>
+            <span style="display: flex; justify-content: space-between"><span style="color: #A1A1AA">Fills next round</span><span style="color: #A78BFA; font-weight: 600">in {{closesIn}}</span></span>
+          </div>
+          <sc-if value="{{overCap}}" hint-placeholder-val="{{ false }}">
+            <div role="alert" style="padding: 10px 12px; border-radius: 6px; background: rgba(251,113,133,0.1); border: 1px solid #FB7185; color: #FECDD3; font-size: 14px">This trade would put you over the ownership cap (5 SOL per person on this coin).</div>
+          </sc-if>
+          <button type="button" onClick="{{confirm}}" style="padding: 13px 0; border-radius: 6px; border: none; background: {{confirmBg}}; color: {{confirmColor}}; font: inherit; font-weight: 800; font-size: 16px; cursor: pointer">{{confirmText}}</button>
+          <sc-if value="{{hasOrderMsg}}" hint-placeholder-val="{{ false }}">
+            <div role="status" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 6px; background: {{orderBg}}; font-size: 14px"><span class="lm-pop" style="color: {{orderColor}}; font-weight: 700">{{orderTag}}</span><span style="color: #E4E4E7">{{orderMsg}}</span></div>
+          </sc-if>
+        </section>
+
+        <section aria-label="Your position" style="padding: 14px; border-radius: 6px; background: #151518; border: 1px solid #222226; display: flex; flex-direction: column; gap: 10px">
+          <span style="font-weight: 600">Your position</span>
+          <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; font-variant-numeric: tabular-nums">
+            <div style="display: flex; flex-direction: column; gap: 3px"><span style="color: #A1A1AA; font-size: 13px">Holding</span><span style="font-weight: 700">{{holdText}}</span></div>
+            <div style="display: flex; flex-direction: column; gap: 3px"><span style="color: #A1A1AA; font-size: 13px">Value</span><span style="font-weight: 700">{{valueText}} SOL</span></div>
+            <div style="display: flex; flex-direction: column; gap: 3px"><span style="color: #A1A1AA; font-size: 13px">Unrealized</span><span style="font-weight: 700; color: {{pnlColor}}">{{pnlText}}</span></div>
+          </div>
+        </section>
+
+        <section aria-label="Survival" class="{{survClass}}" style="padding: 14px; border-radius: 6px; background: #151518; border: 1px solid #222226; display: flex; flex-direction: column; gap: 12px">
+          <div style="display: flex; align-items: center; justify-content: space-between">
+            <span style="font-weight: 600">Survival timer</span>
+            <span style="color: {{trendColor}}; font-weight: 700; font-size: 14px; font-variant-numeric: tabular-nums">{{trendText}}</span>
+          </div>
+          <span style="display: flex; align-items: baseline; gap: 10px"><span style="font-family: 'SF Mono', ui-monospace, Menlo, Consolas, monospace; font-size: 44px; font-weight: 300; letter-spacing: -0.03em; line-height: 1; color: {{timerColor}}; font-variant-numeric: tabular-nums">{{timerText}}</span><span style="color: #34D399; font-weight: 700; font-variant-numeric: tabular-nums; opacity: {{gainOpacity}}; transition: opacity 0.4s ease">{{gainText}}</span></span>
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <span style="display: flex; justify-content: space-between; font-size: 14px"><span><span style="font-weight: 700">{{peopleText}}</span> <span style="color: #A1A1AA">people traded in the last hour</span></span></span>
+            <div aria-hidden="true" style="position: relative; height: 6px; border-radius: 6px; background: #2A2A2F">
+              <div style="height: 6px; width: {{peoplePct}}; border-radius: 6px; background: {{peopleBar}}; transition: width 0.6s ease"></div>
+              <span style="position: absolute; top: -4px; left: 33%; width: 2px; height: 14px; background: #A1A1AA"></span>
+            </div>
+            <span style="font-size: 13px; color: #A1A1AA">board average 96 · each round adds time based on how many different people traded, so many small traders keep it alive and a few big wallets don't</span>
+          </div>
+          <sc-if value="{{low}}" hint-placeholder-val="{{ false }}">
+            <div role="alert" style="padding: 10px 12px; border-radius: 6px; background: rgba(251,113,133,0.1); color: #FECDD3; font-size: 14px; line-height: 1.4">If the timer hits zero, this coin is delisted at the next epoch and holders are not paid out.</div>
+          </sc-if>
+        </section>
+
+        <section aria-label="Support" style="padding: 14px; border-radius: 6px; background: #151518; border: 1px solid #222226; display: flex; gap: 12px; align-items: flex-start">
+          <span style="flex: none; padding: 3px 9px; border-radius: 6px; border: 1px solid #A78BFA; color: #A78BFA; font-size: 12px; font-weight: 700">smoothing</span>
+          <span style="font-size: 14px; color: #A1A1AA; line-height: 1.45">The maker is taking part of each round's leftover, so one big order moves the price less.</span>
+        </section>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1150},"lowTimer":{"editor":"boolean","default":false,"section":"States"}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    const hist = [];
+    let p = 0.00262;
+    const raw = [];
+    for (let i = 0; i < 704; i++) {
+      const o = p; let h = p, l = p;
+      for (let j = 0; j < 3; j++) { p = p * (1 + Math.sin(i / 70) * 0.0012 + Math.sin(i / 9) * 0.0015 + (Math.random() - 0.4985) * 0.01); h = Math.max(h, p); l = Math.min(l, p); }
+      raw.push({ o, h: h * (1 + Math.random() * 0.003), l: l * (1 - Math.random() * 0.003), c: p, v: 0.3 + Math.random() });
+    }
+    const k0 = 0.0031 / p;
+    const tilt = Math.log((0.0031 / 1.09) / (raw[0].o * k0));
+    const candles = raw.map((c, i) => { const k = k0 * Math.exp(tilt * (703 - i) / 703); return { o: c.o * k, h: c.h * k, l: c.l * k, c: c.c * k, v: c.v }; });
+    candles.forEach((c) => hist.push(c.c));
+    const names = ['7xKq…f3', 'Bv2m…9a', 'pz8R…Lw', 'Hq4t…0c', 'mN1e…Ts', 'C9wd…k2', 'r5Ua…Qe', 'fL7y…8b', 'Wd3h…nX', 'a2Zo…Pm'];
+    const seedFills = [];
+    for (let r = 0; r < 3; r++) {
+      const pr = hist[hist.length - 1 - r];
+      for (let k = 0; k < 3; k++) {
+        const buy = Math.random() > 0.4; const sol = 0.1 + Math.random() * 1.4;
+        seedFills.push({ id: 'f' + r + k, who: names[(r * 3 + k) % names.length], buy, sol, price: pr, round: 18421 - r, mine: false, fresh: false });
+      }
+    }
+    this.names = names;
+    this.state = {
+      hist, candles, inCandle: 0, price: hist[hist.length - 1], open: candles[0].o, ov: 61000,
+      range: '1h', side: 'buy', amount: '0.5',
+      t: 0, roundNo: 18422, buys: [], sells: [], phase: 'collect', result: null,
+      fills: seedFills,
+      order: null, orderMsg: null, gainText: '', hoverIdx: null,
+      hold: 4210, balance: 12.4,
+      secs: 12 * 3600 + 5 * 60 + 5, people: 288, epoch: 2580
+    };
+  }
+  componentDidMount() {
+    this.loop = setInterval(() => this.step(), 200);
+    this.clock = setInterval(() => this.setState({ secs: Math.max(0, this.state.secs - 1), epoch: this.state.epoch > 0 ? this.state.epoch - 1 : 3600, people: Math.max(80, this.state.people + (Math.random() < 0.5 ? -1 : 1)) }), 1000);
+  }
+  componentWillUnmount() { clearInterval(this.loop); clearInterval(this.clock); }
+  sum(a) { return a.reduce((s, x) => s + x, 0); }
+  step() {
+    const t = this.state.t + 1;
+    if (t < 16) {
+      const nb = Math.round((0.08 + Math.random() * 0.14) * (this.bias || 1) * 100) / 100;
+      const ns = Math.round((0.06 + Math.random() * 0.12) / (this.bias || 1) * 100) / 100;
+      if (t === 1) this.bias = 0.75 + Math.random() * 0.6;
+      this.setState({ t, buys: nb ? this.state.buys.concat([nb]) : this.state.buys, sells: ns ? this.state.sells.concat([ns]) : this.state.sells });
+    } else if (t === 16) {
+      this.setState({ t, phase: 'match' });
+    } else if (t === 23) {
+      const b = this.sum(this.state.buys) + (this.state.order && this.state.order.side === 'buy' ? this.state.order.sol : 0);
+      const s = this.sum(this.state.sells) + (this.state.order && this.state.order.side !== 'buy' ? this.state.order.sol : 0);
+      const left = b - s; const maker = Math.abs(left) * 0.4;
+      const move = Math.sign(left) * (Math.abs(left) - maker) * 0.004;
+      const price = this.state.price * (1 + move);
+      const hist = this.state.hist.slice(1).concat([price]);
+      let candles = this.state.candles.slice();
+      const last = Object.assign({}, candles[candles.length - 1]);
+      last.c = price; last.h = Math.max(last.h, price); last.l = Math.min(last.l, price); last.v += (this.sum(this.state.buys) + this.sum(this.state.sells)) / 8;
+      candles[candles.length - 1] = last;
+      let inCandle = this.state.inCandle + 1;
+      if (inCandle >= 3) { candles = candles.slice(1).concat([{ o: price, h: price, l: price, c: price, v: 0.05 }]); inCandle = 0; }
+      const fresh = [];
+      const orders = this.state.buys.map((x) => [true, x]).concat(this.state.sells.map((x) => [false, x])).sort((p1, p2) => p2[1] - p1[1]).slice(0, 4);
+      orders.forEach((o, k) => fresh.push({ id: 'r' + this.state.roundNo + k, who: this.names[(this.state.roundNo * 3 + k) % this.names.length], buy: o[0], sol: o[1], price, round: this.state.roundNo, mine: false, fresh: true }));
+            const gain = Math.round((this.state.buys.length + this.state.sells.length) * 0.65);
+      const upd = { t, phase: 'clear', price, hist, candles, inCandle, ov: this.state.ov * 0.9995 + (this.sum(this.state.buys) + this.sum(this.state.sells)) * 180, secs: this.props.lowTimer ? this.state.secs : this.state.secs + gain, gainText: '+' + gain + 's', result: { left, maker, move } };
+      if (this.state.order) {
+        const o = this.state.order;
+        fresh.unshift({ id: 'me' + this.state.roundNo, who: 'You', buy: o.side !== 'sell', sol: o.sol, price, round: this.state.roundNo, mine: true, fresh: true });
+        const qty = Math.round(o.sol / price);
+        if (o.side === 'buy') { upd.hold = this.state.hold + qty; upd.balance = this.state.balance - o.sol * 1.003; }
+        else { upd.hold = Math.max(0, this.state.hold - qty); upd.balance = this.state.balance + (o.side === 'sell' ? o.sol * 0.997 : 0); }
+        upd.order = null;
+        upd.orderMsg = { tag: 'Filled', msg: (o.side === 'buy' ? 'Bought ' : o.side === 'sell' ? 'Sold ' : 'Switched ') + qty.toLocaleString() + ' CAT at ' + price.toFixed(5) + ' in round ' + this.state.roundNo, ok: true };
+        clearTimeout(this.msgT); this.msgT = setTimeout(() => this.setState({ orderMsg: null }), 5000);
+      }
+      upd.fills = fresh.concat(this.state.fills.map((f) => Object.assign({}, f, { fresh: false }))).slice(0, 10);
+      this.setState(upd);
+    } else if (t >= 33) {
+      this.setState({ t: 0, phase: 'collect', buys: [], sells: [], result: null, gainText: '', roundNo: this.state.roundNo + 1 });
+    } else this.setState({ t });
+  }
+  fmtSecs(s) { const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), x = s % 60; return (h ? h + 'h ' : '') + String(m).padStart(h ? 2 : 1, '0') + 'm ' + String(x).padStart(2, '0') + 's'; }
+  renderVals() {
+    const st = this.state;
+    const low = !!this.props.lowTimer;
+    const amt = parseFloat(st.amount) || 0;
+    const sideSol = st.side === 'buy' ? amt : amt;
+    const overCap = st.side === 'buy' && amt > 5;
+    const b = this.sum(st.buys) + (st.order && st.order.side === 'buy' ? st.order.sol : 0);
+    const s = this.sum(st.sells) + (st.order && st.order.side !== 'buy' ? st.order.sol : 0);
+    const m = st.phase === 'collect' ? 0 : Math.min(b, s);
+    const scale = 5.5;
+    const pct = (v) => Math.min(100, Math.max(0, v) / scale * 100).toFixed(2) + '%';
+    const matchShown = st.phase === 'match' ? m : 0;
+    const r = st.result;
+    const closesLeft = Math.max(0, (16 - st.t) * 0.2);
+    const roundStatus = st.phase === 'collect' ? 'collecting orders · closes in ' + closesLeft.toFixed(1) + 's' : st.phase === 'match' ? 'round closed · matching ' + m.toFixed(2) + ' SOL of buys against sells' : 'cleared · next round starting';
+    const f = { '5m': 1, '1h': 4, '6h': 8, '24h': 16 }[st.range] || 4;
+    const src = st.candles.slice(-44 * f);
+    const agg = [];
+    for (let i = 0; i < src.length; i += f) {
+      const g = src.slice(i, i + f);
+      agg.push({ o: g[0].o, c: g[g.length - 1].c, h: Math.max.apply(null, g.map((x) => x.h)), l: Math.min.apply(null, g.map((x) => x.l)), v: g.reduce((a, x) => a + x.v, 0) });
+    }
+    const lo = Math.min.apply(null, agg.map((k) => k.l)), hi = Math.max.apply(null, agg.map((k) => k.h));
+    const pad = (hi - lo) * 0.12 || 0.0001;
+    const top = hi + pad, bot = lo - pad * 2.2;
+    const yp = (v) => ((top - v) / (top - bot)) * 100;
+    const vmax = Math.max.apply(null, agg.map((k) => k.v));
+    const n = agg.length;
+    const candles = agg.map((k, i) => {
+      const up = k.c >= k.o;
+      return { left: (i / n * 100).toFixed(3) + '%', w: (100 / n).toFixed(3) + '%', color: up ? '#34D399' : '#FB7185', wickTop: yp(k.h).toFixed(2) + '%', wickH: Math.max(0.3, yp(k.l) - yp(k.h)).toFixed(2) + '%', bodyTop: yp(Math.max(k.o, k.c)).toFixed(2) + '%', bodyH: Math.max(0.4, Math.abs(yp(k.o) - yp(k.c))).toFixed(2) + '%', volH: (k.v / vmax * 14).toFixed(2) + '%' };
+    });
+    const lastK = agg[n - 1];
+    const hi_ = st.hoverIdx === null ? null : Math.min(n - 1, st.hoverIdx);
+    const hk = hi_ === null ? null : agg[hi_];
+    const durSec = ({ '5m': 300, '1h': 3600, '6h': 21600, '24h': 86400 })[st.range] / n;
+    const ago = (sec) => sec < 60 ? Math.round(sec) + 's ago' : sec < 3600 ? Math.round(sec / 60) + 'm ago' : (sec / 3600).toFixed(1) + 'h ago';
+    const fxPct = (v) => (v >= 0 ? '+' : '−') + Math.abs(v).toFixed(2) + '%';
+    const mc = st.price / 0.0031 * 310000;
+    const rank = 1 + [412000 * (1 + Math.sin(st.roundNo / 7) * 0.04), 190000, 96000, 41000, 33000, 27000, 12000, 9000].filter((x) => x > mc).length;
+    const value = st.hold * st.price;
+    const costSol = st.hold * 0.00262;
+    const pnl = value - costSol;
+    const secs = low ? Math.min(st.secs, 48 * 60 + (st.secs % 60)) : st.secs;
+    const day = (st.price / st.open - 1) * 100;
+    const sides = [['buy', 'Buy', '#34D399'], ['sell', 'Sell', '#FB7185'], ['switch', 'Switch', '#A78BFA']].map(([id, label, c]) => ({ label, pick: () => this.setState({ side: id }), border: st.side === id ? c : '#333338', bg: st.side === id ? (id === 'buy' ? 'rgba(52,211,153,0.12)' : id === 'sell' ? 'rgba(251,113,133,0.12)' : '#1D1828') : 'transparent', color: st.side === id ? c : '#F4F4F5' }));
+    const quickVals = st.side === 'buy' ? ['0.1', '0.5', '1', '2'] : ['25%', '50%', '75%', 'Max'];
+    const om = st.orderMsg;
+    let confirmText = st.side === 'buy' ? 'Buy $CAT' : st.side === 'sell' ? 'Sell $CAT' : 'Switch to $PXL';
+    if (st.order) confirmText = 'Queued for round ' + st.roundNo;
+    return {
+      epochText: Math.floor(st.epoch / 60) + ':' + String(st.epoch % 60).padStart(2, '0'),
+      balanceText: st.balance.toFixed(2),
+      priceText: st.price.toFixed(5),
+      priceClass: '',
+      dayText: (day >= 0 ? '+' : '') + day.toFixed(1) + '%',
+      dayColor: day >= 0 ? '#34D399' : '#FB7185',
+      mcText: '$' + Math.round(mc / 1000) + 'K',
+      ovText: '$' + (st.ov / 1000).toFixed(1) + 'K',
+      rankText: rank === 1 ? 'king of the hill' : '#' + rank + ' on the board',
+      rankBg: rank === 1 ? 'rgba(251,191,36,0.12)' : '#1F1F23',
+      rankColor: rank === 1 ? '#FBBF24' : '#A1A1AA',
+      ranges: ['5m', '1h', '6h', '24h'].map((l) => ({ label: l, pick: () => this.setState({ range: l }), border: st.range === l ? '#5B21B6' : '#333338', bg: st.range === l ? '#1D1828' : 'transparent' })),
+      candles,
+      hover: (e) => { const r = e.currentTarget.getBoundingClientRect(); const i = Math.max(0, Math.min(n - 1, Math.floor((e.clientX - r.left) / r.width * n))); if (i !== st.hoverIdx) this.setState({ hoverIdx: i }); },
+      unhover: () => this.setState({ hoverIdx: null }),
+      hovering: !!hk,
+      hx: hk ? 'calc(8px + (100% - 72px) * ' + ((hi_ + 0.5) / n).toFixed(4) + ')' : '0',
+      hy: hk ? yp(hk.c).toFixed(2) + '%' : '0',
+      tipLeft: hk ? (hi_ > n * 0.6 ? 'calc(8px + (100% - 72px) * ' + ((hi_ + 0.5) / n).toFixed(4) + ' - 232px)' : 'calc(8px + (100% - 72px) * ' + ((hi_ + 0.5) / n).toFixed(4) + ' + 12px)') : '0',
+      hWhen: hk ? (hi_ === n - 1 ? 'Current candle' : ago((n - 1 - hi_) * durSec)) : '',
+      hOpen: hk ? hk.o.toFixed(5) : '', hHigh: hk ? hk.h.toFixed(5) : '', hLow: hk ? hk.l.toFixed(5) : '', hClose: hk ? hk.c.toFixed(5) : '',
+      hChg: hk ? fxPct((hk.c / hk.o - 1) * 100) : '',
+      hColor: hk && hk.c >= hk.o ? '#34D399' : '#FB7185',
+      hNow: hk ? fxPct((st.price / hk.c - 1) * 100) : '',
+      hNowColor: hk && st.price >= hk.c ? '#34D399' : '#FB7185',
+      hBuy: hk ? Math.round(1 / hk.c).toLocaleString() : '',
+      hiText: top.toFixed(5), loText: bot.toFixed(5),
+      tagColor: lastK.c >= lastK.o ? '#34D399' : '#FB7185',
+      lastTop: yp(st.price).toFixed(1) + '%',
+      
+      roundNo: st.roundNo.toLocaleString(),
+      roundStatus,
+      buyText: b.toFixed(2), sellText: s.toFixed(2),
+      buyCount: st.buys.length + (st.order && st.order.side === 'buy' ? 1 : 0),
+      sellCount: st.sells.length + (st.order && st.order.side !== 'buy' ? 1 : 0),
+      buyLeftW: pct(b - m), sellLeftW: pct(s - m), matchW: pct(matchShown),
+      barT: st.phase === 'collect' ? (st.t > 0 ? '0.26s linear' : '0.7s cubic-bezier(.45,0,.2,1)') : st.phase === 'match' ? '0s' : '0.9s cubic-bezier(.45,0,.2,1)',
+      matchRB: b - m > 0.005 ? '0' : '6px 0 0 6px',
+      matchRS: s - m > 0.005 ? '0' : '0 6px 6px 0',
+      matchBgB: st.phase === 'collect' ? '#34D399' : '#D9B45B',
+      matchBgS: st.phase === 'collect' ? '#FB7185' : '#D9B45B',
+      matchGlow: st.phase === 'match' ? '0 0 16px rgba(217,180,91,0.45)' : '0 0 0 rgba(217,180,91,0)',
+      centerBg: st.phase === 'clear' && st.t < 28 ? '#F7DC94' : '#F4F4F5',
+      centerGlow: st.phase === 'clear' && st.t < 28 ? '0 0 14px rgba(217,180,91,0.8)' : '0 0 0 rgba(217,180,91,0)',
+      makerLeftW: r && r.left < 0 ? pct(r.maker) : '0%',
+      makerRightW: r && r.left > 0 ? pct(r.maker) : '0%',
+      resultText: r ? (r.left >= 0 ? 'leftover ' + r.left.toFixed(2) + ' SOL buy · maker took ' + r.maker.toFixed(2) + ' · price ' : 'leftover ' + (-r.left).toFixed(2) + ' SOL sell · maker took ' + r.maker.toFixed(2) + ' · price ') + (r.move >= 0 ? '+' : '') + (r.move * 100).toFixed(2) + '%' : '',
+      resultColor: r && r.move < 0 ? '#FB7185' : '#34D399',
+      fills: st.fills.map((f) => ({ who: f.who, whoColor: f.mine ? '#C084FC' : '#E4E4E7', whoWeight: f.mine ? 700 : 400, side: f.buy ? 'Buy' : 'Sell', sideColor: f.buy ? '#34D399' : '#FB7185', sol: f.sol.toFixed(2), cat: Math.round(f.sol / f.price).toLocaleString(), price: f.price.toFixed(5), round: f.round.toLocaleString(), cls: f.fresh ? 'lm-fillrow' : '' })),
+      sides,
+      isSwitch: st.side === 'switch',
+      amount: st.amount,
+      setAmount: (e) => this.setState({ amount: e.target.value }),
+      amountLabel: st.side === 'buy' ? 'You pay' : st.side === 'sell' ? 'You sell (in SOL value)' : 'Move (in SOL value)',
+      amountUnit: 'SOL',
+      amountBorder: overCap ? '#FB7185' : '#2A2A2F',
+      quick: quickVals.map((l) => ({ label: l, pick: () => this.setState({ amount: l.indexOf('%') > -1 ? (value * parseFloat(l) / 100).toFixed(2) : l === 'Max' ? value.toFixed(2) : l }) })),
+      feeText: (sideSol * 0.003).toFixed(4) + ' SOL (0.3%)',
+      estText: '≈ ' + Math.round(sideSol / st.price).toLocaleString() + (st.side === 'switch' ? ' CAT → PXL' : ' CAT'),
+      closesIn: closesLeft > 0 ? closesLeft.toFixed(1) + 's' : 'next round',
+      overCap,
+      confirm: () => {
+        if (overCap || st.order || amt <= 0) return;
+        const mid = st.phase !== 'collect';
+        this.setState({ order: { side: st.side, sol: amt }, orderMsg: { tag: mid ? 'Next round' : 'Queued', msg: mid ? 'Round closed, your order goes in the next one' : 'Your order fills at this round’s price', ok: true } });
+      },
+      confirmBg: overCap || st.order ? '#2A2A2F' : '#6D28D9',
+      confirmColor: overCap || st.order ? '#A1A1AA' : '#FFFFFF',
+      confirmText,
+      hasOrderMsg: !!om,
+      orderTag: om ? om.tag : '', orderMsg: om ? om.msg : '',
+      orderColor: om && om.tag === 'Filled' ? '#34D399' : '#A78BFA',
+      orderBg: om && om.tag === 'Filled' ? 'rgba(52,211,153,0.1)' : '#1D1828',
+      holdText: st.hold.toLocaleString() + ' CAT',
+      valueText: value.toFixed(2),
+      pnlText: (pnl >= 0 ? '+' : '') + pnl.toFixed(2) + ' SOL',
+      pnlColor: pnl >= 0 ? '#34D399' : '#FB7185',
+      timerText: this.fmtSecs(secs),
+      timerColor: low ? '#FB7185' : '#F4F4F5',
+      trendText: low ? '−40m this hour' : '+25m this hour',
+      trendColor: low ? '#FB7185' : '#34D399',
+      peopleText: low ? '23' : String(st.people),
+      peoplePct: low ? '8%' : Math.min(100, st.people / 290 * 100).toFixed(1) + '%',
+      peopleBar: low ? '#FB7185' : '#A78BFA',
+      gainText: low ? '' : st.gainText,
+      gainOpacity: st.gainText && !low ? 1 : 0,
+      low,
+      survClass: low ? 'lm-warn' : ''
+    };
+  }
+}
+</script>
+</body>
+</html>
