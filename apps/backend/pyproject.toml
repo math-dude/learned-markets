@@ -9,7 +9,7 @@ authors = [
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.162.5",
-    "learned-markets-simulation",
+    "learned-markets-core",
     "uvicorn>=0.54.0",
 ]
 
@@ -18,4 +18,4 @@ requires = ["uv_build>=0.9.7,<0.10.0"]
 build-backend = "uv_build"
 
 [tool.uv.sources]
-learned-markets-simulation = { workspace = true }
+learned-markets-core = { workspace = true }

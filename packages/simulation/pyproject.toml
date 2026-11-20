@@ -8,10 +8,19 @@ authors = [
 ]
 requires-python = ">=3.12"
 dependencies = [
-    "gymnasium>=1.2,<2",
+    "learned-markets-core",
     "numpy>=2.5.4",
+    "torch>=2.15.0",
+]
+
+[project.optional-dependencies]
+calibration = [
+    "duckdb>=1.0",
 ]
 
 [build-system]
 requires = ["uv_build>=0.9.7,<0.10.0"]
 build-backend = "uv_build"
+
+[tool.uv.sources]
+learned-markets-core = { workspace = true }

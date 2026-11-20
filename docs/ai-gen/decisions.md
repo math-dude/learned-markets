@@ -71,6 +71,23 @@ At the cutoff, the auctioneer clears user and quoter curves together at one pric
 - **Fee and hold bounds (decided direction).** The quoter learns the fee and soft-hold bounds. The exact parameterization and training objective are open.
 - **Revenue (working model).** Start with a fixed fee on executed trades and room for a learned early-exit surcharge. Track platform fee revenue, fees allocated to the maker, and maker trading P&L separately. Revisit the fee model and the split as we evaluate the market.
 
+### Environment implementation choices (2026-11-20)
+
+Made while building `packages/core` and the simulator, agreed with Eren in the build session and not yet reviewed by the rest of the team. The [build note](sessions/2026-11-20-environment-build.md) has the reasons.
+
+- **Prices live on a tick grid.** 1% geometric ticks; an order's curve is sampled onto a 128-tick window around the last clearing price. The window is a computation range, not a price limit.
+- **Units.** Whole tokens, lamports, and price in micro-lamports per token. This changes the meaning of the price in `payload.rs`; see [settlement-interface.md](design/settlement-interface.md).
+- **No extra tie-break.** The volume-maximizing ticks form one range, so the previous tick clamped into it is unique.
+- **Rounding.** Buyers pay rounded up and sellers receive rounded down. Pro-rata fills round down; the few leftover units go to long-side orders from a start index that rotates each batch, with the quoter in the same rotation.
+- **One order per person per coin per batch.** A second one is rejected, so nobody is on both sides of a coin in one batch.
+- **Exit terms are locked at the buy.** The early-exit fee and half-life published when a position was bought are stored with it. The quoter's later choices never reprice them. Only the size term uses the current batch's published terms.
+- **Exit fee formula.** Base fee + locked early-exit fee, halving every half-life + slope per 1% of supply sold in the batch, capped at 25%.
+- **The quoter's ten numbers.** Ask position, depth and width; bid gap below the ask, depth and width; cap, early-exit fee, half-life, size slope. The ask may sit up to 16 ticks either side of the last price, which is how an unsold launch finds a lower price.
+- **The learned action is a correction to the rule-based quoter.** A zero output reproduces the stand-in.
+- **One environment.** Every coin in a world runs the same quoter policy and competes for one finite crowd. The auction network trains in the same environment with the quoter frozen.
+- **Heat** is a decaying count of distinct people trading above the dust size. **Reward** counts a person only above that size.
+- **Not simulated:** duplicate merging, deployer rewards, the per-day rookie buying limit, the quoter's house risk allowance (zero), and the opening auction on seating (dropped).
+
 ### Learned levers and their fixed stand-ins (2026-11-20)
 
 | Lever | Learned by | Fixed stand-in |
