@@ -14,6 +14,7 @@ export * from "./configUpdated.ts";
 export * from "./deposited.ts";
 export * from "./intentCancelled.ts";
 export * from "./intentSubmitted.ts";
+export * from "./ledgerBatchSettled.ts";
 export * from "./marketCreated.ts";
 export * from "./participantRegistered.ts";
 export * from "./participantStatusChanged.ts";

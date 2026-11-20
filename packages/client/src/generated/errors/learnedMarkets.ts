@@ -231,6 +231,14 @@ export const LEARNED_MARKETS_ERROR__NOT_AUCTION_AUTHORITY = 0x17d9; // 6105
 export const LEARNED_MARKETS_ERROR__ALREADY_SWEPT = 0x17da; // 6106
 /** NothingToClaim: Nothing to claim */
 export const LEARNED_MARKETS_ERROR__NOTHING_TO_CLAIM = 0x17db; // 6107
+/** LedgerCreditDisabled: Synthetic ledger credits are disabled for this build or network */
+export const LEARNED_MARKETS_ERROR__LEDGER_CREDIT_DISABLED = 0x17dc; // 6108
+/** InvalidLedgerFill: Ledger fill has zero quantity or exceeds the submitted step curve */
+export const LEARNED_MARKETS_ERROR__INVALID_LEDGER_FILL = 0x17dd; // 6109
+/** LedgerFeeRateOutOfRange: Seller fee rate must be between 10000 and 250000 ppm */
+export const LEARNED_MARKETS_ERROR__LEDGER_FEE_RATE_OUT_OF_RANGE = 0x17de; // 6110
+/** LedgerTokenMismatch: The supplied user and quoter legs do not conserve tokens */
+export const LEARNED_MARKETS_ERROR__LEDGER_TOKEN_MISMATCH = 0x17df; // 6111
 
 export type LearnedMarketsError =
   | typeof LEARNED_MARKETS_ERROR__ACCOUNT_BORROW_FAILED
@@ -272,11 +280,15 @@ export type LearnedMarketsError =
   | typeof LEARNED_MARKETS_ERROR__INTENT_TARGET_MISMATCH
   | typeof LEARNED_MARKETS_ERROR__INVALID_CONFIG
   | typeof LEARNED_MARKETS_ERROR__INVALID_INTENT_DEADLINE
+  | typeof LEARNED_MARKETS_ERROR__INVALID_LEDGER_FILL
   | typeof LEARNED_MARKETS_ERROR__INVALID_REFERENCE_DATA
   | typeof LEARNED_MARKETS_ERROR__INVALID_STAGE_TRANSITION
   | typeof LEARNED_MARKETS_ERROR__INVALID_TOKEN_ACCOUNT
   | typeof LEARNED_MARKETS_ERROR__INVALID_TOKEN_EXTENSIONS
   | typeof LEARNED_MARKETS_ERROR__INVALID_TOKEN_MINT
+  | typeof LEARNED_MARKETS_ERROR__LEDGER_CREDIT_DISABLED
+  | typeof LEARNED_MARKETS_ERROR__LEDGER_FEE_RATE_OUT_OF_RANGE
+  | typeof LEARNED_MARKETS_ERROR__LEDGER_TOKEN_MISMATCH
   | typeof LEARNED_MARKETS_ERROR__LIMITS_OUT_OF_RANGE
   | typeof LEARNED_MARKETS_ERROR__LINE_CLOSED
   | typeof LEARNED_MARKETS_ERROR__MAKER_BUDGET_EXCEEDED
@@ -385,11 +397,15 @@ if (process.env["NODE_ENV"] !== "production") {
     [LEARNED_MARKETS_ERROR__INTENT_TARGET_MISMATCH]: `Intent target does not match`,
     [LEARNED_MARKETS_ERROR__INVALID_CONFIG]: `Configuration value is invalid`,
     [LEARNED_MARKETS_ERROR__INVALID_INTENT_DEADLINE]: `Intent deadline is invalid`,
+    [LEARNED_MARKETS_ERROR__INVALID_LEDGER_FILL]: `Ledger fill has zero quantity or exceeds the submitted step curve`,
     [LEARNED_MARKETS_ERROR__INVALID_REFERENCE_DATA]: `Account discriminator or data layout does not match the expected type`,
     [LEARNED_MARKETS_ERROR__INVALID_STAGE_TRANSITION]: `Invalid stage transition`,
     [LEARNED_MARKETS_ERROR__INVALID_TOKEN_ACCOUNT]: `Token account is uninitialized or malformed`,
     [LEARNED_MARKETS_ERROR__INVALID_TOKEN_EXTENSIONS]: `Token-2022 extension layout is malformed or unsupported`,
     [LEARNED_MARKETS_ERROR__INVALID_TOKEN_MINT]: `Token mint is uninitialized or malformed`,
+    [LEARNED_MARKETS_ERROR__LEDGER_CREDIT_DISABLED]: `Synthetic ledger credits are disabled for this build or network`,
+    [LEARNED_MARKETS_ERROR__LEDGER_FEE_RATE_OUT_OF_RANGE]: `Seller fee rate must be between 10000 and 250000 ppm`,
+    [LEARNED_MARKETS_ERROR__LEDGER_TOKEN_MISMATCH]: `The supplied user and quoter legs do not conserve tokens`,
     [LEARNED_MARKETS_ERROR__LIMITS_OUT_OF_RANGE]: `Limits out of range`,
     [LEARNED_MARKETS_ERROR__LINE_CLOSED]: `Line closed`,
     [LEARNED_MARKETS_ERROR__MAKER_BUDGET_EXCEEDED]: `Maker budget exceeded`,

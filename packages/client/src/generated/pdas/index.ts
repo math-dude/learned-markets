@@ -6,11 +6,15 @@
  * @see https://github.com/codama-idl/codama
  */
 
+export * from "./balance.ts";
 export * from "./baseVault.ts";
 export * from "./board.ts";
 export * from "./config.ts";
+export * from "./initializeLedgerPositionPosition.ts";
 export * from "./market.ts";
 export * from "./newWalletBinding.ts";
+export * from "./openLedgerMarketMarket.ts";
+export * from "./platform.ts";
 export * from "./position.ts";
 export * from "./quoteVault.ts";
 export * from "./sourceBinding.ts";

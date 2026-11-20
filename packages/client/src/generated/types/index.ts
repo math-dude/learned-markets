@@ -8,6 +8,7 @@
 
 export * from "./intentKind.ts";
 export * from "./intentState.ts";
+export * from "./ledgerFill.ts";
 export * from "./makerLimits.ts";
 export * from "./participantStatus.ts";
 export * from "./settlementIntentRef.ts";

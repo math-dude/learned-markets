@@ -39,6 +39,10 @@ import {
   getBoardConfigCodec,
   getConfigCodec,
   getIntentCodec,
+  getLedgerBalanceCodec,
+  getLedgerMarketCodec,
+  getLedgerPlatformCodec,
+  getLedgerPositionCodec,
   getMarketCodec,
   getParticipantCodec,
   getPositionCodec,
@@ -49,6 +53,14 @@ import {
   type ConfigArgs,
   type Intent,
   type IntentArgs,
+  type LedgerBalance,
+  type LedgerBalanceArgs,
+  type LedgerMarket,
+  type LedgerMarketArgs,
+  type LedgerPlatform,
+  type LedgerPlatformArgs,
+  type LedgerPosition,
+  type LedgerPositionArgs,
   type Market,
   type MarketArgs,
   type Participant,
@@ -60,16 +72,21 @@ import {
 } from "../accounts/index.ts";
 import {
   getCancelIntentInstructionAsync,
+  getCloseLedgerMarketInstructionAsync,
   getCreateMarketInstructionAsync,
+  getCreditLedgerBalanceInstructionAsync,
   getDepositBaseInstructionAsync,
   getDepositQuoteInstructionAsync,
   getInitializeBoardInstructionAsync,
   getInitializeConfigInstructionAsync,
+  getInitializeLedgerPositionInstructionAsync,
+  getOpenLedgerMarketInstructionAsync,
   getRegisterParticipantInstructionAsync,
   getReplaceBindingInstructionAsync,
   getRevokeParticipantInstructionAsync,
   getSetStageInstructionAsync,
   getSettleBatchInstructionAsync,
+  getSettleLedgerBatchInstructionAsync,
   getSubmitIntentInstructionAsync,
   getSuspendParticipantInstructionAsync,
   getUpdateBoardInstructionAsync,
@@ -77,16 +94,21 @@ import {
   getWithdrawBaseInstructionAsync,
   getWithdrawQuoteInstructionAsync,
   parseCancelIntentInstruction,
+  parseCloseLedgerMarketInstruction,
   parseCreateMarketInstruction,
+  parseCreditLedgerBalanceInstruction,
   parseDepositBaseInstruction,
   parseDepositQuoteInstruction,
   parseInitializeBoardInstruction,
   parseInitializeConfigInstruction,
+  parseInitializeLedgerPositionInstruction,
+  parseOpenLedgerMarketInstruction,
   parseRegisterParticipantInstruction,
   parseReplaceBindingInstruction,
   parseRevokeParticipantInstruction,
   parseSetStageInstruction,
   parseSettleBatchInstruction,
+  parseSettleLedgerBatchInstruction,
   parseSubmitIntentInstruction,
   parseSuspendParticipantInstruction,
   parseUpdateBoardInstruction,
@@ -94,22 +116,31 @@ import {
   parseWithdrawBaseInstruction,
   parseWithdrawQuoteInstruction,
   type CancelIntentAsyncInput,
+  type CloseLedgerMarketAsyncInput,
   type CreateMarketAsyncInput,
+  type CreditLedgerBalanceAsyncInput,
   type DepositBaseAsyncInput,
   type DepositQuoteAsyncInput,
   type InitializeBoardAsyncInput,
   type InitializeConfigAsyncInput,
+  type InitializeLedgerPositionAsyncInput,
+  type OpenLedgerMarketAsyncInput,
   type ParsedCancelIntentInstruction,
+  type ParsedCloseLedgerMarketInstruction,
   type ParsedCreateMarketInstruction,
+  type ParsedCreditLedgerBalanceInstruction,
   type ParsedDepositBaseInstruction,
   type ParsedDepositQuoteInstruction,
   type ParsedInitializeBoardInstruction,
   type ParsedInitializeConfigInstruction,
+  type ParsedInitializeLedgerPositionInstruction,
+  type ParsedOpenLedgerMarketInstruction,
   type ParsedRegisterParticipantInstruction,
   type ParsedReplaceBindingInstruction,
   type ParsedRevokeParticipantInstruction,
   type ParsedSetStageInstruction,
   type ParsedSettleBatchInstruction,
+  type ParsedSettleLedgerBatchInstruction,
   type ParsedSubmitIntentInstruction,
   type ParsedSuspendParticipantInstruction,
   type ParsedUpdateBoardInstruction,
@@ -121,6 +152,7 @@ import {
   type RevokeParticipantAsyncInput,
   type SetStageAsyncInput,
   type SettleBatchAsyncInput,
+  type SettleLedgerBatchAsyncInput,
   type SubmitIntentAsyncInput,
   type SuspendParticipantAsyncInput,
   type UpdateBoardAsyncInput,
@@ -129,11 +161,15 @@ import {
   type WithdrawQuoteAsyncInput,
 } from "../instructions/index.ts";
 import {
+  findBalancePda,
   findBaseVaultPda,
   findBoardPda,
   findConfigPda,
+  findInitializeLedgerPositionPositionPda,
   findMarketPda,
   findNewWalletBindingPda,
+  findOpenLedgerMarketMarketPda,
+  findPlatformPda,
   findPositionPda,
   findQuoteVaultPda,
   findSourceBindingPda,
@@ -147,17 +183,25 @@ export const LearnedMarketsAccount = {
   0: "BoardConfig",
   1: "Config",
   2: "Intent",
-  3: "Market",
-  4: "Participant",
-  5: "Position",
-  6: "WalletBinding",
+  3: "LedgerBalance",
+  4: "LedgerMarket",
+  5: "LedgerPlatform",
+  6: "LedgerPosition",
+  7: "Market",
+  8: "Participant",
+  9: "Position",
+  10: "WalletBinding",
   BoardConfig: 0,
   Config: 1,
   Intent: 2,
-  Market: 3,
-  Participant: 4,
-  Position: 5,
-  WalletBinding: 6,
+  LedgerBalance: 3,
+  LedgerMarket: 4,
+  LedgerPlatform: 5,
+  LedgerPosition: 6,
+  Market: 7,
+  Participant: 8,
+  Position: 9,
+  WalletBinding: 10,
 } as const;
 
 export type LearnedMarketsAccount = (typeof LearnedMarketsAccount)[Exclude<
@@ -201,6 +245,50 @@ export function identifyLearnedMarketsAccount(
     )
   ) {
     return LearnedMarketsAccount.Intent;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([80, 38, 199, 135, 102, 96, 199, 8]),
+      ),
+      0,
+    )
+  ) {
+    return LearnedMarketsAccount.LedgerBalance;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([123, 24, 137, 142, 101, 187, 185, 93]),
+      ),
+      0,
+    )
+  ) {
+    return LearnedMarketsAccount.LedgerMarket;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([14, 185, 254, 196, 23, 194, 82, 242]),
+      ),
+      0,
+    )
+  ) {
+    return LearnedMarketsAccount.LedgerPlatform;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([134, 17, 175, 52, 84, 123, 65, 106]),
+      ),
+      0,
+    )
+  ) {
+    return LearnedMarketsAccount.LedgerPosition;
   }
   if (
     containsBytes(
@@ -261,11 +349,12 @@ export const LearnedMarketsEvent = {
   5: "Deposited",
   6: "IntentCancelled",
   7: "IntentSubmitted",
-  8: "MarketCreated",
-  9: "ParticipantRegistered",
-  10: "ParticipantStatusChanged",
-  11: "StageChanged",
-  12: "Withdrawn",
+  8: "LedgerBatchSettled",
+  9: "MarketCreated",
+  10: "ParticipantRegistered",
+  11: "ParticipantStatusChanged",
+  12: "StageChanged",
+  13: "Withdrawn",
   BindingReplaced: 0,
   BoardInitialized: 1,
   BoardUpdated: 2,
@@ -274,11 +363,12 @@ export const LearnedMarketsEvent = {
   Deposited: 5,
   IntentCancelled: 6,
   IntentSubmitted: 7,
-  MarketCreated: 8,
-  ParticipantRegistered: 9,
-  ParticipantStatusChanged: 10,
-  StageChanged: 11,
-  Withdrawn: 12,
+  LedgerBatchSettled: 8,
+  MarketCreated: 9,
+  ParticipantRegistered: 10,
+  ParticipantStatusChanged: 11,
+  StageChanged: 12,
+  Withdrawn: 13,
 } as const;
 
 export type LearnedMarketsEvent = (typeof LearnedMarketsEvent)[Exclude<
@@ -382,6 +472,17 @@ export function identifyLearnedMarketsEvent(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([10, 86, 46, 119, 151, 152, 138, 164]),
+      ),
+      0,
+    )
+  ) {
+    return LearnedMarketsEvent.LedgerBatchSettled;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([88, 184, 130, 231, 226, 84, 6, 58]),
       ),
       0,
@@ -440,39 +541,49 @@ export function identifyLearnedMarketsEvent(
 
 export const LearnedMarketsInstruction = {
   0: "CancelIntent",
-  1: "CreateMarket",
-  2: "DepositBase",
-  3: "DepositQuote",
-  4: "InitializeBoard",
-  5: "InitializeConfig",
-  6: "RegisterParticipant",
-  7: "ReplaceBinding",
-  8: "RevokeParticipant",
-  9: "SetStage",
-  10: "SettleBatch",
-  11: "SubmitIntent",
-  12: "SuspendParticipant",
-  13: "UpdateBoard",
-  14: "UpdateConfig",
-  15: "WithdrawBase",
-  16: "WithdrawQuote",
+  1: "CloseLedgerMarket",
+  2: "CreateMarket",
+  3: "CreditLedgerBalance",
+  4: "DepositBase",
+  5: "DepositQuote",
+  6: "InitializeBoard",
+  7: "InitializeConfig",
+  8: "InitializeLedgerPosition",
+  9: "OpenLedgerMarket",
+  10: "RegisterParticipant",
+  11: "ReplaceBinding",
+  12: "RevokeParticipant",
+  13: "SetStage",
+  14: "SettleBatch",
+  15: "SettleLedgerBatch",
+  16: "SubmitIntent",
+  17: "SuspendParticipant",
+  18: "UpdateBoard",
+  19: "UpdateConfig",
+  20: "WithdrawBase",
+  21: "WithdrawQuote",
   CancelIntent: 0,
-  CreateMarket: 1,
-  DepositBase: 2,
-  DepositQuote: 3,
-  InitializeBoard: 4,
-  InitializeConfig: 5,
-  RegisterParticipant: 6,
-  ReplaceBinding: 7,
-  RevokeParticipant: 8,
-  SetStage: 9,
-  SettleBatch: 10,
-  SubmitIntent: 11,
-  SuspendParticipant: 12,
-  UpdateBoard: 13,
-  UpdateConfig: 14,
-  WithdrawBase: 15,
-  WithdrawQuote: 16,
+  CloseLedgerMarket: 1,
+  CreateMarket: 2,
+  CreditLedgerBalance: 3,
+  DepositBase: 4,
+  DepositQuote: 5,
+  InitializeBoard: 6,
+  InitializeConfig: 7,
+  InitializeLedgerPosition: 8,
+  OpenLedgerMarket: 9,
+  RegisterParticipant: 10,
+  ReplaceBinding: 11,
+  RevokeParticipant: 12,
+  SetStage: 13,
+  SettleBatch: 14,
+  SettleLedgerBatch: 15,
+  SubmitIntent: 16,
+  SuspendParticipant: 17,
+  UpdateBoard: 18,
+  UpdateConfig: 19,
+  WithdrawBase: 20,
+  WithdrawQuote: 21,
 } as const;
 
 export type LearnedMarketsInstruction =
@@ -500,12 +611,34 @@ export function identifyLearnedMarketsInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([36, 40, 5, 219, 154, 134, 190, 198]),
+      ),
+      0,
+    )
+  ) {
+    return LearnedMarketsInstruction.CloseLedgerMarket;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([103, 226, 97, 235, 200, 188, 251, 254]),
       ),
       0,
     )
   ) {
     return LearnedMarketsInstruction.CreateMarket;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([122, 228, 236, 156, 56, 230, 129, 107]),
+      ),
+      0,
+    )
+  ) {
+    return LearnedMarketsInstruction.CreditLedgerBalance;
   }
   if (
     containsBytes(
@@ -550,6 +683,28 @@ export function identifyLearnedMarketsInstruction(
     )
   ) {
     return LearnedMarketsInstruction.InitializeConfig;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([155, 148, 219, 176, 194, 48, 64, 20]),
+      ),
+      0,
+    )
+  ) {
+    return LearnedMarketsInstruction.InitializeLedgerPosition;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([154, 172, 106, 210, 82, 207, 115, 210]),
+      ),
+      0,
+    )
+  ) {
+    return LearnedMarketsInstruction.OpenLedgerMarket;
   }
   if (
     containsBytes(
@@ -605,6 +760,17 @@ export function identifyLearnedMarketsInstruction(
     )
   ) {
     return LearnedMarketsInstruction.SettleBatch;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([129, 58, 123, 147, 189, 121, 112, 235]),
+      ),
+      0,
+    )
+  ) {
+    return LearnedMarketsInstruction.SettleLedgerBatch;
   }
   if (
     containsBytes(
@@ -685,8 +851,14 @@ export type ParsedLearnedMarketsInstruction<
       instructionType: typeof LearnedMarketsInstruction.CancelIntent;
     } & ParsedCancelIntentInstruction<TProgram>)
   | ({
+      instructionType: typeof LearnedMarketsInstruction.CloseLedgerMarket;
+    } & ParsedCloseLedgerMarketInstruction<TProgram>)
+  | ({
       instructionType: typeof LearnedMarketsInstruction.CreateMarket;
     } & ParsedCreateMarketInstruction<TProgram>)
+  | ({
+      instructionType: typeof LearnedMarketsInstruction.CreditLedgerBalance;
+    } & ParsedCreditLedgerBalanceInstruction<TProgram>)
   | ({
       instructionType: typeof LearnedMarketsInstruction.DepositBase;
     } & ParsedDepositBaseInstruction<TProgram>)
@@ -699,6 +871,12 @@ export type ParsedLearnedMarketsInstruction<
   | ({
       instructionType: typeof LearnedMarketsInstruction.InitializeConfig;
     } & ParsedInitializeConfigInstruction<TProgram>)
+  | ({
+      instructionType: typeof LearnedMarketsInstruction.InitializeLedgerPosition;
+    } & ParsedInitializeLedgerPositionInstruction<TProgram>)
+  | ({
+      instructionType: typeof LearnedMarketsInstruction.OpenLedgerMarket;
+    } & ParsedOpenLedgerMarketInstruction<TProgram>)
   | ({
       instructionType: typeof LearnedMarketsInstruction.RegisterParticipant;
     } & ParsedRegisterParticipantInstruction<TProgram>)
@@ -714,6 +892,9 @@ export type ParsedLearnedMarketsInstruction<
   | ({
       instructionType: typeof LearnedMarketsInstruction.SettleBatch;
     } & ParsedSettleBatchInstruction<TProgram>)
+  | ({
+      instructionType: typeof LearnedMarketsInstruction.SettleLedgerBatch;
+    } & ParsedSettleLedgerBatchInstruction<TProgram>)
   | ({
       instructionType: typeof LearnedMarketsInstruction.SubmitIntent;
     } & ParsedSubmitIntentInstruction<TProgram>)
@@ -745,11 +926,25 @@ export function parseLearnedMarketsInstruction<TProgram extends string>(
         ...parseCancelIntentInstruction(instruction),
       };
     }
+    case LearnedMarketsInstruction.CloseLedgerMarket: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: LearnedMarketsInstruction.CloseLedgerMarket,
+        ...parseCloseLedgerMarketInstruction(instruction),
+      };
+    }
     case LearnedMarketsInstruction.CreateMarket: {
       assertIsInstructionWithAccounts(instruction);
       return {
         instructionType: LearnedMarketsInstruction.CreateMarket,
         ...parseCreateMarketInstruction(instruction),
+      };
+    }
+    case LearnedMarketsInstruction.CreditLedgerBalance: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: LearnedMarketsInstruction.CreditLedgerBalance,
+        ...parseCreditLedgerBalanceInstruction(instruction),
       };
     }
     case LearnedMarketsInstruction.DepositBase: {
@@ -778,6 +973,20 @@ export function parseLearnedMarketsInstruction<TProgram extends string>(
       return {
         instructionType: LearnedMarketsInstruction.InitializeConfig,
         ...parseInitializeConfigInstruction(instruction),
+      };
+    }
+    case LearnedMarketsInstruction.InitializeLedgerPosition: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: LearnedMarketsInstruction.InitializeLedgerPosition,
+        ...parseInitializeLedgerPositionInstruction(instruction),
+      };
+    }
+    case LearnedMarketsInstruction.OpenLedgerMarket: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: LearnedMarketsInstruction.OpenLedgerMarket,
+        ...parseOpenLedgerMarketInstruction(instruction),
       };
     }
     case LearnedMarketsInstruction.RegisterParticipant: {
@@ -813,6 +1022,13 @@ export function parseLearnedMarketsInstruction<TProgram extends string>(
       return {
         instructionType: LearnedMarketsInstruction.SettleBatch,
         ...parseSettleBatchInstruction(instruction),
+      };
+    }
+    case LearnedMarketsInstruction.SettleLedgerBatch: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: LearnedMarketsInstruction.SettleLedgerBatch,
+        ...parseSettleLedgerBatchInstruction(instruction),
       };
     }
     case LearnedMarketsInstruction.SubmitIntent: {
@@ -884,6 +1100,14 @@ export type LearnedMarketsPluginAccounts = {
     SelfFetchFunctions<ConfigArgs, Config>;
   intent: ReturnType<typeof getIntentCodec> &
     SelfFetchFunctions<IntentArgs, Intent>;
+  ledgerBalance: ReturnType<typeof getLedgerBalanceCodec> &
+    SelfFetchFunctions<LedgerBalanceArgs, LedgerBalance>;
+  ledgerMarket: ReturnType<typeof getLedgerMarketCodec> &
+    SelfFetchFunctions<LedgerMarketArgs, LedgerMarket>;
+  ledgerPlatform: ReturnType<typeof getLedgerPlatformCodec> &
+    SelfFetchFunctions<LedgerPlatformArgs, LedgerPlatform>;
+  ledgerPosition: ReturnType<typeof getLedgerPositionCodec> &
+    SelfFetchFunctions<LedgerPositionArgs, LedgerPosition>;
   market: ReturnType<typeof getMarketCodec> &
     SelfFetchFunctions<MarketArgs, Market>;
   participant: ReturnType<typeof getParticipantCodec> &
@@ -900,10 +1124,20 @@ export type LearnedMarketsPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getCancelIntentInstructionAsync> &
     SelfPlanAndSendFunctions;
+  closeLedgerMarket: (
+    input: CloseLedgerMarketAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getCloseLedgerMarketInstructionAsync> &
+    SelfPlanAndSendFunctions;
   createMarket: (
     input: CreateMarketAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getCreateMarketInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  creditLedgerBalance: (
+    input: CreditLedgerBalanceAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getCreditLedgerBalanceInstructionAsync> &
     SelfPlanAndSendFunctions;
   depositBase: (
     input: DepositBaseAsyncInput,
@@ -924,6 +1158,16 @@ export type LearnedMarketsPluginInstructions = {
     input: MakeOptional<InitializeConfigAsyncInput, "payer">,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getInitializeConfigInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  initializeLedgerPosition: (
+    input: MakeOptional<InitializeLedgerPositionAsyncInput, "payer">,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getInitializeLedgerPositionInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  openLedgerMarket: (
+    input: OpenLedgerMarketAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getOpenLedgerMarketInstructionAsync> &
     SelfPlanAndSendFunctions;
   registerParticipant: (
     input: MakeOptional<RegisterParticipantAsyncInput, "payer">,
@@ -949,6 +1193,11 @@ export type LearnedMarketsPluginInstructions = {
     input: SettleBatchAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getSettleBatchInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  settleLedgerBatch: (
+    input: SettleLedgerBatchAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getSettleLedgerBatchInstructionAsync> &
     SelfPlanAndSendFunctions;
   submitIntent: (
     input: SubmitIntentAsyncInput,
@@ -989,8 +1238,12 @@ export type LearnedMarketsPluginPdas = {
   market: typeof findMarketPda;
   baseVault: typeof findBaseVaultPda;
   quoteVault: typeof findQuoteVaultPda;
+  balance: typeof findBalancePda;
   sourceBinding: typeof findSourceBindingPda;
   position: typeof findPositionPda;
+  initializeLedgerPositionPosition: typeof findInitializeLedgerPositionPositionPda;
+  openLedgerMarketMarket: typeof findOpenLedgerMarketMarketPda;
+  platform: typeof findPlatformPda;
   newWalletBinding: typeof findNewWalletBindingPda;
 };
 
@@ -1013,6 +1266,16 @@ export function learnedMarketsProgram(
           boardConfig: addSelfFetchFunctions(client, getBoardConfigCodec()),
           config: addSelfFetchFunctions(client, getConfigCodec()),
           intent: addSelfFetchFunctions(client, getIntentCodec()),
+          ledgerBalance: addSelfFetchFunctions(client, getLedgerBalanceCodec()),
+          ledgerMarket: addSelfFetchFunctions(client, getLedgerMarketCodec()),
+          ledgerPlatform: addSelfFetchFunctions(
+            client,
+            getLedgerPlatformCodec(),
+          ),
+          ledgerPosition: addSelfFetchFunctions(
+            client,
+            getLedgerPositionCodec(),
+          ),
           market: addSelfFetchFunctions(client, getMarketCodec()),
           participant: addSelfFetchFunctions(client, getParticipantCodec()),
           position: addSelfFetchFunctions(client, getPositionCodec()),
@@ -1027,10 +1290,26 @@ export function learnedMarketsProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
+          closeLedgerMarket: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getCloseLedgerMarketInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
           createMarket: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
               getCreateMarketInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          creditLedgerBalance: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getCreditLedgerBalanceInstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
@@ -1069,6 +1348,25 @@ export function learnedMarketsProgram(
                     instructionConfig?.programAddress ?? config.programAddress,
                 },
               ),
+            ),
+          initializeLedgerPosition: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getInitializeLedgerPositionInstructionAsync(
+                { ...input, payer: input.payer ?? client.payer },
+                {
+                  programAddress:
+                    instructionConfig?.programAddress ?? config.programAddress,
+                },
+              ),
+            ),
+          openLedgerMarket: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getOpenLedgerMarketInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
             ),
           registerParticipant: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
@@ -1112,6 +1410,14 @@ export function learnedMarketsProgram(
             addSelfPlanAndSendFunctions(
               client,
               getSettleBatchInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          settleLedgerBatch: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getSettleLedgerBatchInstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
@@ -1196,6 +1502,11 @@ export function learnedMarketsProgram(
               programAddress:
                 pdaConfig?.programAddress ?? config.programAddress,
             }),
+          balance: (seeds, pdaConfig) =>
+            findBalancePda(seeds, {
+              programAddress:
+                pdaConfig?.programAddress ?? config.programAddress,
+            }),
           sourceBinding: (seeds, pdaConfig) =>
             findSourceBindingPda(seeds, {
               programAddress:
@@ -1203,6 +1514,21 @@ export function learnedMarketsProgram(
             }),
           position: (seeds, pdaConfig) =>
             findPositionPda(seeds, {
+              programAddress:
+                pdaConfig?.programAddress ?? config.programAddress,
+            }),
+          initializeLedgerPositionPosition: (seeds, pdaConfig) =>
+            findInitializeLedgerPositionPositionPda(seeds, {
+              programAddress:
+                pdaConfig?.programAddress ?? config.programAddress,
+            }),
+          openLedgerMarketMarket: (seeds, pdaConfig) =>
+            findOpenLedgerMarketMarketPda(seeds, {
+              programAddress:
+                pdaConfig?.programAddress ?? config.programAddress,
+            }),
+          platform: (pdaConfig) =>
+            findPlatformPda({
               programAddress:
                 pdaConfig?.programAddress ?? config.programAddress,
             }),
