@@ -68,8 +68,17 @@ Quoter v3 frozen; 64 worlds, 28 epochs with the first 12 excluded, seed 30001. "
 | Open door | 32 | 5× | 0.436 | 20.7 | 0.229 | 26.3 | 41.3 |
 | Open door | 64 | 5× | 0.412 | 21.1 | 0.219 | 58.1 | 43.8 |
 
-- The trained network pushes the launch fee to its floor and runs a somewhat longer line than the stand-in. It beats the stand-in by about 14% at the normal launch rate and 3% at five times that rate.
-- It roughly ties a 32-slot open door and beats a 64-slot one. This is one seed; the spread across seeds had not been measured when this was written.
+- The trained network pushes the launch fee to its floor and runs a somewhat longer line than the stand-in. The table above is seed 30001 alone.
+- Across three seeds (reward, mean ± standard deviation):
+
+| Policy | Slots | Launch rate 1× | Launch rate 5× |
+| --- | --- | --- | --- |
+| Trained network | 32 | 0.447 ± 0.006 | 0.438 ± 0.010 |
+| Stand-in levers | 32 | 0.402 ± 0.004 | 0.442 ± 0.004 |
+| Open door | 32 | 0.446 ± 0.013 | 0.435 ± 0.003 |
+| Open door | 64 | 0.417 ± 0.012 | 0.403 ± 0.013 |
+
+- The network's edge over the stand-in holds only at the normal launch rate. It ties a 32-slot open door at both rates and beats a 64-slot one by 7–9%.
 - In this crowd model, more coins bring more people trading, which is why the open door does well. Whether that is realistic is unknown.
 
 ## Environment faults found along the way
@@ -81,7 +90,32 @@ These changed the numbers materially and are worth knowing when reading older lo
 - The rule-based quoter lowered its ask one tick per idle batch and walked thin coins down; it now steps once per five idle batches.
 - The quoter's ask could not sit below the last price, so an unsold launch could never reprice.
 
+## Quoter with a smoothness term
+
+The reward gains a charge on the part of a single-batch price move beyond 2% (log), times a weight. Two quoters were trained for 200M steps each and graded on the same standard run as v3. "Reward" below is the original people-and-accuracy term without the charge.
+
+| Metric | Pump, sequential | Trained v3 (no term) | Weight 1 | Weight 5 |
+| --- | --- | --- | --- | --- |
+| Reward per batch | 0.357 | 0.322 | 0.309 | 0.297 |
+| Tracking error to true value (log) | 0.67 | 0.68 | 0.53 | 0.57 |
+| Largest gaps (99.9th percentile, log) | 0.23 | 0.52 | 0.42 | 0.30 |
+| Share of coin-batches in a 90% collapse | 0.009% | 0.80% | 0 | 0 |
+| Transient volatility | 0.012 | 0.021 | 0.019 | 0.009 |
+| Price impact per SOL (Amihud) | 16 | 74 | 123 | 51 |
+| Half-recovered within 60 batches | 56% | 37% | 29% | 33% |
+| Top-10 holder share | 16.1% | 6.8% | 7.0% | 7.2% |
+| Retail profit per person (SOL) | −0.40 | 0.00 | −0.23 | −0.15 |
+| Informed profit per person (SOL) | +0.42 | +0.78 | +0.57 | +0.68 |
+| Trapped when coins die (SOL per world) | 386 | 209 | 183 | 175 |
+| Tracking error after information jumps | 0.45 | 0.50 | 0.44 | 0.45 |
+
+- **It works on what it targets.** At weight 5 the largest gaps fall from 0.52 to 0.30 (pump: 0.23), 90% collapses disappear and transient volatility drops below pump's.
+- **Tracking error improves** from 0.68 to 0.53–0.57, better than pump, and real news is not slowed: tracking error after information jumps matches pump.
+- **It costs some reward** (4–8% on this seed; on a second held-out seed the weight-5 quoter scored 0.342 against 0.329 for v3, so the cost is within seed noise) and retail goes from break-even to a small loss, still less than on pump.
+- **Price impact stays well above pump** (3× at weight 5), and recovery after drops is no better.
+- One seed per configuration; the scenarios were not rerun for these quoters.
+
 ## Open
 
-- A smoothness term in the reward (a charge on single-batch moves beyond 2%) was being trained at two weights when this was written.
+- Whether the smoothness term should join the decided reward, and at what weight.
 - The wallet-class breakdown from pump data is not trusted and is not used.
