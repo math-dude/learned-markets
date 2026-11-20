@@ -20,12 +20,6 @@ export const BoardIcon = ({ size = 20, ...p }: P) => (
   </svg>
 )
 
-export const LineIcon = ({ size = 20, ...p }: P) => (
-  <svg {...base} width={size} height={size} strokeWidth={2} {...p}>
-    <path d="M4 6h16M4 12h10M4 18h6" />
-  </svg>
-)
-
 export const PortfolioIcon = ({ size = 20, ...p }: P) => (
   <svg {...base} width={size} height={size} strokeWidth={2} {...p}>
     <path d="M3 7h18v13H3z" />

@@ -2,12 +2,11 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { clock } from '../lib/format'
 import { market, useMarket } from '../market/engine'
-import { BoardIcon, InfoIcon, LineIcon, PlusIcon, PortfolioIcon, SearchIcon } from './icons'
+import { BoardIcon, InfoIcon, PlusIcon, PortfolioIcon, SearchIcon } from './icons'
 import { CoinTile } from './CoinBits'
 
 const NAV = [
   { to: '/', label: 'Board', icon: BoardIcon, end: true },
-  { to: '/line', label: 'The Line', icon: LineIcon },
   { to: '/portfolio', label: 'Portfolio', icon: PortfolioIcon },
   { to: '/how-it-works', label: 'How it works', icon: InfoIcon },
 ]
@@ -92,7 +91,7 @@ function Search() {
     const t = q.trim().toLowerCase()
     if (!t) return []
     const seated = market.seated(s).map((c) => ({ key: 'c' + c.id, name: c.name, ticker: c.ticker, tint: c.tint, where: 'Board', to: `/coin/${c.ticker}` }))
-    const line = s.line.map((l) => ({ key: 'l' + l.id, name: l.name, ticker: l.ticker, tint: l.tint, where: 'The Line', to: '/line' }))
+    const line = s.line.map((l) => ({ key: 'l' + l.id, name: l.name, ticker: l.ticker, tint: l.tint, where: 'The Line', to: '/' }))
     return [...seated, ...line].filter((r) => r.name.toLowerCase().includes(t) || r.ticker.toLowerCase().includes(t)).slice(0, 8)
   }, [q, s])
 

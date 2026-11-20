@@ -71,7 +71,7 @@ export function LaunchPage() {
         </button>
         {done && (
           <span role="status" className="lm-pop green" style={{ fontWeight: 600 }}>
-            {done} joined the Line. <Link to="/line">See it</Link>
+            {done} joined the Line. <Link to="/">See it on the Board</Link>
           </span>
         )}
       </form>

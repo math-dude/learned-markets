@@ -34,8 +34,8 @@ function CoinGone({ ticker }: { ticker: string }) {
             ? 'Coins in the Line can be traded once they are seated on the Board at an epoch.'
             : 'It may have died at an epoch, or the ticker is wrong.'}
       </span>
-      <Link to={inLine ? '/line' : '/'} className="btn-primary" style={{ padding: '11px 22px' }}>
-        {inLine ? 'Go to the Line' : 'Go to the Board'}
+      <Link to="/" className="btn-primary" style={{ padding: '11px 22px' }}>
+        Go to the Board
       </Link>
     </main>
   )
