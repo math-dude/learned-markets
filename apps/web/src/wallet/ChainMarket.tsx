@@ -205,6 +205,9 @@ export function ChainMarket() {
     <ShellFrame
       bar={
         <header className="topbar">
+          <Link to="/" className="topbar-brand" aria-label="damper home">
+            <img src="/damper-wordmark.svg" alt="damper" height="24" />
+          </Link>
           <Search
             coins={(state?.markets ?? []).map((m) => ({
               key: m.address,
