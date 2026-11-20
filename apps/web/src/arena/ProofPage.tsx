@@ -33,11 +33,11 @@ export function ProofPage() {
   return (
     <main className="proof-page">
       <header className="proof-hero">
-        <span className="eyebrow glow-text">Replay · same crowd, same seeds, two markets</span>
+        <span className="eyebrow">Replay · same crowd, same seeds, two markets</span>
         <h1>
-          Why batch auctions with a <span className="hero-grad">learned maker</span> beat the bonding curve
+          Why batch auctions with a learned maker beat the bonding curve
         </h1>
-        <p>{data.note} The left market is pump.fun’s curve with orders executed first-come. The right is ours: sealed 2&nbsp;s batches, one clearing price, a maker trained with RL.</p>
+        <p>{data.note} The left market is pump.fun’s curve with orders executed first-come. The right is ours: sealed batch auctions, one clearing price per batch, a maker trained with RL.</p>
         <div className="proof-legend">
           <span>
             <i style={{ background: PUMP }} /> pump.fun bonding curve

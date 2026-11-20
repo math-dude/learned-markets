@@ -47,7 +47,7 @@ export function Portfolio({ account, state }: { account: Account; state: ChainSt
         </div>
       </section>
       {risk && (
-        <div className="pf-risk lm-challenge">
+        <div className="pf-risk">
           <b>At risk</b>
           <span>
             {risk.m.name} has {Math.max(0, risk.m.survival ?? 0).toFixed(0)} survival left. If it is cut, your{' '}

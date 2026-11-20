@@ -1,6 +1,5 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { BatchClash } from '../arena/BatchClash'
-import { BubbleArena } from '../arena/BubbleArena'
 import { LiveFeed } from '../arena/LiveFeed'
 import { RankBoard, TheLine, type Sort } from '../arena/RankBoard'
 import { Link } from 'react-router-dom'
@@ -108,6 +107,31 @@ function roundsFor(state: ChainState) {
   return [...map.values()].sort((a, b) => b.batch - a.batch)
 }
 
+function BatchClock({ remainingSlots, batchSlots }: { remainingSlots: number; batchSlots: number }) {
+  // Interpolate between polls so the countdown runs smoothly.
+  const [now, setNow] = useState(() => Date.now())
+  const anchor = useRef({ at: Date.now(), ms: remainingSlots * 400 })
+  useEffect(() => {
+    anchor.current = { at: Date.now(), ms: remainingSlots * 400 }
+  }, [remainingSlots])
+  useEffect(() => {
+    const t = window.setInterval(() => setNow(Date.now()), 100)
+    return () => window.clearInterval(t)
+  }, [])
+  const total = batchSlots * 400
+  const left = Math.max(0, anchor.current.ms - (now - anchor.current.at))
+  return (
+    <>
+      <div className="epoch-clock">{(left / 1000).toFixed(1)}<small style={{ fontSize: 28 }}>s</small></div>
+      <div className="epoch-segments" aria-hidden="true">
+        {Array.from({ length: 24 }, (_, i) => (
+          <i key={i} className={i / 24 < 1 - left / total ? 'lit' : ''} />
+        ))}
+      </div>
+    </>
+  )
+}
+
 export function ValidatorBoard({ state }: { state: ChainState }) {
   const [sort, setSort] = useState<Sort>('Hot')
   const rounds = roundsFor(state)
@@ -115,120 +139,117 @@ export function ValidatorBoard({ state }: { state: ChainState }) {
   const latest = rounds.filter((r) => r.batch === latestBatch)
   const totalBuys = latest.reduce((n, r) => n + Number(r.buys), 0)
   const totalSells = latest.reduce((n, r) => n + Number(r.sells), 0)
-  const byMarket = new Map<string, typeof rounds>()
-  for (const r of rounds) byMarket.set(r.market, [...(byMarket.get(r.market) ?? []), r])
-  const volume = (address: string) =>
-    (byMarket.get(address) ?? []).reduce((n, r) => n + (Number(r.buys) + Number(r.sells)) * Number(r.price ?? 0), 0)
   const live = state.markets.filter((m) => m.live)
-  const dead = state.markets.filter((m) => !m.live)
-  const listed =
-    sort === 'Graveyard'
-      ? dead
-      : [...live].sort((a, b) =>
-          sort === 'Hot'
-            ? volume(b.address) - volume(a.address) || b.heat - a.heat
-            : sort === 'Liquidity'
-              ? Number(b.reserve_cash) - Number(a.reserve_cash)
-              : 0,
-        )
-  // Re-rank at most every 8 s so cards do not shuffle under the cursor on every poll.
-  const order = useRef<{ key: string; at: number; ids: string[] }>({ key: '', at: 0, ids: [] })
-  const now = Date.now()
-  if (order.current.key !== sort || now - order.current.at > 8000) order.current = { key: sort, at: now, ids: listed.map((m) => m.address) }
-  const rank = new Map(order.current.ids.map((id, i) => [id, i]))
-  listed.sort((a, b) => (rank.get(a.address) ?? -1) - (rank.get(b.address) ?? -1))
-  const leader = [...live].sort((a, b) => volume(b.address) - volume(a.address))[0]
+  const volume = new Map<string, number>()
+  for (const r of rounds) volume.set(r.market, (volume.get(r.market) ?? 0) + (Number(r.buys) + Number(r.sells)) * Number(r.price ?? 0))
+  const leader = [...live].sort((a, b) => (volume.get(b.address) ?? 0) - (volume.get(a.address) ?? 0))[0]
   const phase = state.slot % state.batch_slots
-  const freed = (state.flows ?? []).reduce((n, f) => n + Number(f.total), 0)
+  const ticker = (address: string) => state.markets.find((m) => m.address === address)?.ticker ?? '???'
+  const headlines = [
+    ...(state.flows ?? []).slice(0, 6).map(
+      (f) =>
+        '$' + f.ticker + ' was cut · ' + (Number(f.total) / 1e9).toFixed(3) + ' SOL recycled to ' + f.survivors.slice(0, 3).map((s) => '$' + s.ticker).join(', '),
+    ),
+    ...live.slice(0, 6).map((m) => '$' + m.ticker + (m.stage === 'Line' ? ' joined the Line' : m.stage === 'Rookie' ? ' seated as a rookie' : ' is a regular')),
+    ...state.fills.slice(0, 4).map((f) => '$' + ticker(f.market) + ' ' + (f.side === 'buy' ? 'bought' : 'sold') + ' ' + BigInt(f.quantity).toLocaleString()),
+  ]
   return (
-    <main className="arena-page">
-      <section className="arena-hero">
-        <div className="hero-copy">
-          <span className="eyebrow glow-text">Live on Solana · batch auctions every {(state.batch_slots * 0.4).toFixed(1)}s</span>
-          <h1>
-            No snipers. No front-running.
-            <br />
-            <span className="hero-grad">Just memes and the fairest price.</span>
-          </h1>
-          <div className="hero-stats">
-            <div>
-              <strong>{live.length}</strong>
-              <small>live coins</small>
-            </div>
-            <div>
-              <strong>{dead.length}</strong>
-              <small>cut so far</small>
-            </div>
-            <div>
-              <strong>{(freed / 1e9).toFixed(3)}</strong>
-              <small>SOL recycled to survivors</small>
-            </div>
-            <div className="hero-clock">
-              <svg viewBox="0 0 44 44">
-                <circle cx="22" cy="22" r="19" className="clock-bg" />
-                <circle
-                  cx="22"
-                  cy="22"
-                  r="19"
-                  className="clock-fg"
-                  style={{ strokeDashoffset: 119.4 * (1 - phase / state.batch_slots) }}
-                />
-              </svg>
-              <span>
-                <strong>{state.batch_slots - phase}</strong>
-                <small>slots to clear</small>
+    <main className="market-board">
+      <section className="epoch-hero paper-hero">
+        {leader ? (
+          <Link className="paper-king" to={'/coin/' + leader.address}>
+            <span style={{ position: 'relative' }}>
+              <CoinTile ticker={leader.ticker} image={leader.image} size={82} />
+              <span className="paper-crown lm-crown">
+                <Crown />
               </span>
-            </div>
-          </div>
-        </div>
-        {leader && (
-          <Link className="king" to={'/coin/' + leader.address}>
-            <span className="king-crown">
-              <Crown />
             </span>
-            <CoinTile ticker={leader.ticker} image={leader.image} size={92} />
             <span>
-              <small>King of the hill</small>
+              <small className="gold">#1 · king of the hill</small>
               <strong>{leader.name}</strong>
-              <em>${leader.ticker}</em>
+              <small>${leader.ticker} · LIQ {(Number(leader.reserve_cash) / 1e9).toFixed(3)} SOL</small>
             </span>
           </Link>
+        ) : (
+          <span />
         )}
-      </section>
-
-      <section className="arena-stage">
-        <BubbleArena state={state} />
-        <div className="stage-clash">
-          <BatchClash buys={totalBuys} sells={totalSells} batch={latestBatch} label={latestBatch !== undefined ? 'Batch #' + latestBatch.toLocaleString() + ' · all coins' : undefined} />
+        <div>
+          <span className="eyebrow">Batch closes in</span>
+          <BatchClock remainingSlots={state.batch_slots - phase} batchSlots={state.batch_slots} />
+          <small className="muted">Batch {Math.floor(state.slot / state.batch_slots).toLocaleString()} · one clearing price for everyone</small>
+        </div>
+        <div className="hero-counts">
+          <div>
+            <strong>{live.length}</strong>
+            <small>live</small>
+          </div>
+          <div>
+            <strong className="gold">{live.filter((m) => m.stage === 'Rookie').length}</strong>
+            <small>rookies</small>
+          </div>
+          <div>
+            <strong>{live.filter((m) => m.stage === 'Line').length}</strong>
+            <small>in the Line</small>
+          </div>
+          <div>
+            <strong>{state.markets.length - live.length}</strong>
+            <small>cut</small>
+          </div>
         </div>
       </section>
-
-      <div className="arena-columns">
-        <section className="terminal">
-          <div className="grid-head">
-            <h2>Board</h2>
-            <div className="seg">
-              {(['Hot', 'Liquidity', 'Movers', 'Rookies', 'Newest', 'Graveyard'] as const).map((option) => (
-                <button key={option} aria-pressed={sort === option} onClick={() => setSort(option)}>
-                  {option}
-                </button>
+      <div className="headlines">
+        <div className="headlines-label">Live</div>
+        {headlines.length ? (
+          <div className="validator-tape-window">
+            <div className="lm-ticker validator-tape">
+              {[0, 1].map((i) => (
+                <span key={i} aria-hidden={i === 1}>
+                  {headlines.map((h, j) => (
+                    <span key={j} className="tape-item">
+                      <i>◆</i>
+                      {h}
+                    </span>
+                  ))}
+                </span>
               ))}
             </div>
           </div>
+        ) : (
+          <span className="paper-tape">Waiting for the first fill</span>
+        )}
+      </div>
+      <div className="paper-grid">
+        <section className="board-list">
+          <div className="panel-head">
+            <h1 className="section-title">Board</h1>
+          </div>
+          <div className="board-filters">
+            {(['Hot', 'Liquidity', 'Movers', 'Rookies', 'Newest', 'Graveyard'] as const).map((option) => (
+              <button key={option} className="pill-btn" aria-pressed={sort === option} onClick={() => setSort(option)}>
+                {option === 'Hot' ? 'Volume' : option === 'Movers' ? 'Price change' : option}
+              </button>
+            ))}
+          </div>
+          <div className="board-round">
+            <BatchClash
+              buys={totalBuys}
+              sells={totalSells}
+              batch={latestBatch}
+              label={latestBatch !== undefined ? 'Batch ' + latestBatch.toLocaleString() + ' · all coins' : undefined}
+            />
+          </div>
           <RankBoard state={state} rounds={rounds} sort={sort} />
         </section>
-        <aside className="feed-wrap">
-          <div className="grid-head">
+        <aside className="board-side">
+          <div className="panel-head">
             <h2>The Line</h2>
-            <Link className="launch-cta" to="/launch">
+            <Link className="pill-btn" to="/launch">
               Launch a coin
             </Link>
           </div>
           <TheLine state={state} />
-          <div className="grid-head feed-head">
-            <h2>
-              <span className="live-dot" /> Live
-            </h2>
+          <div className="panel-head">
+            <h2>Activity</h2>
           </div>
           <LiveFeed state={state} />
         </aside>

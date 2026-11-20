@@ -96,7 +96,7 @@ export function LineChart({
         <defs>
           {series.map((s, i) => (
             <linearGradient key={i} id={id + i} x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0" stopColor={s.color} stopOpacity="0.28" />
+              <stop offset="0" stopColor={s.color} stopOpacity="0.14" />
               <stop offset="1" stopColor={s.color} stopOpacity="0" />
             </linearGradient>
           ))}
@@ -150,7 +150,6 @@ export function LineChart({
             strokeDasharray={s.dashed ? '4 4' : undefined}
             className={s.dashed ? 'lline dashed' : 'lline'}
             pathLength={s.dashed ? undefined : 1}
-            style={s.dashed ? undefined : { filter: `drop-shadow(0 0 6px ${s.color}88)` }}
           />
         ))}
         {!compact &&

@@ -32,6 +32,7 @@ export function BatchClash({
     '--sell-rest': pct(sells - matched),
     '--match': pct(matched),
     '--maker': (net / scale) * 48 + '%',
+    '--match-track': (matched / scale) * 48 + '%',
   } as CSSProperties
   return (
     <div className={'clash' + (compact ? ' clash-compact' : '')} style={vars}>
@@ -62,10 +63,10 @@ export function BatchClash({
       {!compact && (
         <div className="clash-foot" key={'f' + String(batch)}>
           <span className="clash-pill match">
-            <i /> {fmt(matched)} cancelled out
+            <i /> {fmt(matched)} matched, cancels out
           </span>
           <span className="clash-pill maker">
-            <i /> maker {makerSells ? 'sold' : 'bought'} {fmt(net)}
+            <i /> maker {makerSells ? 'sold' : 'bought'} the leftover {fmt(net)}
           </span>
         </div>
       )}
