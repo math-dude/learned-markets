@@ -12,6 +12,7 @@ import struct
 from pathlib import Path
 from time import time
 
+import torch
 from fastapi import HTTPException
 from learned_markets_core.lifecycle import default_lever_values
 from learned_markets_core.quoter import build_quote, residual_params, rule_based_params
@@ -62,6 +63,8 @@ WINDOW = int(os.environ.get("LM_BATCH_SLOTS", "32"))
 BATCH_ORDERS = min(8, int(os.environ.get("LM_BATCH_ORDERS", "8")))
 EXPIRY_MARGIN = float(os.environ.get("LM_EXPIRY_MARGIN", "15"))
 IDLE_SCALE = min(1.0, WINDOW * 0.4 / 10)
+ASK_SHIFT = int(os.environ.get("LM_ASK_SHIFT", "0"))
+PRESSURE_TRADERS = int(os.environ.get("LM_PRESSURE_TRADERS", "3"))
 
 
 async def maybe_fetch(cls, rpc, address, seconds=3.0):
@@ -139,11 +142,20 @@ class ValidatorMarket:
     def quote(self, address, public, board, tape):
         """Next batch's curve: the rule on this market's tape, corrected by the trained quoter when loaded."""
         state, cfg = state_for(public)
+        # The rule moves its ask up to three ticks on last batch's unfilled side. With one or two
+        # orders in a batch that reading is all-or-nothing and the ask chases every partial fill,
+        # so it only counts once a batch has a crowd, as the batches the rule was tuned on do.
+        pressure = torch.where(tape.traders_last >= PRESSURE_TRADERS, tape.pressure, torch.zeros_like(tape.pressure))
         if self.policy is None:
-            params = rule_based_params(state, tape.pressure, cfg, tape.idle)
+            params = rule_based_params(state, pressure, cfg, tape.idle)
         else:
             action = self.policy(self.observation(address, public, board, tape))
-            params = residual_params(state, tape.pressure, tape.idle, action, cfg)
+            params = residual_params(state, pressure, tape.idle, action, cfg)
+        # The rule quotes its ask at the last price and its bid two ticks under it. That suits batches
+        # with many traders on both sides; a live batch often holds one order, which then prints at the
+        # ask (no change) or at the bid (two ticks down), so prices only ratchet down. LM_ASK_SHIFT
+        # lifts the ask by that many ticks; 1 centres the spread on the last price.
+        params[..., 3] = (params[..., 3] + ASK_SHIFT).clamp(-16, 16)
         quote = build_quote(state, params, cfg)
         return Quote(
             centre_tick=public.tick,
