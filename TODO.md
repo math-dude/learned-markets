@@ -3,6 +3,8 @@
 - [ ] AI agents or bots trading the market
 - [ ] solve the issue which is that we have npm in the attestation stuff and bun for the general project.
 
+- [ ]  make sure the RL environment logic is reused for the backend logic (ensure modularity)
+
 - [ ] Pitch doc
 - [ ] record different scenarios happening live (pump and dump, copy trading etc)
   - [ ] 1: happening on our AMM

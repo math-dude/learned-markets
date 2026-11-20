@@ -10,7 +10,7 @@ Two learned agents on two clocks. Neither decides which coins live or die: publi
 | --- | --- | --- |
 | Acts | Every batch | Every epoch (e.g. hourly) |
 | Controls | Its own curve order in the batch auction | Seat count S, rookie seats P, drain multiplier, timer cap, launch fee (v1: fee/hold parameters) |
-| Goal | Absorb leftover imbalance; healthy charts; break even | Healthy board; fresh memes get a shot |
+| Goal | Damp short-lived price shocks; healthy charts; break even | Healthy board; fresh memes get a shot |
 | Never | Defends a price level; refuses honest flow | Picks or kills individual coins |
 
 ## Environment

@@ -26,7 +26,7 @@ Everything else is proposed, leaning or open. **Check `docs/ai-gen/decisions.md`
 
 ## Core design in one paragraph (proposed)
 
-Trading clears in batch auctions where every order is a curve. Users net against each other; a learned **maker** (the quoting network) posts one curve per batch and absorbs only the leftover imbalance. Coins live on a **board** with limited seats; every new coin starts in a low-stakes **line**. Each seated coin has a public **timer** fed by fees from distinct people (square-root weighted) and drained at the board's average rate; at zero the coin dies and its reserve flows to survivors. A second learned agent, the **auction network** (also called the stage manager), sets seat counts, rookie seats, drain rate, timer cap and the launch fee, but never picks which coins live.
+Trading clears in batch auctions where every order is a curve. A learned **maker** (the quoting network) posts one curve per batch, which clears alongside user curves in the same auction. Coins live on a **board** with limited seats; every new coin starts in a low-stakes **line**. Each seated coin has a public **timer** fed by fees from distinct people (square-root weighted) and drained at the board's average rate; at zero the coin dies and its reserve flows to survivors. A second learned agent, the **auction network** (also called the stage manager), sets seat counts, rookie seats, drain rate, timer cap and the launch fee, but never picks which coins live.
 
 ## Where things live
 
