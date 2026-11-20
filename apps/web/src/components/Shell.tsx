@@ -6,7 +6,7 @@ import { CoinTile } from './CoinBits'
 const NAV = [
   { to: '/', label: 'Board', icon: BoardIcon, end: true },
   { to: '/portfolio', label: 'Portfolio', icon: PortfolioIcon },
-  { to: '/how-it-works', label: 'How it works', icon: InfoIcon },
+  { to: '/proof', label: 'Pump vs us', icon: InfoIcon },
 ]
 
 export function ShellFrame({ bar, children }: { bar: ReactNode; children: ReactNode }) {
@@ -31,7 +31,7 @@ export function ShellFrame({ bar, children }: { bar: ReactNode; children: ReactN
   )
 }
 
-type SearchCoin = { key: string; name: string; ticker: string; tint: string; where: string; to: string }
+type SearchCoin = { key: string; name: string; ticker: string; tint: string; where: string; to: string; image?: string }
 
 export function Search({ coins }: { coins: SearchCoin[] }) {
   const navigate = useNavigate()
@@ -108,7 +108,7 @@ export function Search({ coins }: { coins: SearchCoin[] }) {
                 go(r.to)
               }}
             >
-              <CoinTile tint={r.tint} ticker={r.ticker} size={32} fontSize={10} />
+              <CoinTile tint={r.tint} ticker={r.ticker} size={32} fontSize={10} image={r.image} />
               <span style={{ fontWeight: 600 }}>{r.name}</span>
               <span className="muted" style={{ fontSize: 13 }}>
                 ${r.ticker}

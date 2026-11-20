@@ -14,6 +14,7 @@ class CloseLedgerMarketAccounts(typing.TypedDict):
     settlementAuthority:SolPubkey
     config:SolPubkey
     market:SolPubkey
+    platform:SolPubkey
 
 def CloseLedgerMarket(
     accounts: CloseLedgerMarketAccounts,
@@ -24,6 +25,7 @@ def CloseLedgerMarket(
     keys.append(AccountMeta(pubkey=accounts["settlementAuthority"], is_signer=True, is_writable=False))
     keys.append(AccountMeta(pubkey=accounts["config"], is_signer=False, is_writable=False))
     keys.append(AccountMeta(pubkey=accounts["market"], is_signer=False, is_writable=True))
+    keys.append(AccountMeta(pubkey=accounts["platform"], is_signer=False, is_writable=True))
     if remaining_accounts is not None:
         keys += remaining_accounts
     identifier = b"\x24\x28\x05\xdb\x9a\x86\xbe\xc6"
@@ -37,6 +39,19 @@ def CloseLedgerMarket(
 def find_Config() -> typing.Tuple[SolPubkey, int]:
     seeds = [
        b"\x63\x6f\x6e\x66\x69\x67",
+    ]
+
+    address, bump = SolPubkey.find_program_address(seeds,
+         LEARNED_MARKETS_PROGRAM_ADDRESS
+            )
+
+    return address, bump
+
+
+
+def find_Platform() -> typing.Tuple[SolPubkey, int]:
+    seeds = [
+       b"\x6c\x65\x64\x67\x65\x72\x2d\x70\x6c\x61\x74\x66\x6f\x72\x6d",
     ]
 
     address, bump = SolPubkey.find_program_address(seeds,

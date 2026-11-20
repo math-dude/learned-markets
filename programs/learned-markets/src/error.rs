@@ -242,4 +242,6 @@ pub enum GateError {
     LedgerFeeRateOutOfRange,
     #[msg("The supplied user and quoter legs do not conserve tokens")]
     LedgerTokenMismatch,
+    #[msg("Survivor accounts must be distinct live ledger markets paired with their deployer's balance")]
+    InvalidSurvivor,
 }

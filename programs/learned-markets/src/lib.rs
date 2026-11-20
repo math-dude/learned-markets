@@ -45,7 +45,7 @@ pub mod learned_markets {
     ) -> Result<()> {
         ledger::open(ctx, market_id, launch_fee)
     }
-    pub fn close_ledger_market(ctx: Context<CloseLedgerMarket>) -> Result<()> {
+    pub fn close_ledger_market<'info>(ctx: Context<'info, CloseLedgerMarket<'info>>) -> Result<()> {
         ledger::close(ctx)
     }
     pub fn credit_ledger_balance(ctx: Context<CreditLedgerBalance>, amount: u64) -> Result<()> {

@@ -350,11 +350,12 @@ export const LearnedMarketsEvent = {
   6: "IntentCancelled",
   7: "IntentSubmitted",
   8: "LedgerBatchSettled",
-  9: "MarketCreated",
-  10: "ParticipantRegistered",
-  11: "ParticipantStatusChanged",
-  12: "StageChanged",
-  13: "Withdrawn",
+  9: "LiquidityRedistributed",
+  10: "MarketCreated",
+  11: "ParticipantRegistered",
+  12: "ParticipantStatusChanged",
+  13: "StageChanged",
+  14: "Withdrawn",
   BindingReplaced: 0,
   BoardInitialized: 1,
   BoardUpdated: 2,
@@ -364,11 +365,12 @@ export const LearnedMarketsEvent = {
   IntentCancelled: 6,
   IntentSubmitted: 7,
   LedgerBatchSettled: 8,
-  MarketCreated: 9,
-  ParticipantRegistered: 10,
-  ParticipantStatusChanged: 11,
-  StageChanged: 12,
-  Withdrawn: 13,
+  LiquidityRedistributed: 9,
+  MarketCreated: 10,
+  ParticipantRegistered: 11,
+  ParticipantStatusChanged: 12,
+  StageChanged: 13,
+  Withdrawn: 14,
 } as const;
 
 export type LearnedMarketsEvent = (typeof LearnedMarketsEvent)[Exclude<
@@ -478,6 +480,17 @@ export function identifyLearnedMarketsEvent(
     )
   ) {
     return LearnedMarketsEvent.LedgerBatchSettled;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([52, 7, 67, 201, 76, 188, 51, 11]),
+      ),
+      0,
+    )
+  ) {
+    return LearnedMarketsEvent.LiquidityRedistributed;
   }
   if (
     containsBytes(
@@ -1233,6 +1246,7 @@ export type LearnedMarketsPluginInstructions = {
 
 export type LearnedMarketsPluginPdas = {
   config: typeof findConfigPda;
+  platform: typeof findPlatformPda;
   board: typeof findBoardPda;
   walletBinding: typeof findWalletBindingPda;
   market: typeof findMarketPda;
@@ -1243,7 +1257,6 @@ export type LearnedMarketsPluginPdas = {
   position: typeof findPositionPda;
   initializeLedgerPositionPosition: typeof findInitializeLedgerPositionPositionPda;
   openLedgerMarketMarket: typeof findOpenLedgerMarketMarketPda;
-  platform: typeof findPlatformPda;
   newWalletBinding: typeof findNewWalletBindingPda;
 };
 
@@ -1477,6 +1490,11 @@ export function learnedMarketsProgram(
               programAddress:
                 pdaConfig?.programAddress ?? config.programAddress,
             }),
+          platform: (pdaConfig) =>
+            findPlatformPda({
+              programAddress:
+                pdaConfig?.programAddress ?? config.programAddress,
+            }),
           board: (pdaConfig) =>
             findBoardPda({
               programAddress:
@@ -1524,11 +1542,6 @@ export function learnedMarketsProgram(
             }),
           openLedgerMarketMarket: (seeds, pdaConfig) =>
             findOpenLedgerMarketMarketPda(seeds, {
-              programAddress:
-                pdaConfig?.programAddress ?? config.programAddress,
-            }),
-          platform: (pdaConfig) =>
-            findPlatformPda({
               programAddress:
                 pdaConfig?.programAddress ?? config.programAddress,
             }),

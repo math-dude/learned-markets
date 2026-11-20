@@ -29,6 +29,8 @@ from . import ledgerBatchSettled
 from .ledgerBatchSettled import LedgerBatchSettledJSON,LedgerBatchSettled;
 from . import ledgerFill
 from .ledgerFill import LedgerFillJSON,LedgerFill;
+from . import liquidityRedistributed
+from .liquidityRedistributed import LiquidityRedistributedJSON,LiquidityRedistributed;
 from . import makerLimits
 from .makerLimits import MakerLimitsJSON,MakerLimits;
 from . import marketCreated
@@ -45,6 +47,8 @@ from . import stage
 from .stage import StageJSON,StageKind;
 from . import stageChanged
 from .stageChanged import StageChangedJSON,StageChanged;
+from . import survivorShare
+from .survivorShare import SurvivorShareJSON,SurvivorShare;
 from . import termsBounds
 from .termsBounds import TermsBoundsJSON,TermsBounds;
 from . import withdrawn

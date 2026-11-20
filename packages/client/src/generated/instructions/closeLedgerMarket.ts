@@ -39,7 +39,7 @@ import {
   type ResolvedInstructionAccount,
   type ResolvedInstructionAccountMeta,
 } from "@solana/kit/program-client-core";
-import { findConfigPda } from "../pdas/index.ts";
+import { findConfigPda, findPlatformPda } from "../pdas/index.ts";
 import { LEARNED_MARKETS_PROGRAM_ADDRESS } from "../programs/index.ts";
 
 export const CLOSE_LEDGER_MARKET_DISCRIMINATOR: ReadonlyUint8Array =
@@ -56,6 +56,7 @@ export type CloseLedgerMarketInstruction<
   TAccountSettlementAuthority extends string | AccountMeta<string> = string,
   TAccountConfig extends string | AccountMeta<string> = string,
   TAccountMarket extends string | AccountMeta<string> = string,
+  TAccountPlatform extends string | AccountMeta<string> = string,
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
 > = Instruction<TProgram> &
   InstructionWithData<ReadonlyUint8Array> &
@@ -71,6 +72,9 @@ export type CloseLedgerMarketInstruction<
       TAccountMarket extends string
         ? WritableAccount<TAccountMarket>
         : TAccountMarket,
+      TAccountPlatform extends string
+        ? WritableAccount<TAccountPlatform>
+        : TAccountPlatform,
       ...TRemainingAccounts,
     ]
   >;
@@ -109,22 +113,26 @@ export type CloseLedgerMarketAsyncInput<
     InstructionSignerInput,
   TAccountConfig extends InstructionAccountInput = InstructionAccountInput,
   TAccountMarket extends InstructionAccountInput = InstructionAccountInput,
+  TAccountPlatform extends InstructionAccountInput = InstructionAccountInput,
 > = {
   settlementAuthority: TAccountSettlementAuthority;
   config?: TAccountConfig;
   market: TAccountMarket;
+  platform?: TAccountPlatform;
 };
 
 export async function getCloseLedgerMarketInstructionAsync<
   TAccountSettlementAuthority extends InstructionSignerInput,
   TAccountConfig extends InstructionAccountInput,
   TAccountMarket extends InstructionAccountInput,
+  TAccountPlatform extends InstructionAccountInput,
   TProgramAddress extends Address = typeof LEARNED_MARKETS_PROGRAM_ADDRESS,
 >(
   input: CloseLedgerMarketAsyncInput<
     TAccountSettlementAuthority,
     TAccountConfig,
-    TAccountMarket
+    TAccountMarket,
+    TAccountPlatform
   >,
   config?: {
     programAddress?: TProgramAddress | { readonly address: TProgramAddress };
@@ -143,6 +151,10 @@ export async function getCloseLedgerMarketInstructionAsync<
     ResolvedInstructionAccountMeta<
       TAccountMarket,
       InstructionAccountInputAddress<TAccountMarket>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountPlatform,
+      InstructionAccountInputAddress<TAccountPlatform>
     >
   >
 > {
@@ -166,6 +178,11 @@ export async function getCloseLedgerMarketInstructionAsync<
     },
     config: { value: input.config ?? null, isSigner: false, isWritable: false },
     market: { value: input.market ?? null, isSigner: false, isWritable: true },
+    platform: {
+      value: input.platform ?? null,
+      isSigner: false,
+      isWritable: true,
+    },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -176,12 +193,16 @@ export async function getCloseLedgerMarketInstructionAsync<
   if (!accounts.config.value) {
     accounts.config.value = await findConfigPda({ programAddress });
   }
+  if (!accounts.platform.value) {
+    accounts.platform.value = await findPlatformPda({ programAddress });
+  }
 
   return Object.freeze({
     accounts: [
       getAccountMeta("settlementAuthority", accounts.settlementAuthority),
       getAccountMeta("config", accounts.config),
       getAccountMeta("market", accounts.market),
+      getAccountMeta("platform", accounts.platform),
     ],
     data: getCloseLedgerMarketInstructionDataEncoder().encode({}),
     programAddress,
@@ -198,6 +219,10 @@ export async function getCloseLedgerMarketInstructionAsync<
     ResolvedInstructionAccountMeta<
       TAccountMarket,
       InstructionAccountInputAddress<TAccountMarket>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountPlatform,
+      InstructionAccountInputAddress<TAccountPlatform>
     >
   >);
 }
@@ -207,22 +232,26 @@ export type CloseLedgerMarketInput<
     InstructionSignerInput,
   TAccountConfig extends InstructionAccountInput = InstructionAccountInput,
   TAccountMarket extends InstructionAccountInput = InstructionAccountInput,
+  TAccountPlatform extends InstructionAccountInput = InstructionAccountInput,
 > = {
   settlementAuthority: TAccountSettlementAuthority;
   config: TAccountConfig;
   market: TAccountMarket;
+  platform: TAccountPlatform;
 };
 
 export function getCloseLedgerMarketInstruction<
   TAccountSettlementAuthority extends InstructionSignerInput,
   TAccountConfig extends InstructionAccountInput,
   TAccountMarket extends InstructionAccountInput,
+  TAccountPlatform extends InstructionAccountInput,
   TProgramAddress extends Address = typeof LEARNED_MARKETS_PROGRAM_ADDRESS,
 >(
   input: CloseLedgerMarketInput<
     TAccountSettlementAuthority,
     TAccountConfig,
-    TAccountMarket
+    TAccountMarket,
+    TAccountPlatform
   >,
   config?: {
     programAddress?: TProgramAddress | { readonly address: TProgramAddress };
@@ -240,6 +269,10 @@ export function getCloseLedgerMarketInstruction<
   ResolvedInstructionAccountMeta<
     TAccountMarket,
     InstructionAccountInputAddress<TAccountMarket>
+  >,
+  ResolvedInstructionAccountMeta<
+    TAccountPlatform,
+    InstructionAccountInputAddress<TAccountPlatform>
   >
 > {
   // Program address.
@@ -262,6 +295,11 @@ export function getCloseLedgerMarketInstruction<
     },
     config: { value: input.config ?? null, isSigner: false, isWritable: false },
     market: { value: input.market ?? null, isSigner: false, isWritable: true },
+    platform: {
+      value: input.platform ?? null,
+      isSigner: false,
+      isWritable: true,
+    },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -273,6 +311,7 @@ export function getCloseLedgerMarketInstruction<
       getAccountMeta("settlementAuthority", accounts.settlementAuthority),
       getAccountMeta("config", accounts.config),
       getAccountMeta("market", accounts.market),
+      getAccountMeta("platform", accounts.platform),
     ],
     data: getCloseLedgerMarketInstructionDataEncoder().encode({}),
     programAddress,
@@ -289,6 +328,10 @@ export function getCloseLedgerMarketInstruction<
     ResolvedInstructionAccountMeta<
       TAccountMarket,
       InstructionAccountInputAddress<TAccountMarket>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountPlatform,
+      InstructionAccountInputAddress<TAccountPlatform>
     >
   >);
 }
@@ -302,6 +345,7 @@ export type ParsedCloseLedgerMarketInstruction<
     settlementAuthority: TAccountMetas[0];
     config: TAccountMetas[1];
     market: TAccountMetas[2];
+    platform: TAccountMetas[3];
   };
   data: CloseLedgerMarketInstructionData;
 };
@@ -314,12 +358,12 @@ export function parseCloseLedgerMarketInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedCloseLedgerMarketInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 3) {
+  if (instruction.accounts.length < 4) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 3,
+        expectedAccountMetas: 4,
       },
     );
   }
@@ -335,6 +379,7 @@ export function parseCloseLedgerMarketInstruction<
       settlementAuthority: getNextAccount(),
       config: getNextAccount(),
       market: getNextAccount(),
+      platform: getNextAccount(),
     },
     data: getCloseLedgerMarketInstructionDataDecoder().decode(instruction.data),
   };

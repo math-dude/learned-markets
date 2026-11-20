@@ -140,10 +140,111 @@ pub struct CloseLedgerMarket<'info> {
     pub config: Account<'info, Config>,
     #[account(mut,seeds=[b"ledger-market",market.market_id.as_ref()],bump=market.bump)]
     pub market: Account<'info, LedgerMarket>,
+    #[account(mut,seeds=[b"ledger-platform"],bump=platform.bump)]
+    pub platform: Account<'info, LedgerPlatform>,
 }
-pub fn close(ctx: Context<CloseLedgerMarket>) -> Result<()> {
-    require!(ctx.accounts.market.live, GateError::MarketClosed);
-    ctx.accounts.market.live = false;
+/// Most survivors a single close can pay. Bounds compute and transaction size.
+pub const MAX_CLOSE_SURVIVORS: usize = 8;
+pub const CLOSE_SURVIVOR_BPS: u128 = 6_000;
+pub const CLOSE_DEPLOYER_BPS: u128 = 2_000;
+/// Split a closed market's reserve. Returns (per survivor, per deployer, platform).
+/// Survivors share 60% equally, their deployers 20%; the platform gets the rest,
+/// including all rounding dust, or everything when nobody survives.
+pub fn close_split(total: u64, survivors: usize) -> (u64, u64, u64) {
+    if survivors == 0 {
+        return (0, 0, total);
+    }
+    let n = survivors as u128;
+    let each = (u128::from(total) * CLOSE_SURVIVOR_BPS / 10_000 / n) as u64;
+    let dep = (u128::from(total) * CLOSE_DEPLOYER_BPS / 10_000 / n) as u64;
+    // each*n <= 60% and dep*n <= 20% of total, so this cannot underflow.
+    let platform = total - (each + dep) * survivors as u64;
+    (each, dep, platform)
+}
+/// Remaining accounts: pairs of [survivor LedgerMarket (mut), its deployer's LedgerBalance (mut)].
+pub fn close<'i>(ctx: Context<'i, CloseLedgerMarket<'i>>) -> Result<()> {
+    let a = ctx.accounts;
+    require!(a.market.live, GateError::MarketClosed);
+    let rest = ctx.remaining_accounts;
+    require!(
+        rest.len() % 2 == 0 && rest.len() / 2 <= MAX_CLOSE_SURVIVORS,
+        GateError::InvalidSurvivor
+    );
+    let closing = a.market.key();
+    let mut survivors: Vec<Account<'i, LedgerMarket>> = Vec::with_capacity(rest.len() / 2);
+    // One deployer can own several survivors; load each balance once so writes don't clobber.
+    let mut balances: Vec<Account<'i, LedgerBalance>> = Vec::new();
+    let mut payees: Vec<usize> = Vec::with_capacity(rest.len() / 2);
+    for pair in rest.chunks_exact(2) {
+        require!(
+            pair[0].owner == &crate::ID && pair[1].owner == &crate::ID && pair[0].is_writable && pair[1].is_writable,
+            GateError::InvalidSurvivor
+        );
+        let survivor: Account<'i, LedgerMarket> = Account::try_from(&pair[0])?;
+        let key = Pubkey::create_program_address(
+            &[b"ledger-market", survivor.market_id.as_ref(), &[survivor.bump]],
+            &crate::ID,
+        )
+        .map_err(|_| GateError::InvalidSurvivor)?;
+        require!(
+            survivor.key() == key
+                && survivor.live
+                && key != closing
+                && !survivors.iter().any(|s| s.key() == key),
+            GateError::InvalidSurvivor
+        );
+        let idx = match balances.iter().position(|b| b.key() == pair[1].key()) {
+            Some(i) => i,
+            None => {
+                let balance: Account<'i, LedgerBalance> = Account::try_from(&pair[1])?;
+                let bkey = Pubkey::create_program_address(
+                    &[b"ledger-balance", balance.participant.as_ref(), &[balance.bump]],
+                    &crate::ID,
+                )
+                .map_err(|_| GateError::InvalidSurvivor)?;
+                require!(balance.key() == bkey, GateError::InvalidSurvivor);
+                balances.push(balance);
+                balances.len() - 1
+            }
+        };
+        require!(
+            balances[idx].participant == survivor.deployer,
+            GateError::InvalidSurvivor
+        );
+        payees.push(idx);
+        survivors.push(survivor);
+    }
+    let total = a.market.reserve_cash;
+    let (each, dep, to_platform) = close_split(total, survivors.len());
+    for (survivor, &idx) in survivors.iter_mut().zip(&payees) {
+        survivor.reserve_cash = checked_credit(survivor.reserve_cash, each)?;
+        balances[idx].cash = checked_credit(balances[idx].cash, dep)?;
+    }
+    a.platform.cash = checked_credit(a.platform.cash, to_platform)?;
+    a.market.reserve_cash = 0;
+    a.market.live = false;
+    for survivor in &survivors {
+        survivor.exit(&crate::ID)?;
+    }
+    for balance in &balances {
+        balance.exit(&crate::ID)?;
+    }
+    let n = survivors.len() as u64;
+    emit!(crate::events::LiquidityRedistributed {
+        market: closing,
+        total,
+        to_survivors: each * n,
+        to_deployers: dep * n,
+        to_platform,
+        survivors: survivors
+            .iter()
+            .zip(&payees)
+            .map(|(s, &i)| crate::events::SurvivorShare {
+                market: s.key(),
+                deployer_balance: balances[i].key(),
+            })
+            .collect(),
+    });
     Ok(())
 }
 #[derive(Accounts)]

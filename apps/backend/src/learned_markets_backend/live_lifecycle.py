@@ -1,6 +1,7 @@
 """Persisted demo board using the simulator's lifecycle and confirmed fill counts."""
 
 import json
+import time
 from types import SimpleNamespace
 
 import torch
@@ -11,11 +12,13 @@ from learned_markets_core.lifecycle import (
 )
 from learned_markets_core.state import LINE, MarketConfig, MarketState
 from solana.rpc.types import TxOpts
+from solders.instruction import AccountMeta
 from solders.pubkey import Pubkey
 from solders.transaction import Transaction
 
+from .chain import ledger_balance_address
 from .generated.accounts.ledgerMarket import LedgerMarket
-from .generated.instructions.closeLedgerMarket import CloseLedgerMarket
+from .generated.instructions.closeLedgerMarket import CloseLedgerMarket, find_Platform
 
 # Accelerated Surfpool demonstration profile. Timers are activity units.
 PROFILE = {
@@ -28,6 +31,22 @@ PROFILE = {
 }
 STAGES = {0: "Ended", 1: "Line", 2: "Rookie", 3: "Regular"}
 FIELDS = ("stage", "birth", "heat", "timer", "activity", "coin_id")
+# Survivors paid per close; the program accepts up to 8 pairs.
+MAX_SURVIVORS = 6
+
+
+def close_split(total, survivors):
+    """Mirror of the program's split: (per survivor, per deployer, platform)."""
+    if survivors == 0:
+        return 0, 0, total
+    each, dep = total * 6_000 // 10_000 // survivors, total * 2_000 // 10_000 // survivors
+    return each, dep, total - (each + dep) * survivors
+
+
+def rank_survivors(coins, closing):
+    """Live coins other than `closing`, highest stage first, then most active."""
+    alive = [c for c in coins if c["stage"] and c["address"] != closing]
+    return sorted(alive, key=lambda c: (-c["stage"], -c["activity"], -c["heat"]))
 
 
 def step_board(coins, batch, counts):
@@ -64,6 +83,67 @@ class LiveLifecycle:
         engine.db.execute(
             "CREATE TABLE IF NOT EXISTS web_lifecycle (id INTEGER PRIMARY KEY CHECK(id=1), snapshot TEXT NOT NULL)"
         )
+        engine.db.execute(
+            """CREATE TABLE IF NOT EXISTS web_flows (batch INTEGER NOT NULL, market TEXT NOT NULL, ticker TEXT,
+            total INTEGER NOT NULL, survivors TEXT NOT NULL, deployers_amount INTEGER NOT NULL,
+            platform_amount INTEGER NOT NULL, signature TEXT, ts REAL NOT NULL)"""
+        )
+
+    async def close_market(self, batch, market, chain, coins):
+        """Close `market`, paying its reserve to the top live survivors, their deployers and the platform."""
+        engine, db = self.engine, self.engine.db
+        pairs, paid = [], []
+        for coin in rank_survivors(coins, str(market)):
+            if len(paid) == MAX_SURVIVORS:
+                break
+            key = Pubkey.from_string(coin["address"])
+            survivor = await LedgerMarket.fetch(engine.rpc, key)
+            if not survivor or not survivor.live:
+                continue
+            pairs += [
+                AccountMeta(key, is_signer=False, is_writable=True),
+                AccountMeta(ledger_balance_address(survivor.deployer), is_signer=False, is_writable=True),
+            ]
+            paid.append(coin["address"])
+        authority = engine.signer()
+        ix = CloseLedgerMarket(
+            {
+                "settlementAuthority": authority.pubkey(),
+                "config": self.config,
+                "market": market,
+                "platform": find_Platform()[0],
+            },
+            remaining_accounts=pairs,
+        )
+        block = (await engine.rpc.get_latest_blockhash()).value
+        tx = Transaction.new_signed_with_payer([ix], authority.pubkey(), [authority], block.blockhash)
+        sent = await engine.rpc.send_transaction(
+            tx,
+            TxOpts(
+                skip_confirmation=False,
+                preflight_commitment="confirmed",
+                last_valid_block_height=block.last_valid_block_height,
+            ),
+        )
+        total = chain.reserveCash
+        each, dep, platform = close_split(total, len(paid))
+        tickers = {r["address"]: r["ticker"] for r in db.execute("SELECT address,ticker FROM web_markets")}
+        survivors = [{"address": a, "ticker": tickers.get(a), "amount": each} for a in paid]
+        with db:
+            db.execute(
+                "INSERT INTO web_flows VALUES (?,?,?,?,?,?,?,?,?)",
+                (
+                    batch,
+                    str(market),
+                    tickers.get(str(market)),
+                    total,
+                    json.dumps(survivors),
+                    dep * len(paid),
+                    platform,
+                    str(sent.value),
+                    time.time(),
+                ),
+            )
 
     def snapshot(self):
         row = self.engine.db.execute("SELECT snapshot FROM web_lifecycle WHERE id=1").fetchone()
@@ -115,20 +195,7 @@ class LiveLifecycle:
                     market = Pubkey.from_string(new["address"])
                     chain = await LedgerMarket.fetch(engine.rpc, market)
                     if chain and chain.live:
-                        authority = engine.signer()
-                        ix = CloseLedgerMarket(
-                            {"settlementAuthority": authority.pubkey(), "config": self.config, "market": market}
-                        )
-                        block = (await engine.rpc.get_latest_blockhash()).value
-                        tx = Transaction.new_signed_with_payer([ix], authority.pubkey(), [authority], block.blockhash)
-                        await engine.rpc.send_transaction(
-                            tx,
-                            TxOpts(
-                                skip_confirmation=False,
-                                preflight_commitment="confirmed",
-                                last_valid_block_height=block.last_valid_block_height,
-                            ),
-                        )
+                        await self.close_market(batch, market, chain, updated)
                     # A retry after a crash also accepts a market already closed on chain.
             board = {"batch": batch, "coins": updated}
             with db:

@@ -13,4 +13,5 @@ export * from "./makerLimits.ts";
 export * from "./participantStatus.ts";
 export * from "./settlementIntentRef.ts";
 export * from "./stage.ts";
+export * from "./survivorShare.ts";
 export * from "./termsBounds.ts";

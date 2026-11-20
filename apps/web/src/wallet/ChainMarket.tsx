@@ -1,4 +1,7 @@
 import { useEffect, useState } from 'react'
+import '../arena/arena.css'
+import { ProofPage } from '../arena/ProofPage'
+import { Portfolio } from '../arena/Portfolio'
 import { Link, useLocation } from 'react-router-dom'
 import { Search, ShellFrame } from '../components/Shell'
 import { AccessPanel } from './AccessPanel'
@@ -36,6 +39,29 @@ export type ChainState = {
     activity: number
     reserve_cash: string
     reserve_tokens: string
+    image?: string | null
+    ended_reason?: string | null
+  }[]
+  rounds?: {
+    market: string
+    batch: number
+    buys: string
+    sells: string
+    matched: string
+    maker_side: 'buy' | 'sell' | null
+    maker_qty: string
+    price: string | null
+  }[]
+  flows?: {
+    batch: number
+    market: string
+    ticker: string
+    total: string
+    survivors: { address: string; ticker: string; amount: string }[]
+    deployers_amount: string
+    platform_amount: string
+    signature: string | null
+    ts?: number
   }[]
   account: {
     wallet: string
@@ -79,7 +105,7 @@ export function ChainMarket() {
       } catch {
         if (!controller.signal.aborted) setError('The backend could not read the validator. Reconnecting…')
       } finally {
-        if (!controller.signal.aborted) timer = setTimeout(read, 4500)
+        if (!controller.signal.aborted) timer = setTimeout(read, 2000)
       }
     }
     void read()
@@ -125,6 +151,7 @@ export function ChainMarket() {
               name: m.name,
               ticker: m.ticker,
               tint: 'var(--accent-soft)',
+              image: m.image ?? undefined,
               where: m.stage,
               to: '/coin/' + m.address,
             }))}
@@ -148,7 +175,7 @@ export function ChainMarket() {
                 {error}
               </p>
             )}
-            <MarketHistory market={activeMarket} fills={state?.fills ?? []} candles={state?.candles ?? []} />
+            <MarketHistory market={activeMarket} fills={state?.fills ?? []} candles={state?.candles ?? []} rounds={state?.rounds} />
           </main>
           <aside className="artifact-coin-sidebar">
             {activeMarket.live && admitted && wallet ? (
@@ -198,6 +225,8 @@ export function ChainMarket() {
             </section>
           </aside>
         </div>
+      ) : pathname === '/proof' || pathname === '/how-it-works' ? (
+        <ProofPage />
       ) : pathname === '/' && state ? (
         <>
           {error && (
@@ -234,57 +263,8 @@ export function ChainMarket() {
           )}
           {error && <p role="alert">{error}</p>}
           {portfolio ? (
-            <section className="card account-entry">
-              <h2>Solana balance</h2>
-              {account && (
-                <>
-                  <strong className="wallet-balance">
-                    {(BigInt(account.lamports) / 1_000_000_000n).toString()}.
-                    {(BigInt(account.lamports) % 1_000_000_000n)
-                      .toString()
-                      .padStart(9, '0')
-                      .replace(/0+$/, '') || '0'}{' '}
-                    SOL
-                  </strong>
-                  <code>{account.wallet}</code>
-                </>
-              )}
-              {account?.participant && (
-                <>
-                  <small>Registered participant</small>
-                  <code>{account.participant}</code>
-                </>
-              )}
-              {account?.participant && (
-                <>
-                  <h2>Trading balance</h2>
-                  <strong>
-                    {account.cash
-                      ? (Number(account.cash) / 1e9).toLocaleString('en-US', { maximumFractionDigits: 9 })
-                      : '0'}{' '}
-                    ledger SOL
-                  </strong>
-                  {state?.markets
-                    .filter((m) => account.positions?.[m.address])
-                    .map((m) => (
-                      <Link key={m.address} to={'/coin/' + m.address}>
-                        {m.name} · {account.positions?.[m.address]} tokens
-                      </Link>
-                    ))}
-                  {account.orders?.map((o) => (
-                    <div className="card" key={o.intent}>
-                      <strong>Order · {o.status}</strong>
-                      <small>
-                        {o.details &&
-                          (o.status === 'filled'
-                            ? JSON.parse(o.details).quantity + ' tokens filled'
-                            : o.details)}
-                      </small>
-                      <code>{o.signature}</code>
-                    </div>
-                  ))}
-                </>
-              )}
+            <section className="account-entry-wrap">
+              {account?.participant && state && <Portfolio account={account} state={state} />}
               {!admitted &&
                 (!address || state?.gate_ready
                   ? verify

@@ -1,5 +1,5 @@
-from learned_markets_backend.live_lifecycle import step_board
-from learned_markets_core.state import LINE, ROOKIE
+from learned_markets_backend.live_lifecycle import close_split, rank_survivors, step_board
+from learned_markets_core.state import LINE, REGULAR, ROOKIE
 
 
 def coin(**overrides):
@@ -30,3 +30,23 @@ def test_zero_survival_ends_at_epoch_and_replay_matches():
     assert first == second
     assert first[0]["ended_reason"] == "Dead"
     assert original["stage"] == ROOKIE
+
+
+def test_close_split_matches_program_and_conserves():
+    assert close_split(1000, 0) == (0, 0, 1000)
+    assert close_split(50, 3) == (10, 3, 11)
+    for total in (0, 1, 99, 10**9 + 7):
+        for n in range(1, 9):
+            each, dep, platform = close_split(total, n)
+            assert (each + dep) * n + platform == total
+
+
+def test_rank_survivors_prefers_stage_then_activity_and_skips_closing_and_dead():
+    coins = [
+        {"address": "a", "stage": LINE, "activity": 9.0, "heat": 0.0},
+        {"address": "b", "stage": REGULAR, "activity": 1.0, "heat": 0.0},
+        {"address": "c", "stage": ROOKIE, "activity": 5.0, "heat": 0.0},
+        {"address": "d", "stage": 0, "activity": 50.0, "heat": 0.0},
+        {"address": "e", "stage": REGULAR, "activity": 3.0, "heat": 0.0},
+    ]
+    assert [c["address"] for c in rank_survivors(coins, "e")] == ["b", "c", "a"]

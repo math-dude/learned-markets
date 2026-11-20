@@ -239,6 +239,8 @@ export const LEARNED_MARKETS_ERROR__INVALID_LEDGER_FILL = 0x17dd; // 6109
 export const LEARNED_MARKETS_ERROR__LEDGER_FEE_RATE_OUT_OF_RANGE = 0x17de; // 6110
 /** LedgerTokenMismatch: The supplied user and quoter legs do not conserve tokens */
 export const LEARNED_MARKETS_ERROR__LEDGER_TOKEN_MISMATCH = 0x17df; // 6111
+/** InvalidSurvivor: Survivor accounts must be distinct live ledger markets paired with their deployer's balance */
+export const LEARNED_MARKETS_ERROR__INVALID_SURVIVOR = 0x17e0; // 6112
 
 export type LearnedMarketsError =
   | typeof LEARNED_MARKETS_ERROR__ACCOUNT_BORROW_FAILED
@@ -283,6 +285,7 @@ export type LearnedMarketsError =
   | typeof LEARNED_MARKETS_ERROR__INVALID_LEDGER_FILL
   | typeof LEARNED_MARKETS_ERROR__INVALID_REFERENCE_DATA
   | typeof LEARNED_MARKETS_ERROR__INVALID_STAGE_TRANSITION
+  | typeof LEARNED_MARKETS_ERROR__INVALID_SURVIVOR
   | typeof LEARNED_MARKETS_ERROR__INVALID_TOKEN_ACCOUNT
   | typeof LEARNED_MARKETS_ERROR__INVALID_TOKEN_EXTENSIONS
   | typeof LEARNED_MARKETS_ERROR__INVALID_TOKEN_MINT
@@ -400,6 +403,7 @@ if (process.env["NODE_ENV"] !== "production") {
     [LEARNED_MARKETS_ERROR__INVALID_LEDGER_FILL]: `Ledger fill has zero quantity or exceeds the submitted step curve`,
     [LEARNED_MARKETS_ERROR__INVALID_REFERENCE_DATA]: `Account discriminator or data layout does not match the expected type`,
     [LEARNED_MARKETS_ERROR__INVALID_STAGE_TRANSITION]: `Invalid stage transition`,
+    [LEARNED_MARKETS_ERROR__INVALID_SURVIVOR]: `Survivor accounts must be distinct live ledger markets paired with their deployer's balance`,
     [LEARNED_MARKETS_ERROR__INVALID_TOKEN_ACCOUNT]: `Token account is uninitialized or malformed`,
     [LEARNED_MARKETS_ERROR__INVALID_TOKEN_EXTENSIONS]: `Token-2022 extension layout is malformed or unsupported`,
     [LEARNED_MARKETS_ERROR__INVALID_TOKEN_MINT]: `Token mint is uninitialized or malformed`,

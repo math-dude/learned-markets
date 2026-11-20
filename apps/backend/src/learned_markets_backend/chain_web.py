@@ -52,7 +52,7 @@ async def lifespan(app):
                     await engine.advance()
                 except Exception:
                     logging.getLogger(__name__).exception("Validator settlement worker")
-                await asyncio.sleep(2)
+                await asyncio.sleep(float(os.environ.get("LM_SETTLE_POLL", "2")))
 
         worker = asyncio.create_task(run()) if network == "surfpool" else None
         try:
@@ -78,7 +78,7 @@ async def market_board(wallet: str | None = None, market: str | None = None):
         raise HTTPException(422, "Invalid Solana wallet") from exc
     rpc = app.state.rpc
     db = app.state.engine.db
-    rows = db.execute("SELECT address,name,ticker FROM web_markets ORDER BY rowid DESC").fetchall()
+    rows = db.execute("SELECT address,name,ticker,image FROM web_markets ORDER BY rowid DESC").fetchall()
     config, _ = Pubkey.find_program_address([b"config"], PROGRAM_ID)
     keys = [config]
     if owner:
@@ -145,6 +145,49 @@ async def market_board(wallet: str | None = None, market: str | None = None):
                 "price": detail.get("clearing_price"),
             }
         )
+    # Per-batch buy and sell totals let the board show how much of each side cancelled.
+    live_set = {m["address"] for m in markets if m["live"]}
+    rounds = [
+        {
+            "market": r["market"],
+            "batch": r["batch"],
+            "buys": str(r["buys"]),
+            "sells": str(r["sells"]),
+            "matched": str(min(r["buys"], r["sells"])),
+            "maker_side": "sell" if r["buys"] > r["sells"] else "buy" if r["sells"] > r["buys"] else None,
+            "maker_qty": str(abs(r["buys"] - r["sells"])),
+            "price": r["price"],
+        }
+        for r in db.execute(
+            """SELECT * FROM (SELECT market,batch,buys,sells,price,
+                ROW_NUMBER() OVER (PARTITION BY market ORDER BY batch DESC) AS n FROM (
+                SELECT market,batch,
+                SUM(CASE WHEN json_extract(details,'$.side')='buy' THEN CAST(json_extract(details,'$.quantity') AS INTEGER) ELSE 0 END) AS buys,
+                SUM(CASE WHEN json_extract(details,'$.side')='sell' THEN CAST(json_extract(details,'$.quantity') AS INTEGER) ELSE 0 END) AS sells,
+                MAX(json_extract(details,'$.clearing_price')) AS price
+                FROM web_orders WHERE status='filled' AND (? IS NULL OR market=?) GROUP BY market,batch))
+            WHERE n<=60 ORDER BY batch DESC""",
+            (market, market),
+        )
+        if r["market"] in live_set or r["market"] == market
+    ]
+    # Liquidity paid out when coins closed, newest first. Lamport amounts are strings.
+    flows = [
+        {
+            "batch": r["batch"],
+            "market": r["market"],
+            "ticker": r["ticker"],
+            "total": str(r["total"]),
+            "survivors": [{**s, "amount": str(s["amount"])} for s in json.loads(r["survivors"])],
+            "deployers_amount": str(r["deployers_amount"]),
+            "platform_amount": str(r["platform_amount"]),
+            "signature": r["signature"],
+            "ts": r["ts"],
+        }
+        for r in db.execute(
+            "SELECT * FROM web_flows ORDER BY ts DESC,rowid DESC LIMIT 40"
+        )
+    ]
     account = None
     if owner:
         binding = decode(values[find_WalletBinding(owner)[0]], WalletBinding)
@@ -182,6 +225,8 @@ async def market_board(wallet: str | None = None, market: str | None = None):
         "gate_ready": gate is not None,
         "markets": markets,
         "fills": fills,
+        "rounds": rounds,
+        "flows": flows,
         "candles": market_candles(db, market) if market else [],
         "batch_slots": WINDOW,
         "lifecycle_profile": PROFILE,
@@ -192,6 +237,7 @@ async def market_board(wallet: str | None = None, market: str | None = None):
 class LaunchCoin(BaseModel):
     name: str = Field(min_length=2, max_length=32, pattern=r"^\S(?:.*\S)?$")
     ticker: str = Field(pattern=r"^[A-Z0-9]{2,6}$")
+    image: str | None = Field(default=None, max_length=200, pattern=r"^(/memes/[A-Za-z0-9_-]+\.svg|https://\S+)$")
 
 
 @app.post("/api/chain/launch")
@@ -202,4 +248,4 @@ async def launch_coin(body: LaunchCoin, request: Request):
     identity = await gate.call(request.cookies.get("lm_session"), "/v1/me")
     if not identity.get("eligible"):
         raise HTTPException(403, "Verify your participant badge.")
-    return await app.state.engine.launch(identity, body.name, body.ticker)
+    return await app.state.engine.launch(identity, body.name, body.ticker, body.image)

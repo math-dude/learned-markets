@@ -1016,6 +1016,15 @@ class LedgerTokenMismatch(ProgramError):
     code = 6111
     name = "LedgerTokenMismatch"
     msg = ""
+class InvalidSurvivor(ProgramError):
+    def __init__(self) -> None:
+        super().__init__(
+            6112, ""
+        )
+
+    code = 6112
+    name = "InvalidSurvivor"
+    msg = ""
 
 CustomError = typing.Union[
     NotDeploymentAuthority,
@@ -1130,6 +1139,7 @@ CustomError = typing.Union[
     InvalidLedgerFill,
     LedgerFeeRateOutOfRange,
     LedgerTokenMismatch,
+    InvalidSurvivor,
  ]
 CUSTOM_ERROR_MAP: dict[int, CustomError] = {
     6000: NotDeploymentAuthority(),
@@ -1244,6 +1254,7 @@ CUSTOM_ERROR_MAP: dict[int, CustomError] = {
     6109: InvalidLedgerFill(),
     6110: LedgerFeeRateOutOfRange(),
     6111: LedgerTokenMismatch(),
+    6112: InvalidSurvivor(),
 }
 
 def from_code(code: int) -> typing.Optional[CustomError]:

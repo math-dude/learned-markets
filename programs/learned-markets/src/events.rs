@@ -109,3 +109,20 @@ pub struct Withdrawn {
     pub asset: Pubkey,
     pub amount: u64,
 }
+
+/// A closed ledger market's reserve, paid to survivors, their deployers and the platform.
+#[event]
+pub struct LiquidityRedistributed {
+    pub market: Pubkey,
+    pub total: u64,
+    pub to_survivors: u64,
+    pub to_deployers: u64,
+    pub to_platform: u64,
+    pub survivors: Vec<SurvivorShare>,
+}
+/// One paid survivor: its ledger market and the deployer balance credited alongside it.
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
+pub struct SurvivorShare {
+    pub market: Pubkey,
+    pub deployer_balance: Pubkey,
+}

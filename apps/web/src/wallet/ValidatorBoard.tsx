@@ -1,10 +1,12 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
+import { BatchClash } from '../arena/BatchClash'
+import { BubbleArena } from '../arena/BubbleArena'
+import { LiveFeed } from '../arena/LiveFeed'
+import { RankBoard, TheLine, type Sort } from '../arena/RankBoard'
 import { Link } from 'react-router-dom'
 import { CoinTile } from '../components/CoinBits'
 import { Crown } from '../components/icons'
-import { tintFor } from '../market/tints'
 import { CandleChart } from '../pages/coin/PriceChart'
-import { LaunchSparks } from '../pages/LaunchPage'
 import type { ChainState } from './ChainMarket'
 
 type Market = ChainState['markets'][number]
@@ -14,37 +16,16 @@ function tokenPrice(price: string) {
   return (Number(price) / 1e6).toLocaleString('en-US', { maximumFractionDigits: 6 })
 }
 
-function FillList({ fills, markets }: { fills: Fill[]; markets: Market[] }) {
-  return (
-    <section className="panel">
-      <div className="panel-head">
-        <h2>Latest fills</h2>
-        <small>Confirmed</small>
-      </div>
-      {fills.slice(0, 12).map((fill) => (
-        <Link className="paper-row lm-fillrow" key={fill.intent} to={'/coin/' + fill.market}>
-          <span className="paper-row-name">
-            <strong>${markets.find((m) => m.address === fill.market)?.ticker ?? 'Market'}</strong>
-            <small>Batch {fill.batch.toLocaleString()}</small>
-          </span>
-          <strong className={fill.side === 'buy' ? 'green' : 'red'}>
-            {fill.side === 'buy' ? 'Buy' : 'Sell'} · {BigInt(fill.quantity).toLocaleString()}
-          </strong>
-        </Link>
-      ))}
-      {!fills.length && <p className="paper-empty">Waiting for the first confirmed fill.</p>}
-    </section>
-  )
-}
-
 export function MarketHistory({
   market,
   fills,
   candles,
+  rounds,
 }: {
   market: Market
   fills: Fill[]
   candles: ChainState['candles']
+  rounds?: ChainState['rounds']
 }) {
   const recent = fills.filter((f) => f.market === market.address)
   const history = candles.map((c) => ({
@@ -56,11 +37,10 @@ export function MarketHistory({
   }))
   const ids = candles.map((c) => c.batch)
   const latest = recent.filter((f) => f.batch === recent[0]?.batch)
-  const buys = latest.filter((f) => f.side === 'buy').reduce((n, f) => n + Number(f.quantity), 0)
-  const sells = latest.filter((f) => f.side === 'sell').reduce((n, f) => n + Number(f.quantity), 0)
-  const matched = Math.min(buys, sells)
-  const scale = Math.max(1, buys, sells)
-  const percent = (value: number) => (value / scale) * 100 + '%'
+  const round = rounds?.find((r) => r.market === market.address)
+  const buys = round ? Number(round.buys) : latest.filter((f) => f.side === 'buy').reduce((n, f) => n + Number(f.quantity), 0)
+  const sells = round ? Number(round.sells) : latest.filter((f) => f.side === 'sell').reduce((n, f) => n + Number(f.quantity), 0)
+  const shownBatch = round?.batch ?? recent[0]?.batch
   return (
     <div className="paper-history">
       <CandleChart
@@ -72,43 +52,10 @@ export function MarketHistory({
       />
       <section className="panel round-panel">
         <div className="panel-head">
-          <h2>Last settled round</h2>
-          <small>{recent[0] ? 'Batch ' + recent[0].batch.toLocaleString() : 'Awaiting fills'}</small>
+          <h2>Last batch</h2>
+          <small>{shownBatch !== undefined ? 'Batch ' + shownBatch.toLocaleString() : 'Awaiting fills'}</small>
         </div>
-        <div className="round-totals">
-          <span className="green">Buys {buys.toLocaleString()} tokens</span>
-          <span className="red">Sells {sells.toLocaleString()} tokens</span>
-        </div>
-        <div className="round-match-animation" key={recent[0]?.batch}>
-          <div className="round-half round-buy">
-            <i style={{ width: percent(buys - matched) }} />
-            <b style={{ width: percent(matched) }} />
-          </div>
-          <span className="round-center" />
-          <div className="round-half round-sell">
-            <b style={{ width: percent(matched) }} />
-            <i style={{ width: percent(sells - matched) }} />
-          </div>
-        </div>
-        <div className="round-maker-track">
-          <i
-            key={recent[0]?.batch}
-            style={{
-              width: (Math.abs(buys - sells) / scale) * 45 + '%',
-              marginLeft: buys >= sells ? '50%' : 50 - (Math.abs(buys - sells) / scale) * 45 + '%',
-            }}
-          />
-        </div>
-        <div className="round-legend">
-          <span>
-            <i />
-            Matched · {matched.toLocaleString()} tokens
-          </span>
-          <span>
-            <i />
-            Maker fills {Math.abs(buys - sells).toLocaleString()} tokens of net demand
-          </span>
-        </div>
+        <BatchClash buys={buys} sells={sells} batch={shownBatch} />
       </section>
       <section className="panel">
         <div className="panel-head">
@@ -147,149 +94,144 @@ export function MarketHistory({
   )
 }
 
+function roundsFor(state: ChainState) {
+  if (state.rounds?.length) return state.rounds
+  // Fall back to confirmed fills grouped by market and batch.
+  const map = new Map<string, NonNullable<ChainState['rounds']>[number]>()
+  for (const f of state.fills) {
+    const key = f.market + ':' + f.batch
+    const r = map.get(key) ?? { market: f.market, batch: f.batch, buys: '0', sells: '0', matched: '0', maker_side: null, maker_qty: '0', price: f.price }
+    if (f.side === 'buy') r.buys = String(Number(r.buys) + Number(f.quantity))
+    else r.sells = String(Number(r.sells) + Number(f.quantity))
+    map.set(key, r)
+  }
+  return [...map.values()].sort((a, b) => b.batch - a.batch)
+}
+
 export function ValidatorBoard({ state }: { state: ChainState }) {
-  const [sort, setSort] = useState<'Volume' | 'Newest' | 'Ended'>('Volume')
-  const previous = useRef(new Set(state.markets.map((m) => m.address)))
-  const [arrival, setArrival] = useState('')
-  useEffect(() => {
-    const launched = state.markets.find((m) => !previous.current.has(m.address))
-    previous.current = new Set(state.markets.map((m) => m.address))
-    if (launched) setArrival(launched.address)
-  }, [state.markets])
-  const volume = new Map<string, bigint>()
-  for (const f of state.fills) volume.set(f.market, (volume.get(f.market) ?? 0n) + BigInt(f.quantity))
-  const ranked = state.markets
-    .filter((m) => m.live)
-    .sort((a, b) => {
-      const diff = (volume.get(b.address) ?? 0n) - (volume.get(a.address) ?? 0n)
-      return diff > 0n ? 1 : diff < 0n ? -1 : 0
-    })
-  const leader = ranked.find((m) => volume.has(m.address))
+  const [sort, setSort] = useState<Sort>('Hot')
+  const rounds = roundsFor(state)
+  const latestBatch = rounds[0]?.batch
+  const latest = rounds.filter((r) => r.batch === latestBatch)
+  const totalBuys = latest.reduce((n, r) => n + Number(r.buys), 0)
+  const totalSells = latest.reduce((n, r) => n + Number(r.sells), 0)
+  const byMarket = new Map<string, typeof rounds>()
+  for (const r of rounds) byMarket.set(r.market, [...(byMarket.get(r.market) ?? []), r])
+  const volume = (address: string) =>
+    (byMarket.get(address) ?? []).reduce((n, r) => n + (Number(r.buys) + Number(r.sells)) * Number(r.price ?? 0), 0)
+  const live = state.markets.filter((m) => m.live)
+  const dead = state.markets.filter((m) => !m.live)
+  const listed =
+    sort === 'Graveyard'
+      ? dead
+      : [...live].sort((a, b) =>
+          sort === 'Hot'
+            ? volume(b.address) - volume(a.address) || b.heat - a.heat
+            : sort === 'Liquidity'
+              ? Number(b.reserve_cash) - Number(a.reserve_cash)
+              : 0,
+        )
+  // Re-rank at most every 8 s so cards do not shuffle under the cursor on every poll.
+  const order = useRef<{ key: string; at: number; ids: string[] }>({ key: '', at: 0, ids: [] })
+  const now = Date.now()
+  if (order.current.key !== sort || now - order.current.at > 8000) order.current = { key: sort, at: now, ids: listed.map((m) => m.address) }
+  const rank = new Map(order.current.ids.map((id, i) => [id, i]))
+  listed.sort((a, b) => (rank.get(a.address) ?? -1) - (rank.get(b.address) ?? -1))
+  const leader = [...live].sort((a, b) => volume(b.address) - volume(a.address))[0]
   const phase = state.slot % state.batch_slots
-  const tape = state.fills.slice(0, 8).map((f) => {
-    const market = state.markets.find((m) => m.address === f.market)
-    return (
-      '$' +
-      (market?.ticker ?? 'Market') +
-      '   ·   ' +
-      f.side.toUpperCase() +
-      ' ' +
-      BigInt(f.quantity).toLocaleString()
-    )
-  })
+  const freed = (state.flows ?? []).reduce((n, f) => n + Number(f.total), 0)
   return (
-    <main className="market-board">
-      <section className="epoch-hero paper-hero">
-        {leader ? (
-          <Link className="paper-king" to={'/coin/' + leader.address}>
-            <CoinTile ticker={leader.ticker} tint="#342d24" size={82}>
-              <span key={leader.address} className="paper-crown lm-crown">
-                <Crown />
+    <main className="arena-page">
+      <section className="arena-hero">
+        <div className="hero-copy">
+          <span className="eyebrow glow-text">Live on Solana · batch auctions every {(state.batch_slots * 0.4).toFixed(1)}s</span>
+          <h1>
+            No snipers. No front-running.
+            <br />
+            <span className="hero-grad">Just memes and the fairest price.</span>
+          </h1>
+          <div className="hero-stats">
+            <div>
+              <strong>{live.length}</strong>
+              <small>live coins</small>
+            </div>
+            <div>
+              <strong>{dead.length}</strong>
+              <small>cut so far</small>
+            </div>
+            <div>
+              <strong>{(freed / 1e9).toFixed(3)}</strong>
+              <small>SOL recycled to survivors</small>
+            </div>
+            <div className="hero-clock">
+              <svg viewBox="0 0 44 44">
+                <circle cx="22" cy="22" r="19" className="clock-bg" />
+                <circle
+                  cx="22"
+                  cy="22"
+                  r="19"
+                  className="clock-fg"
+                  style={{ strokeDashoffset: 119.4 * (1 - phase / state.batch_slots) }}
+                />
+              </svg>
+              <span>
+                <strong>{state.batch_slots - phase}</strong>
+                <small>slots to clear</small>
               </span>
-            </CoinTile>
+            </div>
+          </div>
+        </div>
+        {leader && (
+          <Link className="king" to={'/coin/' + leader.address}>
+            <span className="king-crown">
+              <Crown />
+            </span>
+            <CoinTile ticker={leader.ticker} image={leader.image} size={92} />
             <span>
-              <small className="gold">King of the hill</small>
+              <small>King of the hill</small>
               <strong>{leader.name}</strong>
-              <small>Leader by recent volume</small>
+              <em>${leader.ticker}</em>
             </span>
           </Link>
-        ) : (
-          <Link to="/launch">Launch a coin ↗</Link>
         )}
-        <div>
-          <span className="eyebrow">Batch closes in</span>
-          <div className="epoch-clock">
-            {state.batch_slots - phase}
-            <small> slots</small>
-          </div>
-          <div className="epoch-segments" aria-hidden="true">
-            {Array.from({ length: 16 }, (_, i) => (
-              <i key={i} className={(i * state.batch_slots) / 16 <= phase ? 'lit' : ''} />
-            ))}
-          </div>
-          <small>Batch {Math.floor(state.slot / state.batch_slots).toLocaleString()}</small>
-        </div>
-        <div className="hero-counts">
-          <div>
-            <strong>{state.markets.length}</strong>
-            <small>markets</small>
-          </div>
-          <div>
-            <Link className="chip chip-strong" to="/launch">
-              Launch a coin ↗
-            </Link>
-          </div>
+      </section>
+
+      <section className="arena-stage">
+        <BubbleArena state={state} />
+        <div className="stage-clash">
+          <BatchClash buys={totalBuys} sells={totalSells} batch={latestBatch} label={latestBatch !== undefined ? 'Batch #' + latestBatch.toLocaleString() + ' · all coins' : undefined} />
         </div>
       </section>
-      <div className="headlines">
-        <div className="headlines-label">Trade tape</div>
-        {tape.length ? (
-          <div className="validator-tape-window">
-            <div className="lm-ticker validator-tape">
-              {[0, 1].map((i) => (
-                <span key={i} aria-hidden={i === 1}>
-                  {tape.join('　　 ◆　　 ')}　　 ◆　　{' '}
-                </span>
+
+      <div className="arena-columns">
+        <section className="terminal">
+          <div className="grid-head">
+            <h2>Board</h2>
+            <div className="seg">
+              {(['Hot', 'Liquidity', 'Movers', 'Rookies', 'Newest', 'Graveyard'] as const).map((option) => (
+                <button key={option} aria-pressed={sort === option} onClick={() => setSort(option)}>
+                  {option}
+                </button>
               ))}
             </div>
           </div>
-        ) : (
-          <span className="paper-tape">Waiting for the first fill</span>
-        )}
-      </div>
-      <div className="paper-grid">
-        <section className="board-list">
-          <div className="panel-head">
-            <h1 className="section-title">Board</h1>
-          </div>
-          <div className="board-filters">
-            {(['Volume', 'Newest', 'Ended'] as const).map((option) => (
-              <button
-                key={option}
-                className="pill-btn"
-                aria-pressed={sort === option}
-                onClick={() => setSort(option)}
-              >
-                {option}
-              </button>
-            ))}
-          </div>
-          <div
-            className="validator-ranks"
-            style={{
-              height: (sort === 'Ended' ? state.markets.filter((m) => !m.live).length : ranked.length) * 104,
-            }}
-          >
-            {(sort === 'Volume'
-              ? ranked
-              : state.markets.filter((m) => (sort === 'Ended' ? !m.live : m.live))
-            ).map((m, i) => (
-              <Link
-                className="board-row connected-row"
-                key={m.address}
-                to={'/coin/' + m.address}
-                style={{ transform: 'translateY(' + 104 * i + 'px)' }}
-              >
-                <span className="board-rank">#{i + 1}</span>
-                <CoinTile ticker={m.ticker} tint={tintFor(m.address.charCodeAt(0))}>
-                  {m.address === arrival && <LaunchSparks />}
-                </CoinTile>
-                <span className="board-identity">
-                  <strong>{m.name}</strong>
-                  <small>
-                    ${m.ticker} · {m.stage}
-                  </small>
-                </span>
-                <span className="board-numbers">
-                  <strong>{m.price === '0' ? 'Opening' : tokenPrice(m.price)}</strong>
-                  <small>lamports / token</small>
-                </span>
-              </Link>
-            ))}
-          </div>
-          {!ranked.length && <p className="paper-empty">No confirmed launches yet.</p>}
+          <RankBoard state={state} rounds={rounds} sort={sort} />
         </section>
-        <FillList fills={state.fills} markets={state.markets} />
+        <aside className="feed-wrap">
+          <div className="grid-head">
+            <h2>The Line</h2>
+            <Link className="launch-cta" to="/launch">
+              Launch a coin
+            </Link>
+          </div>
+          <TheLine state={state} />
+          <div className="grid-head feed-head">
+            <h2>
+              <span className="live-dot" /> Live
+            </h2>
+          </div>
+          <LiveFeed state={state} />
+        </aside>
       </div>
     </main>
   )
@@ -304,7 +246,7 @@ export function MarketHeading({ market, fills }: { market: Market; fills: Fill[]
         ← Board
       </Link>
       <div className="live-coin-name">
-        <CoinTile ticker={market.ticker} tint={tintFor(market.address.charCodeAt(0))} size={64} />
+        <CoinTile ticker={market.ticker} image={market.image} size={72} />
         <div>
           <div className="coin-title-line">
             <h1>{market.name}</h1>

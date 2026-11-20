@@ -382,3 +382,18 @@ fn accounting_checks_base_unit_boundaries() {
     assert_eq!(reconcile_backing(10, 3).unwrap(), 7);
     expect_error(reconcile_backing(2, 3), GateError::BackingDeficit);
 }
+
+#[test]
+fn close_split_conserves_cash_and_gives_dust_to_platform() {
+    use learned_markets::ledger::close_split;
+    assert_eq!(close_split(1_000, 0), (0, 0, 1_000));
+    assert_eq!(close_split(50, 3), (10, 3, 11));
+    for total in [0, 1, 7, 99, 1_001, 123_456_789, u64::MAX] {
+        for n in 0..=8usize {
+            let (each, dep, platform) = close_split(total, n);
+            let paid = u128::from(each + dep) * n as u128 + u128::from(platform);
+            assert_eq!(paid, u128::from(total), "total {total} n {n}");
+            assert!(u128::from(platform) * 10 >= u128::from(total) * 2, "platform keeps >= 20%");
+        }
+    }
+}

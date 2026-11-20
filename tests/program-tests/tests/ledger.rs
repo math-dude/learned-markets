@@ -463,7 +463,7 @@ fn atomic_rejections_preserve_balances_and_admitted_intents() {
     let sa = game.env.settlement_authority.insecure_clone();
     let close = game.env.market_ix(
         "close_ledger_market",
-        vec![sig(sa.pubkey()), ro(config_pda()), rw(game.market)],
+        vec![sig(sa.pubkey()), ro(config_pda()), rw(game.market), rw(game.platform)],
         &(),
     );
     game.env.send(&[close], &[&sa]).unwrap();
@@ -471,6 +471,141 @@ fn atomic_rejections_preserve_balances_and_admitted_intents() {
         game.settle(game.ix(3, 1_000_000, 0, 0, &[])),
         "MarketClosed",
     );
+}
+
+impl Game {
+    /// Open another ledger market deployed by player `i`.
+    fn open_extra(&mut self, i: usize, id: u8, launch_fee: u64) -> Address {
+        let market_id = Address::new_from_array([id; 32]);
+        let market = pda(&[b"ledger-market", market_id.as_ref()]);
+        let sa = self.env.settlement_authority.insecure_clone();
+        let d = &self.players[i];
+        let wallet = d.wallet.insecure_clone();
+        let open = self.env.market_ix(
+            "open_ledger_market",
+            vec![
+                pays(wallet.pubkey()),
+                sig(sa.pubkey()),
+                ro(config_pda()),
+                ro(d.p),
+                rw(d.balance),
+                rw(market),
+                rw(self.platform),
+                ro(system_id()),
+            ],
+            &(market_id, launch_fee),
+        );
+        self.env.send(&[open], &[&wallet, &sa]).unwrap();
+        market
+    }
+    fn close_ix(&self, market: Address, pairs: Vec<solana_instruction::AccountMeta>) -> Instruction {
+        let mut accounts = vec![
+            sig(self.env.settlement_authority.pubkey()),
+            ro(config_pda()),
+            rw(market),
+            rw(self.platform),
+        ];
+        accounts.extend(pairs);
+        self.env.market_ix("close_ledger_market", accounts, &())
+    }
+    fn close(&mut self, market: Address, pairs: Vec<solana_instruction::AccountMeta>) -> TxResult {
+        let ix = self.close_ix(market, pairs);
+        let sa = self.env.settlement_authority.insecure_clone();
+        self.env.send(&[ix], &[&sa])
+    }
+    fn market_state(&self, market: &Address) -> LedgerMarket {
+        self.env.decode("LedgerMarket", market)
+    }
+    /// Every unit of ledger cash: player balances, the platform and the given reserves.
+    fn total_cash(&self, markets: &[Address]) -> u64 {
+        let s = self.state();
+        let cash: u64 = s["cash"].as_array().unwrap().iter().map(n).sum();
+        let reserves: u64 = markets.iter().map(|m| self.market_state(m).reserve_cash).sum();
+        cash + n(&s["platform_cash"]) + reserves
+    }
+}
+
+#[test]
+fn close_redistributes_reserve_to_survivors_deployers_and_platform() {
+    let mut game = Game::new(&[1000, 1000, 1000], 0, 101);
+    let m1 = game.open_extra(1, 0xa1, 200);
+    let m2 = game.open_extra(2, 0xa2, 300);
+    let m3 = game.open_extra(1, 0xa3, 100);
+    let all = [game.market, m1, m2, m3];
+    let before = game.total_cash(&all);
+    let s0 = game.state();
+    assert_eq!(game.market_state(&game.market).reserve_cash, 50);
+    let (b1, b2) = (game.players[1].balance, game.players[2].balance);
+    // Player 1 deploys two survivors, so their balance appears in two pairs.
+    game.close(
+        game.market,
+        vec![rw(m1), rw(b1), rw(m2), rw(b2), rw(m3), rw(b1)],
+    )
+    .unwrap();
+    // 50 total: 60% / 3 = 10 per survivor, 20% / 3 = 3 per deployer, platform 50 - 39 = 11.
+    let closed = game.market_state(&game.market);
+    assert!(!closed.live);
+    assert_eq!(closed.reserve_cash, 0);
+    assert_eq!(game.market_state(&m1).reserve_cash, 110);
+    assert_eq!(game.market_state(&m2).reserve_cash, 160);
+    assert_eq!(game.market_state(&m3).reserve_cash, 60);
+    let s1 = game.state();
+    assert_eq!(n(&s1["cash"][1]), n(&s0["cash"][1]) + 6);
+    assert_eq!(n(&s1["cash"][2]), n(&s0["cash"][2]) + 3);
+    assert_eq!(n(&s1["cash"][0]), n(&s0["cash"][0]));
+    assert_eq!(n(&s1["platform_cash"]), n(&s0["platform_cash"]) + 11);
+    assert_eq!(game.total_cash(&all), before);
+    expect_err(game.close(game.market, vec![]), "MarketClosed");
+}
+
+#[test]
+fn close_without_survivors_pays_the_platform() {
+    let mut game = Game::new(&[1000], 0, 101);
+    let before = game.total_cash(&[game.market]);
+    let s0 = game.state();
+    game.close(game.market, vec![]).unwrap();
+    assert_eq!(game.market_state(&game.market).reserve_cash, 0);
+    assert_eq!(n(&game.state()["platform_cash"]), n(&s0["platform_cash"]) + 50);
+    assert_eq!(game.total_cash(&[game.market]), before);
+}
+
+#[test]
+fn close_rejects_invalid_survivors() {
+    let mut game = Game::new(&[1000, 1000], 0, 101);
+    let m1 = game.open_extra(1, 0xa1, 200);
+    let dead = game.open_extra(1, 0xa2, 200);
+    game.close(dead, vec![]).unwrap();
+    let (b0, b1) = (game.players[0].balance, game.players[1].balance);
+    let all = [game.market, m1, dead];
+    let before = (game.state(), game.total_cash(&all));
+    let cases = vec![
+        vec![rw(m1)],                             // odd count
+        vec![rw(game.market), rw(b0)],            // survivor is the closing market
+        vec![rw(m1), rw(b1), rw(m1), rw(b1)],     // duplicate survivor
+        vec![rw(m1), rw(b0)],                     // balance is not the survivor's deployer
+        vec![rw(dead), rw(b1)],                   // survivor is not live
+        vec![rw(system_id()), rw(b1)],            // not a program account
+        vec![ro(m1), rw(b1)],                     // survivor not writable
+        vec![rw(m1), rw(game.platform)],          // not a ledger balance
+    ];
+    for (i, pairs) in cases.into_iter().enumerate() {
+        let res = game.close(game.market, pairs);
+        match res {
+            Ok(_) => panic!("case {i} succeeded"),
+            Err(f) => {
+                let code = f.custom_code();
+                assert!(
+                    code == Some(err_code("InvalidSurvivor")) || code == Some(3002) || code == Some(3007),
+                    "case {i}: {:?} {:?}",
+                    code,
+                    f.logs
+                );
+            }
+        }
+    }
+    assert_eq!((game.state(), game.total_cash(&all)), before);
+    assert!(game.market_state(&game.market).live);
+    game.close(game.market, vec![rw(m1), rw(b1)]).unwrap();
 }
 
 /// Captured from the compiled program for independent client decoders/builders.

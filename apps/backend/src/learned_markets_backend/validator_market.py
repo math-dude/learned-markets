@@ -48,7 +48,8 @@ from .policy import rule_quote
 CONFIG = Pubkey.find_program_address([b"config"], PROGRAM_ID)[0]
 PLATFORM = Pubkey.find_program_address([b"ledger-platform"], PROGRAM_ID)[0]
 LAUNCH_FEE = 100_000_000
-WINDOW = 32
+# Settlement window in slots. Surfpool demos shorten it through LM_BATCH_SLOTS.
+WINDOW = int(os.environ.get("LM_BATCH_SLOTS", "32"))
 
 
 class ValidatorMarket:
@@ -64,6 +65,8 @@ class ValidatorMarket:
             block_height INTEGER NOT NULL, result TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS web_hold_terms (market TEXT, participant TEXT, terms TEXT NOT NULL, PRIMARY KEY(market,participant));
         """)
+        if "image" not in {r[1] for r in self.db.execute("PRAGMA table_info(web_markets)")}:
+            self.db.execute("ALTER TABLE web_markets ADD COLUMN image TEXT")
         self.lock = asyncio.Lock()
         self.lifecycle = LiveLifecycle(self, CONFIG, WINDOW)
 
@@ -71,7 +74,7 @@ class ValidatorMarket:
         path = Path(os.environ.get("LM_KEYS_DIR", "keys")) / "settlement-authority.json"
         return Keypair.from_json(path.read_text())
 
-    async def launch(self, identity, name, ticker):
+    async def launch(self, identity, name, ticker, image=None):
         wallet, participant = (
             Pubkey.from_string(identity["wallet"]),
             Pubkey.from_string(identity["participant"]["address"]),
@@ -107,7 +110,10 @@ class ValidatorMarket:
         tx = Transaction.new_unsigned(Message.new_with_blockhash([ix], wallet, block))
         tx.partial_sign([authority], block)
         with self.db:
-            self.db.execute("INSERT OR IGNORE INTO web_markets VALUES (?,?,?)", (str(market), name, ticker))
+            self.db.execute(
+                "INSERT OR IGNORE INTO web_markets(address,name,ticker,image) VALUES (?,?,?,?)",
+                (str(market), name, ticker, image),
+            )
             self.db.execute(
                 "INSERT OR REPLACE INTO wallet_messages VALUES (?,?,?)",
                 (hashlib.sha256(bytes(tx.message)).hexdigest(), str(wallet), int(time() * 1000) + 120_000),
