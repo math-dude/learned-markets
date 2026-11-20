@@ -528,13 +528,22 @@ fn synthetic_credit_requires_admin_and_a_demo_network() {
         &[&deployer],
     )
     .unwrap();
+    let (mut ix, balance, wallet) = credit_test_instruction(&mut env);
+    let admin = env.admin.insecure_clone();
+    expect_err(env.send(&[ix.clone()], &[&admin]), "LedgerCreditDisabled");
+    ix.accounts[0] = pays(wallet.pubkey());
+    expect_err(env.send(&[ix], &[&wallet]), "NotAdmin");
+    assert!(env.account(&balance).is_none());
+}
+
+fn credit_test_instruction(env: &mut Env) -> (Instruction, Address, Kp) {
     let wallet = env.new_wallet(50);
     let badge = env.issue_badge([50; 32], &wallet.pubkey(), 1);
     env.register(&wallet, &badge).unwrap();
     let participant = participant_pda(&badge.participant_id);
     let balance = pda(&[b"ledger-balance", participant.as_ref()]);
     let admin = env.admin.insecure_clone();
-    let mut ix = env.market_ix(
+    let ix = env.market_ix(
         "credit_ledger_balance",
         vec![
             pays(admin.pubkey()),
@@ -545,8 +554,16 @@ fn synthetic_credit_requires_admin_and_a_demo_network() {
         ],
         &1u64,
     );
-    expect_err(env.send(&[ix.clone()], &[&admin]), "LedgerCreditDisabled");
-    ix.accounts[0] = pays(wallet.pubkey());
-    expect_err(env.send(&[ix], &[&wallet]), "NotAdmin");
+    (ix, balance, wallet)
+}
+
+#[cfg(not(feature = "demo-credit"))]
+#[test]
+fn default_build_disables_localnet_credit() {
+    let mut env = Env::new();
+    assert_eq!(env.config().network, "localnet");
+    let (ix, balance, _) = credit_test_instruction(&mut env);
+    let admin = env.admin.insecure_clone();
+    expect_err(env.send(&[ix], &[&admin]), "LedgerCreditDisabled");
     assert!(env.account(&balance).is_none());
 }
