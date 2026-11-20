@@ -174,7 +174,7 @@ export function ChainMarket() {
       } catch {
         if (!controller.signal.aborted) setError('The backend could not read the validator. Reconnecting…')
       } finally {
-        if (!controller.signal.aborted) timer = setTimeout(read, pathname.startsWith('/coin/') ? 1000 : 2000)
+        if (!controller.signal.aborted) timer = setTimeout(read, 1000)
       }
     }
     void read()
