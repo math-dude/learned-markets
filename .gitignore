@@ -1,19 +1,56 @@
-# Build output
+# Rust / Anchor / local validator
 target/
+/.anchor/
+/test-ledger/
+/.surfpool/
+*.so
+**/*.rs.bk
+
+# JavaScript / TypeScript
 node_modules/
 dist/
+.vite/
+.next/
 *.tsbuildinfo
 
-# Secrets and local state: operator keys, deploy keypairs, service databases
-keys/
-*.keypair.json
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Local configuration and secrets: operator keys, deploy keypairs, service databases
 .env
 .env.*
 !.env.example
+*-keypair.json
+*.keypair.json
+id.json
+keypairs/
+keys/
 *.sqlite
 *.sqlite-*
 
 # Nested upstream checkout kept locally; not part of this repo's history
 /learned-markets/
 
+# Local research outputs (pipeline code under data/ stays tracked)
+/data/*
+!/data/archive/
+!/data/jetstreamer/
+!/data/sql/
+**/data/raw/
+/artifacts/
+/checkpoints/
+/runs/
+/wandb/
+
+# Editors / OS / logs
+.cursor/
 .DS_Store
+*.log

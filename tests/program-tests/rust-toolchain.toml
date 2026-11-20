@@ -1,0 +1,4 @@
+# Separate from the root 1.89.0 pin: litesvm 0.18 / agave 4.3 crates need rustc >= 1.97.1.
+[toolchain]
+channel = "stable"
+profile = "minimal"
