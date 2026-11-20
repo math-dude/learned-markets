@@ -24,7 +24,7 @@ export function Portfolio({ account, state }: { account: Account; state: ChainSt
           <strong>
             {sol(cash)} <em>SOL</em>
           </strong>
-          <span className="mono dim">{account.wallet.slice(0, 4) + '…' + account.wallet.slice(-4)}</span>
+          <span>{account.username ? '@' + account.username : 'Trading balance'}</span>
         </div>
         <div className="pf-tile">
           <small>In coins</small>

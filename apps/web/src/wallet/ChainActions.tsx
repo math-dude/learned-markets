@@ -109,7 +109,13 @@ export function ChainOrder({
   const [side, setSide] = useState('buy')
   const [quantity, setQuantity] = useState('')
   const [budget, setBudget] = useState('0.01')
-  const [price, setPrice] = useState(marketPrice === '0' ? '27970074' : marketPrice)
+  // Market order with slippage protection: the limit follows the live price unless the trader sets one.
+  const [slippage, setSlippage] = useState(20)
+  const [custom, setCustom] = useState('')
+  const live = BigInt(marketPrice === '0' ? '27970074' : marketPrice)
+  const auto = side === 'buy' ? (live * BigInt(100 + slippage)) / 100n : (live * BigInt(100 - slippage)) / 100n
+  const price = custom || (auto > 0n ? auto : 1n).toString()
+  const setPrice = setCustom
   const [step, setStep] = useState('')
   const [note, setNote] = useState('')
   const recovery = ['lm.trade', import.meta.env.VITE_LM_NETWORK, wallet.address, market].join('.')
@@ -217,15 +223,32 @@ export function ChainOrder({
           </button>
         ))}
       </div>
+      <div className="slippage">
+        <span>{side === 'buy' ? 'Max price' : 'Min price'}</span>
+        {[5, 20, 50].map((v) => (
+          <button
+            type="button"
+            key={v}
+            className="pill-btn"
+            aria-pressed={!custom && slippage === v}
+            onClick={() => {
+              setCustom('')
+              setSlippage(v)
+            }}
+          >
+            {side === 'buy' ? '+' : '−'}
+            {v}%
+          </button>
+        ))}
+      </div>
       <details>
-        <summary>Limit price</summary>
+        <summary>Custom limit price</summary>
         <label>
-          Micro-lamports per token
+          Micro-lamports per token (blank = follow the market)
           <input
             className="input-box"
             value={price}
             onChange={(e) => setPrice(e.target.value)}
-            required={!pending}
             pattern="[1-9][0-9]*"
             inputMode="numeric"
             disabled={!!pending}

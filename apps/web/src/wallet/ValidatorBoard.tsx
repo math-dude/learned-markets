@@ -20,11 +20,13 @@ export function MarketHistory({
   fills,
   candles,
   rounds,
+  names = {},
 }: {
   market: Market
   fills: Fill[]
   candles: ChainState['candles']
   rounds?: ChainState['rounds']
+  names?: Record<string, string>
 }) {
   const recent = fills.filter((f) => f.market === market.address)
   const history = candles.map((c) => ({
@@ -65,7 +67,7 @@ export function MarketHistory({
           <table className="trade-table">
             <thead>
               <tr>
-                <th>Participant</th>
+                <th>Trader</th>
                 <th>Side</th>
                 <th>Tokens</th>
                 <th>Price · lamports</th>
@@ -75,9 +77,7 @@ export function MarketHistory({
             <tbody>
               {recent.slice(0, 30).map((f) => (
                 <tr key={f.intent} className="lm-fillrow" title={'Transaction ' + f.signature}>
-                  <td>
-                    {f.participant.slice(0, 4)}…{f.participant.slice(-4)}
-                  </td>
+                  <td>{names[f.participant] ? '@' + names[f.participant] : f.participant.slice(0, 4) + '…' + f.participant.slice(-4)}</td>
                   <td className={f.side === 'buy' ? 'green' : 'red'}>{f.side}</td>
                   <td>{BigInt(f.quantity).toLocaleString()}</td>
                   <td>{f.price === null ? '—' : tokenPrice(f.price)}</td>

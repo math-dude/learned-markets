@@ -45,6 +45,11 @@ async def lifespan(app):
             raise RuntimeError("Unexpected Solana network")
         app.state.network = network
         engine = app.state.engine = ValidatorMarket(rpc, os.environ.get("DB_PATH", f"attestation-{network}.sqlite"))
+        with engine.db:
+            engine.db.execute(
+                "CREATE TABLE IF NOT EXISTS web_profiles (wallet TEXT PRIMARY KEY, participant TEXT,"
+                " username TEXT NOT NULL UNIQUE COLLATE NOCASE)"
+            )
 
         async def run():
             while True:
@@ -218,7 +223,12 @@ async def market_board(wallet: str | None = None, market: str | None = None):
                     (str(participant),),
                 )
             ]
+    profile_rows = db.execute("SELECT wallet,participant,username FROM web_profiles").fetchall()
+    names = {r["participant"]: r["username"] for r in profile_rows if r["participant"]}
+    if account:
+        account["username"] = next((r["username"] for r in profile_rows if r["wallet"] == account["wallet"]), None)
     return {
+        "names": names,
         "network": app.state.network,
         "slot": slot,
         "program": str(PROGRAM_ID),
@@ -249,3 +259,35 @@ async def launch_coin(body: LaunchCoin, request: Request):
     if not identity.get("eligible"):
         raise HTTPException(403, "Verify your participant badge.")
     return await app.state.engine.launch(identity, body.name, body.ticker, body.image)
+
+
+class Profile(BaseModel):
+    username: str = Field(pattern=r"^[A-Za-z0-9_]{3,16}$")
+
+
+@app.get("/api/profile/available")
+async def username_available(username: str):
+    row = app.state.engine.db.execute("SELECT 1 FROM web_profiles WHERE username=?", (username,)).fetchone()
+    return {"available": row is None}
+
+
+@app.post("/api/profile")
+async def save_profile(body: Profile, request: Request):
+    """Bind a display name to the caller's verified wallet; the session proves the wallet."""
+    gate = Gate(os.environ.get("LM_ATTESTATION_URL", "http://127.0.0.1:8787"))
+    identity = await gate.call(request.cookies.get("lm_session"), "/v1/me")
+    if not identity.get("eligible"):
+        raise HTTPException(403, "Verify your participant badge.")
+    wallet = identity["wallet"]
+    participant = (identity.get("participant") or {}).get("address")
+    db = app.state.engine.db
+    taken = db.execute("SELECT wallet FROM web_profiles WHERE username=?", (body.username,)).fetchone()
+    if taken and taken["wallet"] != wallet:
+        raise HTTPException(409, "That username is taken.")
+    with db:
+        db.execute(
+            "INSERT INTO web_profiles(wallet,participant,username) VALUES(?,?,?)"
+            " ON CONFLICT(wallet) DO UPDATE SET username=excluded.username, participant=excluded.participant",
+            (wallet, participant, body.username),
+        )
+    return {"wallet": wallet, "username": body.username}

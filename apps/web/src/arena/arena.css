@@ -992,3 +992,41 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ── username ── */
+.username-field {
+  display: grid;
+  gap: 6px;
+}
+.username-field > span:first-child {
+  font-weight: 600;
+}
+.username-card {
+  display: grid;
+  gap: 12px;
+  max-width: 520px;
+}
+.username-card h2 {
+  margin: 0;
+}
+
+/* ── order form slippage ── */
+.slippage {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.slippage span {
+  margin-right: auto;
+}
+.slippage .pill-btn {
+  padding: 4px 10px;
+  font-size: 13px;
+}
+.slippage .pill-btn[aria-pressed='true'] {
+  border-color: var(--accent-border);
+  background: var(--accent-soft);
+  color: var(--text);
+}

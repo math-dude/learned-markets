@@ -5,11 +5,13 @@ import { Portfolio } from '../arena/Portfolio'
 import { Link, useLocation } from 'react-router-dom'
 import { Search, ShellFrame } from '../components/Shell'
 import { AccessPanel } from './AccessPanel'
+import { UsernameCard } from './UsernameCard'
 import { gateRequest, useWallet } from './access'
 import { ChainLaunch, ChainOrder } from './ChainActions'
 import { MarketHeading, MarketHistory, SurvivalPanel, ValidatorBoard } from './ValidatorBoard'
 
 export type ChainState = {
+  names?: Record<string, string>
   network: string
   program: string
   slot: number
@@ -67,6 +69,7 @@ export type ChainState = {
     wallet: string
     lamports: string
     participant: string | null
+    username?: string | null
     cash?: string | null
     positions?: Record<string, string>
     orders?: { intent: string; status: string; signature: string | null; details: string }[]
@@ -161,7 +164,7 @@ export function ChainMarket() {
             {state ? 'Slot ' + state.slot.toLocaleString() : 'Validator'}
           </span>
           <Link to="/portfolio" className="chip chip-strong">
-            Wallet
+            {account?.username ? '@' + account.username : address ? 'Wallet' : 'Sign in'}
           </Link>
         </header>
       }
@@ -175,7 +178,7 @@ export function ChainMarket() {
                 {error}
               </p>
             )}
-            <MarketHistory market={activeMarket} fills={state?.fills ?? []} candles={state?.candles ?? []} rounds={state?.rounds} />
+            <MarketHistory market={activeMarket} fills={state?.fills ?? []} candles={state?.candles ?? []} rounds={state?.rounds} names={state?.names} />
           </main>
           <aside className="artifact-coin-sidebar">
             {activeMarket.live && admitted && wallet ? (
@@ -264,6 +267,7 @@ export function ChainMarket() {
           {error && <p role="alert">{error}</p>}
           {portfolio ? (
             <section className="account-entry-wrap">
+              {account?.participant && admitted && !account.username && <UsernameCard address={account.wallet} done={update} />}
               {account?.participant && state && <Portfolio account={account} state={state} />}
               {!admitted &&
                 (!address || state?.gate_ready

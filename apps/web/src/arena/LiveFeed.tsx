@@ -6,7 +6,7 @@ import type { ChainState } from '../wallet/ChainMarket'
 type Item =
   | { id: string; kind: 'launch'; address: string; ticker: string; name: string; image?: string | null; at: number }
   | { id: string; kind: 'death'; address: string; ticker: string; total: number; to: { ticker: string; address: string; amount: number }[]; deployers: number; platform: number; image?: string | null; at: number }
-  | { id: string; kind: 'trade'; address: string; ticker: string; side: string; qty: number; image?: string | null; at: number }
+  | { id: string; kind: 'trade'; address: string; ticker: string; side: string; qty: number; who?: string; image?: string | null; at: number }
 
 const sol = (lamports: number) =>
   (lamports / 1e9).toLocaleString('en-US', { maximumFractionDigits: lamports < 1e7 ? 5 : 3 })
@@ -51,7 +51,7 @@ export function LiveFeed({ state }: { state: ChainState }) {
       if (seen.current.has(id)) continue
       seen.current.add(id)
       const m = images.current.get(f.market)
-      fresh.push({ id, kind: 'trade', address: f.market, ticker: m?.ticker ?? '???', side: f.side, qty: Number(f.quantity), image: m?.image, at: now })
+      fresh.push({ id, kind: 'trade', address: f.market, ticker: m?.ticker ?? '???', side: f.side, qty: Number(f.quantity), who: state.names?.[f.participant], image: m?.image, at: now })
     }
     first.current = false
     if (!fresh.length) return
@@ -76,7 +76,7 @@ export function LiveFeed({ state }: { state: ChainState }) {
           )}
           {it.kind === 'trade' && (
             <span className="feed-text">
-              <b>${it.ticker}</b> {it.side === 'buy' ? 'bought' : 'sold'} <em>{short(it.qty)}</em>
+              {it.who && <span className="muted">@{it.who}</span>} {it.side === 'buy' ? 'bought' : 'sold'} <em>{short(it.qty)}</em> <b>${it.ticker}</b>
             </span>
           )}
           {it.kind === 'death' && (
