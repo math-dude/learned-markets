@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import '../arena/arena.css'
 import { ProofPage } from '../arena/ProofPage'
 import { Portfolio } from '../arena/Portfolio'
+import { CurrencySwitch, setRate, useMoney } from '../lib/money'
 import { Link, useLocation } from 'react-router-dom'
 import { Search, ShellFrame } from '../components/Shell'
 import { AccessPanel } from './AccessPanel'
@@ -101,12 +102,14 @@ function PositionCard({
   basis?: { tokens: string; cost: string; realized: string }
   solUsd?: number | null
 }) {
-  const value = (tokens * price) / 1e15
-  const cost = Number(basis?.cost ?? 0) / 1e9
-  const realized = Number(basis?.realized ?? 0) / 1e9
+  const { money, signed, unit } = useMoney()
+  // Lamports throughout; the display currency is applied when formatting.
+  const value = (tokens * price) / 1e6
+  const cost = Number(basis?.cost ?? 0)
+  const realized = Number(basis?.realized ?? 0)
   const open = tokens > 0 && cost > 0 ? value - cost : 0
   const pnl = open + realized
-  const sol = (n: number) => (n > 0 ? '+' : n < 0 ? '−' : '') + Math.abs(n).toFixed(5) + ' SOL'
+  const sol = (n: number) => signed(n, 5)
   return (
     <section className="card">
       <h2>Your position</h2>
@@ -119,7 +122,7 @@ function PositionCard({
         </div>
         <div>
           <small>Value</small>
-          <strong>{value.toFixed(5)} SOL</strong>
+          <strong>{money(value, 5)}</strong>
         </div>
         {basis && (
           <div className="position-pnl">
@@ -127,11 +130,11 @@ function PositionCard({
             <strong key={Math.round(pnl * 1e6)} style={{ color: pnl >= 0 ? 'var(--green)' : 'var(--red)' }}>
               {sol(pnl)}
               {tokens > 0 && cost > 0 && <span> {((value / cost - 1) * 100).toFixed(1).replace('-', '−')}%</span>}
-              {solUsd ? <span> · {(pnl < 0 ? '−$' : '$') + Math.abs(pnl * solUsd).toFixed(2)}</span> : null}
+              {solUsd && unit === 'SOL' ? <span> · {(pnl < 0 ? '−$' : '$') + Math.abs((pnl / 1e9) * solUsd).toFixed(2)}</span> : null}
             </strong>
             <small>
               {tokens > 0 && cost > 0
-                ? 'Avg entry ' + ((cost * 1e9) / tokens).toLocaleString('en-US', { maximumFractionDigits: 6 }) + ' lamports'
+                ? 'Avg entry ' + (cost / tokens).toLocaleString('en-US', { maximumFractionDigits: 6 }) + ' lamports'
                 : 'Closed'}
               {realized !== 0 && tokens > 0 ? ' · realized ' + sol(realized) : ''}
             </small>
@@ -152,6 +155,8 @@ export function ChainMarket() {
   useEffect(() => {
     const controller = new AbortController()
     let timer: ReturnType<typeof setTimeout>
+    // One dropped request is retried at once and never shown; the notice is for a real outage.
+    let failures = 0
     async function read() {
       try {
         const response = await fetch(
@@ -171,10 +176,12 @@ export function ChainMarket() {
           setState(snapshot)
           setError('')
         }
+        failures = 0
       } catch {
-        if (!controller.signal.aborted) setError('The backend could not read the validator. Reconnecting…')
+        failures += 1
+        if (!controller.signal.aborted && failures >= 8) setError('The backend could not read the validator. Reconnecting…')
       } finally {
-        if (!controller.signal.aborted) timer = setTimeout(read, 1000)
+        if (!controller.signal.aborted) timer = setTimeout(read, failures ? 250 : 1000)
       }
     }
     void read()
@@ -184,6 +191,7 @@ export function ChainMarket() {
     }
   }, [address, revision, pathname])
   const account = state?.account?.wallet === address ? state?.account : null
+  setRate(state?.sol_usd)
   const [sessionWallet, setSessionWallet] = useState('')
   useEffect(() => {
     let active = true
@@ -228,6 +236,7 @@ export function ChainMarket() {
               to: '/coin/' + m.address,
             }))}
           />
+          <CurrencySwitch />
           <span className="paper-label">
             {state?.network === 'surfpool' ? 'Surfpool' : (state?.network ?? 'Connecting')} ·{' '}
             {state ? 'Slot ' + state.slot.toLocaleString() : 'Validator'}

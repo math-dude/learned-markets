@@ -4,6 +4,7 @@ import { CoinTile } from '../components/CoinBits'
 import { Crown } from '../components/icons'
 import type { ChainState } from '../wallet/ChainMarket'
 import { healthColor } from '../lib/health'
+import { useMoney } from '../lib/money'
 
 type Market = ChainState['markets'][number]
 type Round = NonNullable<ChainState['rounds']>[number]
@@ -40,6 +41,7 @@ function useHistory(markets: Market[]) {
 }
 
 export function RankBoard({ state, rounds, sort }: { state: ChainState; rounds: Round[]; sort: Sort }) {
+  const { money } = useMoney()
   const [, tick] = useState(0)
   useEffect(() => {
     const t = window.setInterval(() => tick((v) => v + 1), 1000)
@@ -144,7 +146,7 @@ export function RankBoard({ state, rounds, sort }: { state: ChainState; rounds: 
             </span>
             <span className="rank-nums">
               <span>
-                <small>LIQ</small> {(Number(m.reserve_cash) / 1e9).toFixed(3)}
+                <small>LIQ</small> {money(Number(m.reserve_cash)).replace(' SOL', '')}
               </span>
               <span>
                 <small>P</small> {m.price === '0' ? '—' : px(m.price)}

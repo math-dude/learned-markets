@@ -7,6 +7,7 @@ import { CoinTile } from '../components/CoinBits'
 import { Crown } from '../components/icons'
 import { CandleChart } from '../pages/coin/PriceChart'
 import { healthColor } from '../lib/health'
+import { useMoney } from '../lib/money'
 import type { ChainState } from './ChainMarket'
 
 type Market = ChainState['markets'][number]
@@ -172,6 +173,7 @@ function BatchClock({ slot, batchSlots }: { slot: number; batchSlots: number }) 
 }
 
 export function ValidatorBoard({ state }: { state: ChainState }) {
+  const { money } = useMoney()
   const [sort, setSort] = useState<Sort>('Hot')
   const rounds = roundsFor(state)
   const latestBatch = rounds[0]?.batch
@@ -186,7 +188,7 @@ export function ValidatorBoard({ state }: { state: ChainState }) {
   const headlines = [
     ...(state.flows ?? []).slice(0, 6).map(
       (f) =>
-        '$' + f.ticker + ' was cut · ' + (Number(f.total) / 1e9).toFixed(3) + ' SOL recycled to ' + f.survivors.slice(0, 3).map((s) => '$' + s.ticker).join(', '),
+        '$' + f.ticker + ' was cut · ' + money(Number(f.total)) + ' recycled to ' + f.survivors.slice(0, 3).map((s) => '$' + s.ticker).join(', '),
     ),
     ...live.slice(0, 6).map((m) => '$' + m.ticker + (m.stage === 'Line' ? ' joined the Line' : m.stage === 'Rookie' ? ' seated as a rookie' : ' is a regular')),
     ...state.fills.slice(0, 4).map((f) => '$' + ticker(f.market) + ' ' + (f.side === 'buy' ? 'bought' : 'sold') + ' ' + BigInt(f.quantity).toLocaleString()),
@@ -205,7 +207,7 @@ export function ValidatorBoard({ state }: { state: ChainState }) {
             <span>
               <small className="gold">#1 · king of the hill</small>
               <strong>{leader.name}</strong>
-              <small>${leader.ticker} · LIQ {(Number(leader.reserve_cash) / 1e9).toFixed(3)} SOL</small>
+              <small>${leader.ticker} · LIQ {money(Number(leader.reserve_cash))}</small>
             </span>
           </Link>
         ) : (
@@ -296,7 +298,8 @@ export function ValidatorBoard({ state }: { state: ChainState }) {
   )
 }
 
-export function MarketHeading({ market, fills, solUsd }: { market: Market; fills: Fill[]; solUsd?: number | null }) {
+export function MarketHeading({ market, fills }: { market: Market; fills: Fill[]; solUsd?: number | null }) {
+  const { money } = useMoney()
   // One billion tokens at the last clearing price.
   const cap = Number(market.price) / 1e6
   const recent = fills.filter((f) => f.market === market.address)
@@ -322,19 +325,12 @@ export function MarketHeading({ market, fills, solUsd }: { market: Market; fills
       <div className="live-coin-stats">
         <div>
           <small>Market cap</small>
-          <strong>
-            {solUsd
-              ? '$' + (cap * solUsd).toLocaleString('en-US', { maximumFractionDigits: cap * solUsd < 1000 ? 2 : 0 })
-              : cap.toFixed(3) + ' SOL'}
-          </strong>
+          <strong>{money(cap * 1e9)}</strong>
         </div>
         <div>
           <small>Traded volume</small>
           <strong>
-            {recent
-              .reduce((sum, f) => sum + (Number(f.quantity) * Number(f.price ?? 0)) / 1e15, 0)
-              .toFixed(3)}{' '}
-            SOL
+            {money(recent.reduce((sum, f) => sum + (Number(f.quantity) * Number(f.price ?? 0)) / 1e6, 0))}
           </strong>
         </div>
         <div>

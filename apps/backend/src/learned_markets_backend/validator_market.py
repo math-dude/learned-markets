@@ -311,6 +311,10 @@ class ValidatorMarket:
                         logging.getLogger(__name__).exception("Settlement of %s batch %s", market, batch)
 
             await asyncio.gather(*(one(m, b) for m, b in first.items()))
+            if first:
+                # Surfpool confirms within a slot: record these fills now, not one poll later.
+                await asyncio.sleep(0.35)
+                await self.reconcile()
             await self.lifecycle.advance(slot)
 
     async def settle(self, address, batch):

@@ -1,13 +1,14 @@
 import { Link } from 'react-router-dom'
 import { CoinTile } from '../components/CoinBits'
 import { healthColor } from '../lib/health'
+import { useMoney } from '../lib/money'
 import type { ChainState } from '../wallet/ChainMarket'
 
 type Account = NonNullable<ChainState['account']>
-const sol = (lamports: number) => (lamports / 1e9).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })
 
 /** Isha's portfolio mockup on live ledger data. The ledger balance is the only balance shown. */
 export function Portfolio({ account, state }: { account: Account; state: ChainState }) {
+  const { money, signed } = useMoney()
   const held = state.markets
     .map((m) => ({ m, tokens: Number(account.positions?.[m.address] ?? 0) }))
     .filter((x) => x.tokens > 0)
@@ -26,7 +27,6 @@ export function Portfolio({ account, state }: { account: Account; state: ChainSt
     const worth = m?.live ? (Number(b.tokens) * Number(m.price)) / 1e6 : 0
     pnl += Number(b.realized) + (Number(b.tokens) > 0 ? worth - Number(b.cost) : 0)
   }
-  const signed = (lamports: number) => (lamports > 0 ? '+' : lamports < 0 ? '−' : '') + sol(Math.abs(lamports))
   const px = (micro?: string | null) => (micro ? Number((Number(micro) / 1e6).toPrecision(4)).toString() : '—')
   return (
     <div className="pf">
@@ -34,31 +34,30 @@ export function Portfolio({ account, state }: { account: Account; state: ChainSt
         <div className="pf-tile main">
           <small>Balance</small>
           <strong>
-            {sol(cash)} <em>SOL</em>
+            {money(cash, 4)}
           </strong>
           <span>{account.username ? '@' + account.username : 'Trading balance'}</span>
         </div>
         <div className="pf-tile">
           <small>In coins</small>
           <strong>
-            {sol(inCoins)} <em>SOL</em>
+            {money(inCoins, 4)}
           </strong>
           <span>{open.length} coins held</span>
         </div>
         <div className="pf-tile">
           <small>Total</small>
           <strong>
-            {sol(cash + inCoins)} <em>SOL</em>
+            {money(cash + inCoins, 4)}
           </strong>
           <span>balance + coins at last clearing price</span>
         </div>
         <div className="pf-tile">
           <small>Profit / loss</small>
           <strong key={Math.round(pnl / 1e4)} className={pnl >= 0 ? 'green' : 'red'}>
-            {signed(pnl)} <em>SOL</em>
+            {signed(pnl, 4)}
           </strong>
           <span>
-            {state.sol_usd ? (pnl < 0 ? '−$' : '$') + Math.abs((pnl / 1e9) * state.sol_usd).toFixed(2) + ' · ' : ''}
             realized + open positions
           </span>
         </div>
@@ -68,7 +67,7 @@ export function Portfolio({ account, state }: { account: Account; state: ChainSt
           <b>At risk</b>
           <span>
             {risk.m.name} has {Math.max(0, risk.m.survival ?? 0).toFixed(0)} survival left. If it is cut, your{' '}
-            {sol(value(risk))} SOL in it is voided and its reserve goes to the survivors.
+            {money(value(risk), 4)} in it is voided and its reserve goes to the survivors.
           </span>
           <Link to={'/coin/' + risk.m.address}>Open coin</Link>
         </div>
@@ -110,9 +109,9 @@ export function Portfolio({ account, state }: { account: Account; state: ChainSt
                 {cost > 0 ? Number((cost / x.tokens).toPrecision(4)) : '—'}
                 <small className="sub">now {Number((Number(x.m.price) / 1e6).toPrecision(4))}</small>
               </span>
-              <span>{sol(value(x))} SOL</span>
+              <span>{money(value(x), 4)}</span>
               <span className={gain >= 0 ? 'green' : 'red'}>
-                {cost > 0 ? signed(gain) + ' SOL' : '—'}
+                {cost > 0 ? signed(gain, 4) : '—'}
                 {cost > 0 && <small className="sub">{((value(x) / cost - 1) * 100).toFixed(1).replace('-', '−')}%</small>}
               </span>
               <span className="pf-timer">
@@ -191,7 +190,7 @@ export function Portfolio({ account, state }: { account: Account; state: ChainSt
                 <span>{px(o.entry)}</span>
                 <span>{fill?.side === 'sell' ? px(o.exit) : fill ? <small>open</small> : '—'}</span>
                 <span className={gain === null ? 'dim' : gain >= 0 ? 'green' : 'red'}>
-                  {gain === null ? '—' : signed(gain) + ' SOL'}
+                  {gain === null ? '—' : signed(gain, 4)}
                 </span>
               </div>
             )

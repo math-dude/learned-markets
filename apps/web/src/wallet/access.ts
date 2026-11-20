@@ -18,12 +18,18 @@ export class GateError extends Error {
 }
 
 export async function gateRequest<T>(path: string, body?: object, method?: string): Promise<T> {
-  const response = await fetch('/v1/' + path, {
-    method: method ?? (body ? 'POST' : 'GET'), credentials: 'same-origin', cache: 'no-store',
-    headers: body ? { 'Content-Type': 'application/json' } : undefined,
-    body: body && JSON.stringify(body),
-    signal: AbortSignal.timeout(path === 'wallet-transactions' ? 45_000 : 15_000),
-  })
+  let response: Response
+  for (let attempt = 0; ; attempt++) {
+    response = await fetch('/v1/' + path, {
+      method: method ?? (body ? 'POST' : 'GET'), credentials: 'same-origin', cache: 'no-store',
+      headers: body ? { 'Content-Type': 'application/json' } : undefined,
+      body: body && JSON.stringify(body),
+      signal: AbortSignal.timeout(path === 'wallet-transactions' ? 45_000 : 15_000),
+    })
+    // The hosting proxy answered without reaching the service, so the request is safe to send again.
+    if (response.status !== 502 || !response.headers.get('x-vercel-error') || attempt === 5) break
+    await new Promise((done) => setTimeout(done, 200))
+  }
   if (response.status === 204) return undefined as T
   const data = await response.json().catch(() => ({}))
   if (!response.ok) throw new GateError(data.error, data.message || 'The attestation service is unavailable.')
