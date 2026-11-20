@@ -2,8 +2,10 @@
 
 import asyncio
 import base64
+import copy
 import hashlib
 import json
+import logging
 import os
 import sqlite3
 import struct
@@ -11,8 +13,13 @@ from pathlib import Path
 from time import time
 
 from fastapi import HTTPException
-from learned_markets_core.state import MarketConfig
+from learned_markets_core.lifecycle import default_lever_values
+from learned_markets_core.quoter import build_quote, residual_params, rule_based_params
+from learned_markets_core.state import LINE, MarketConfig, MarketState
+from learned_markets_core.tape import _SERIES, Tape
 from learned_markets_core.units import tick_of_price
+from solana.exceptions import SolanaRpcException
+from solana.rpc.core import RPCException
 from solana.rpc.types import TxOpts
 from solders.keypair import Keypair
 from solders.message import Message
@@ -32,7 +39,7 @@ from .chain import (
     settlement_instruction,
 )
 from .clearing import clear
-from .contracts import ClearRequest, Observation, Order, Person, PublicMarket
+from .contracts import ClearRequest, Order, Person, PublicMarket, Quote
 from .generated.accounts.config import Config
 from .generated.accounts.intent import Intent
 from .generated.accounts.ledgerBalance import LedgerBalance
@@ -42,14 +49,31 @@ from .generated.accounts.participant import Participant
 from .generated.instructions.initializeLedgerPosition import InitializeLedgerPosition
 from .generated.instructions.openLedgerMarket import OpenLedgerMarket
 from .generated.instructions.registerParticipant import find_WalletBinding
-from .live_lifecycle import STAGES, LiveLifecycle
-from .policy import rule_quote
+from .live_lifecycle import FIELDS, PROFILE, STAGES, LiveLifecycle
+from .policy import state_for
+from .quoter_net import load_policy
 
 CONFIG = Pubkey.find_program_address([b"config"], PROGRAM_ID)[0]
 PLATFORM = Pubkey.find_program_address([b"ledger-platform"], PROGRAM_ID)[0]
 LAUNCH_FEE = 100_000_000
 # Settlement window in slots. Surfpool demos shorten it through LM_BATCH_SLOTS.
 WINDOW = int(os.environ.get("LM_BATCH_SLOTS", "32"))
+# Orders cleared per market per settlement (program max 8), and seconds of deadline headroom required.
+BATCH_ORDERS = min(8, int(os.environ.get("LM_BATCH_ORDERS", "8")))
+EXPIRY_MARGIN = float(os.environ.get("LM_EXPIRY_MARGIN", "15"))
+
+
+async def maybe_fetch(cls, rpc, address, seconds=3.0):
+    """Read an account that may not exist yet.
+
+    A forked Surfpool asks its remote datasource about absent accounts, which can stall
+    for many seconds under rate limits. A timeout is treated as absent; the program
+    still rejects a transaction whose account assumptions are wrong.
+    """
+    try:
+        return await asyncio.wait_for(cls.fetch(rpc, address), seconds)
+    except TimeoutError:
+        return None
 
 
 class ValidatorMarket:
@@ -69,6 +93,65 @@ class ValidatorMarket:
             self.db.execute("ALTER TABLE web_markets ADD COLUMN image TEXT")
         self.lock = asyncio.Lock()
         self.lifecycle = LiveLifecycle(self, CONFIG, WINDOW)
+        # LM_QUOTER names an exported quoter.pt; without it the fixed rule quotes alone.
+        path = os.environ.get("LM_QUOTER")
+        self.policy = load_policy(path) if path else None
+        logging.getLogger("uvicorn.error").info("Quoter: %s", path or "fixed rule")
+        # Public tape per market, as the simulator keeps it: address -> (Tape, last cleared batch).
+        self.tapes = {}
+
+    def tape_for(self, address, public):
+        """A working copy of the market's tape with idle batches since its last clearing counted."""
+        entry = self.tapes.get(address)
+        if not entry:
+            return Tape(state_for(public)[1])
+        tape = copy.deepcopy(entry[0])
+        tape.idle = tape.idle + max(0, public.batch_id - entry[1] - 1)
+        return tape
+
+    def observation(self, address, public, board, tape):
+        """The trained quoter's view of one coin: the simulator's observation over the live board."""
+        coins = [c for c in board["coins"] if c["stage"]]
+        if all(c["address"] != address for c in coins):
+            coins.append({"address": address, "stage": LINE, "birth": public.batch_id, "heat": 0.0,
+                          "timer": 0.0, "activity": 0.0, "coin_id": 0})  # fmt: skip
+        cfg = MarketConfig(n_worlds=1, n_slots=len(coins), n_people=1, **PROFILE)
+        state, wide = MarketState.empty(cfg), Tape(cfg)
+        state.t = public.batch_id
+        for i, coin in enumerate(coins):
+            for field in FIELDS:
+                getattr(state, field)[0, i] = coin[field]
+            mine = coin["address"] == address
+            known = tape if mine else self.tapes.get(coin["address"], (None,))[0]
+            if known is not None:
+                for name in (*_SERIES, "logp", "traders_last"):
+                    getattr(wide, name)[0, i] = getattr(known, name)[0, 0]
+            if mine:
+                at = i
+                state.tick[0, i], state.q_cash[0, i], state.q_tokens[0, i] = (
+                    public.tick, public.reserve_cash, public.reserve_tokens)  # fmt: skip
+        values = default_lever_values(cfg)
+        values[:, 5] = 300
+        return wide.observation(state, values)[0, at].unsqueeze(0)
+
+    def quote(self, address, public, board, tape):
+        """Next batch's curve: the rule on this market's tape, corrected by the trained quoter when loaded."""
+        state, cfg = state_for(public)
+        if self.policy is None:
+            params = rule_based_params(state, tape.pressure, cfg, tape.idle)
+        else:
+            action = self.policy(self.observation(address, public, board, tape))
+            params = residual_params(state, tape.pressure, tape.idle, action, cfg)
+        quote = build_quote(state, params, cfg)
+        return Quote(
+            centre_tick=public.tick,
+            bid=quote.bid[0].tolist(),
+            ask=quote.ask[0].tolist(),
+            cap_share=float(quote.cap_share[0, 0]),
+            fee0=float(quote.fee0[0, 0]),
+            half_life=float(quote.half_life[0, 0]),
+            slope=float(quote.slope[0, 0]),
+        )
 
     def signer(self):
         path = Path(os.environ.get("LM_KEYS_DIR", "keys")) / "settlement-authority.json"
@@ -91,7 +174,7 @@ class ValidatorMarket:
             hashlib.sha256(b"lm/launch/v1\0" + ticker.encode() + b"\0" + name.encode()).digest()
         )
         market = ledger_market_address(market_id)[0]
-        if await LedgerMarket.fetch(self.rpc, market):
+        if await maybe_fetch(LedgerMarket, self.rpc, market):
             raise HTTPException(409, "This coin already exists.")
         ix = OpenLedgerMarket(
             {"marketId": market_id, "launchFee": LAUNCH_FEE},
@@ -121,17 +204,42 @@ class ValidatorMarket:
         return {"market": str(market), "transactionBase64": base64.b64encode(bytes(tx)).decode()}
 
     async def reconcile(self):
-        for row in self.db.execute("SELECT * FROM web_pending_tx").fetchall():
-            sig = Signature.from_string(row["signature"])
-            status = (await self.rpc.get_signature_statuses([sig], search_transaction_history=True)).value[0]
+        rows = self.db.execute("SELECT * FROM web_pending_tx").fetchall()
+        if not rows:
+            return
+        # One status read per 256 pending settlements instead of one per transaction.
+        sigs = [Signature.from_string(row["signature"]) for row in rows]
+        statuses = []
+        for i in range(0, len(sigs), 256):
+            statuses += (
+                await self.rpc.get_signature_statuses(sigs[i : i + 256], search_transaction_history=True)
+            ).value
+        height = (await self.rpc.get_block_height()).value
+        for row, sig, status in zip(rows, sigs, statuses, strict=True):
             result = json.loads(row["result"])
+            retry = False
             if not status:
-                if (await self.rpc.get_block_height()).value <= row["block_height"]:
-                    await self.rpc.send_raw_transaction(
-                        base64.b64decode(row["wire"]), TxOpts(preflight_commitment="confirmed")
-                    )
-                    continue
-                error = "Transaction expired before confirmation."
+                if height <= row["block_height"]:
+                    try:
+                        await self.rpc.send_raw_transaction(
+                            base64.b64decode(row["wire"]), TxOpts(preflight_commitment="confirmed")
+                        )
+                        continue
+                    except RPCException as exc:
+                        text = str(exc)
+                        if "already been processed" in text:
+                            continue
+                        # The validator rejected it, so it can never land: free the market now
+                        # instead of resending until the blockhash expires.
+                        retry = "0x179d" in text or "IntentExpired" in text or "Blockhash not found" in text
+                        error = "Settlement rejected: " + text[:300]
+                    except SolanaRpcException:
+                        # Transport trouble: it may still land, look again next poll.
+                        logging.getLogger(__name__).warning("Resend of %s did not complete", sig)
+                        continue
+                else:
+                    retry = True
+                    error = "Transaction expired before confirmation."
             elif status.err:
                 error = str(status.err)
             elif str(status.confirmation_status).split(".")[-1].lower() in ("confirmed", "finalized"):
@@ -140,6 +248,13 @@ class ValidatorMarket:
                 continue
             with self.db:
                 for fill in result["fills"]:
+                    if retry:
+                        # Never landed: clear these orders again; settle() closes the expired ones.
+                        self.db.execute(
+                            "UPDATE web_orders SET status='queued' WHERE intent=? AND status='confirming'",
+                            (fill["intent"],),
+                        )
+                        continue
                     self.db.execute(
                         "UPDATE web_orders SET status=?,details=?,signature=? WHERE intent=?",
                         (
@@ -178,21 +293,52 @@ class ValidatorMarket:
                 AND batch < ? AND market NOT IN (SELECT market FROM web_pending_tx) GROUP BY market,batch ORDER BY batch""",
                 (slot // WINDOW,),
             ).fetchall()
-            seen = set()
+            # Markets settle independently and concurrently. Each market clears everything
+            # that is due under its newest due batch id, so a backlog drains instead of
+            # trailing one window per poll until the intents expire.
+            first = {}
             for group in groups:
-                if group["market"] not in seen:
-                    await self.settle(group["market"], group["batch"])
-                    seen.add(group["market"])
+                first[group["market"]] = group["batch"]
+            gate = asyncio.Semaphore(int(os.environ.get("LM_SETTLE_CONCURRENCY", "16")))
+
+            async def one(market, batch):
+                async with gate:
+                    try:
+                        await self.settle(market, batch)
+                    except Exception:
+                        logging.getLogger(__name__).exception("Settlement of %s batch %s", market, batch)
+
+            await asyncio.gather(*(one(m, b) for m, b in first.items()))
             await self.lifecycle.advance(slot)
 
     async def settle(self, address, batch):
         market = Pubkey.from_string(address)
         m = await LedgerMarket.fetch(self.rpc, market)
+        if m and m.live and m.lastBatchId is not None and batch <= m.lastBatchId:
+            # Orders that arrived after their window settled ride the next one.
+            with self.db:
+                self.db.execute(
+                    "UPDATE web_orders SET batch=? WHERE market=? AND batch<=? AND status='queued'",
+                    (m.lastBatchId + 1, address, batch),
+                )
+            return
         rows = self.db.execute(
             """SELECT a.* FROM web_orders w JOIN admitted_intents a USING(intent)
-            WHERE w.market=? AND w.batch=? AND w.status='queued' ORDER BY a.admitted_at,a.intent""",
+            WHERE w.market=? AND w.batch<=? AND w.status='queued' ORDER BY a.admitted_at,a.intent""",
             (address, batch),
         ).fetchall()
+        # Intents past their deadline close without a chain read; the margin keeps a
+        # settlement from expiring between clearing and landing.
+        cutoff = time() + EXPIRY_MARGIN
+        stale = [row["intent"] for row in rows if int(row["deadline"]) <= cutoff]
+        if stale:
+            with self.db:
+                self.db.executemany(
+                    "UPDATE web_orders SET status='closed',details='Intent expired or closed.' WHERE intent=?",
+                    [(key,) for key in stale],
+                )
+            rows = [row for row in rows if int(row["deadline"]) > cutoff]
+        waiting = []
         people, orders, traders, setup = [], [], {}, []
         authority = self.signer()
         cfg = await Config.fetch(self.rpc, CONFIG)
@@ -201,15 +347,17 @@ class ValidatorMarket:
         for row in rows:
             who = row["participant"]
             person = Pubkey.from_string(who)
+            if m and m.live and (who in traders or len(orders) == BATCH_ORDERS):
+                # One curve per person per batch: later orders wait for the next batch.
+                waiting.append(row["intent"])
+                continue
             intent = await Intent.fetch(self.rpc, Pubkey.from_string(row["intent"]))
             contents = bytes.fromhex(row["contents_hex"])
             reason = None
             if not m or not m.live or (m.lastBatchId is not None and batch <= m.lastBatchId):
                 reason = "Market or batch closed."
-            elif not intent or intent.state.to_json()["kind"] != "Open" or intent.deadline <= time():
+            elif not intent or intent.state.to_json()["kind"] != "Open" or intent.deadline <= cutoff:
                 reason = "Intent expired or closed."
-            elif who in traders or len(orders) == 8:
-                reason = "Batch participant limit reached."
             participant = await Participant.fetch(self.rpc, person) if not reason else None
             if participant and (
                 participant.status.to_json()["kind"] != "Active" or str(participant.currentWallet) != row["wallet"]
@@ -225,7 +373,7 @@ class ValidatorMarket:
                     )
                 continue
             pos_key = ledger_position_address(market, person)
-            pos = await LedgerPosition.fetch(self.rpc, pos_key)
+            pos = await maybe_fetch(LedgerPosition, self.rpc, pos_key)
             wallet = participant.currentWallet
             traders[who] = TraderAccounts(
                 person,
@@ -264,6 +412,8 @@ class ValidatorMarket:
                         ),
                     )
                 )
+        with self.db:
+            self.db.executemany("UPDATE web_orders SET batch=? WHERE intent=?", [(batch + 1, key) for key in waiting])
         if not orders:
             return
         board = self.lifecycle.snapshot() or {"coins": []}
@@ -276,11 +426,38 @@ class ValidatorMarket:
             timer=life["timer"] if life else 0.0,
             batch_id=batch,
         )
-        req = ClearRequest(
-            market=public, quote=rule_quote(Observation(market=public)), people=people, user_curves=orders
-        )
-        result = clear(req)
-        filled = {f["intent"] for f in result["fills"]}
+        base = self.tape_for(address, public)
+        quote = self.quote(address, public, board, base)
+        block = (await self.rpc.get_latest_blockhash()).value
+        while True:
+            tape = copy.deepcopy(base)
+            req = ClearRequest(market=public, quote=quote, people=people, user_curves=orders)
+            result = clear(req, tape)
+            filled = {f["intent"] for f in result["fills"]}
+            if not filled:
+                break
+            ix = settlement_instruction(
+                req, result, market, authority.pubkey(), CONFIG, cfg.credential, cfg.schema, cfg.schemaMint, traders
+            )
+            participants = {f["participant"] for f in result["fills"]}
+            tx = Transaction.new_signed_with_payer(
+                [i for who, i in setup if who in participants] + [ix], authority.pubkey(), [authority], block.blockhash
+            )
+            wire = bytes(tx)
+            if len(wire) <= 1232:
+                break
+            if len(orders) == 1:
+                with self.db:
+                    self.db.execute(
+                        "UPDATE web_orders SET status='closed',details='Batch exceeds the Solana packet limit.' WHERE intent=?",
+                        (orders[0].intent,),
+                    )
+                return
+            # Too many traders for one packet: the latest order rides the next batch; clear the rest again.
+            late = orders.pop()
+            people = [p for p in people if p.participant != late.participant]
+            with self.db:
+                self.db.execute("UPDATE web_orders SET batch=? WHERE intent=?", (batch + 1, late.intent))
         with self.db:
             for order in orders:
                 if order.intent not in filled:
@@ -288,24 +465,8 @@ class ValidatorMarket:
                         "UPDATE web_orders SET status='unfilled',details='No executable volume at the clearing price.' WHERE intent=?",
                         (order.intent,),
                     )
+        self.tapes[address] = (tape, batch)
         if not filled:
-            return
-        ix = settlement_instruction(
-            req, result, market, authority.pubkey(), CONFIG, cfg.credential, cfg.schema, cfg.schemaMint, traders
-        )
-        participants = {f["participant"] for f in result["fills"]}
-        block = (await self.rpc.get_latest_blockhash()).value
-        tx = Transaction.new_signed_with_payer(
-            [i for who, i in setup if who in participants] + [ix], authority.pubkey(), [authority], block.blockhash
-        )
-        wire = bytes(tx)
-        if len(wire) > 1232:
-            with self.db:
-                for key in filled:
-                    self.db.execute(
-                        "UPDATE web_orders SET status='closed',details='Batch exceeds the Solana packet limit.' WHERE intent=?",
-                        (key,),
-                    )
             return
         with self.db:
             self.db.execute(

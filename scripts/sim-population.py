@@ -10,6 +10,11 @@ retail and informed types with per-person activity, risk share, signal error and
 momentum; attention is drawn by stage visibility, heat and own holdings; hidden meme
 values come from the simulator's Memes process.
 
+With --replay the crowd model is replaced by real pump.fun order flow: each live coin
+replays the first minutes of a real pump.fun coin's trades (scripts/build-pump-replay.py),
+every real wallet in that tape is played by one population wallet, which also takes the
+real wallet's address as its display name, and each trade keeps its side, timing and SOL size.
+
   node scripts/enroll-population.ts 48     # once, with the participant service running
   .venv/bin/python scripts/sim-population.py --wallets 48
 """
@@ -17,6 +22,7 @@ values come from the simulator's Memes process.
 import argparse
 import asyncio
 import base64
+import gzip
 import json
 import math
 import os
@@ -36,7 +42,8 @@ from learned_markets_simulation.params import INFORMED, NOISE, RETAIL, SimConfig
 from solana.rpc.async_api import AsyncClient
 from solders.keypair import Keypair
 from solders.pubkey import Pubkey
-from solders.transaction import Transaction
+from solders.message import to_bytes_versioned
+from solders.transaction import VersionedTransaction
 
 ROOT = Path(__file__).resolve().parent.parent
 SIM = SimConfig()
@@ -76,6 +83,7 @@ class Person:
         self.cash = 0
         self.positions = {}
         self.busy = False
+        self.real = None  # the real pump.fun wallet this one plays in replay mode
         self.touched = set()  # markets this wallet has ordered in; others have no position yet
 
 
@@ -98,6 +106,9 @@ class Population:
         self.next_meme = self.rng.randrange(len(MEMES))
         self.used_names = set()
         self.pump_used = set()
+        # Replay mode: real pump.fun tapes, and per live market its tape, start time and cast.
+        self.tapes = [json.loads(line)["trades"] for line in gzip.open(args.replay, "rt")] if args.replay else []
+        self.script = {}
         keys = ROOT / "keys/market-demo/surfpool"
         self.people = [
             Person(i, Keypair.from_json((keys / f"population-{i:02d}.json").read_text()), self.rng)
@@ -124,7 +135,7 @@ class Population:
         if not me.get("eligible"):
             raise RuntimeError(f"{person.wallet} is not eligible; run scripts/enroll-population.ts")
         person.participant = Pubkey.from_string(me["participant"]["address"])
-        if not getattr(person, "named", False):
+        if not getattr(person, "named", False) and not self.tapes:
             i = person.index
             handle = f"{HANDLE_A[i % len(HANDLE_A)]}_{HANDLE_B[(i // len(HANDLE_A)) % len(HANDLE_B)]}{i // 480 or ''}"
             try:
@@ -134,8 +145,13 @@ class Population:
                 log(event="profile-error", wallet=person.wallet[:8], error=str(exc)[:160])
 
     async def relay(self, person, prepared):
-        tx = Transaction.from_bytes(base64.b64decode(prepared["transactionBase64"]))
-        tx.partial_sign([person.kp], tx.message.recent_blockhash)
+        # Prepared transactions may be legacy or v0; sign the message bytes in our signer slot.
+        tx = VersionedTransaction.from_bytes(base64.b64decode(prepared["transactionBase64"]))
+        msg = tx.message
+        slot = list(msg.account_keys).index(person.kp.pubkey())
+        sigs = list(tx.signatures)
+        sigs[slot] = person.kp.sign_message(to_bytes_versioned(msg))
+        tx = VersionedTransaction.populate(msg, sigs)
         return await self.call(
             person, "POST", "/v1/wallet-transactions", {"transactionBase64": base64.b64encode(bytes(tx)).decode()}
         )
@@ -186,10 +202,15 @@ class Population:
                     self.last_x[addr] = x
                 for addr in set(self.slot_of) - set(live):
                     del self.slot_of[addr]
+                    self.script.pop(addr, None)
                 self.markets = live
+                for addr in live:
+                    if self.tapes and addr not in self.script and self.owns(addr):
+                        tape = self.tapes[self.rng.randrange(len(self.tapes))]
+                        self.script[addr] = {"t0": time.time(), "trades": tape, "i": 0, "cast": {}}
             except Exception as exc:  # the backend may be restarting
                 log(event="board-error", error=str(exc)[:200])
-            await asyncio.sleep(1)
+            await asyncio.sleep(2.5)
 
     def assign_slot(self, addr):
         used = set(self.slot_of.values())
@@ -213,9 +234,14 @@ class Population:
             self.memes.step(live, ret)
             await asyncio.sleep(self.batch_slots * 0.4)
 
+    def owns(self, addr):
+        # Workers own disjoint markets so the per-market batch cap holds across processes.
+        n = self.args.shards
+        return n == 1 or Pubkey.from_string(addr).__bytes__()[0] % n == self.args.shard
+
     # ------------------------------------------------------------------ crowd behaviour
     def pick_coin(self, person):
-        live = [a for a in self.markets if a in self.slot_of]
+        live = [a for a in self.markets if a in self.slot_of and self.owns(a)]
         if not live:
             return None
         weights = []
@@ -262,6 +288,9 @@ class Population:
         if len(seats) >= self.args.per_batch or person.wallet in seats:
             return
         side, qty, price = self.decide(person, addr)
+        await self.submit(person, addr, seats, side, qty, price)
+
+    async def submit(self, person, addr, seats, side, qty, price):
         dust = 5_000_000 * 1_000_000 // price + 1  # tokens below dust do not count as trading
         if side == "buy":
             qty = max(qty, dust)
@@ -291,6 +320,78 @@ class Population:
         )
         self.stats["orders"] += 1
         self.stats[side] += 1
+
+    # ------------------------------------------------------------------ real pump.fun order flow
+    def cast(self, script, wallet):
+        """The population wallet that plays `wallet` in this coin; it keeps that role and name."""
+        person = script["cast"].get(wallet)
+        if not person:
+            taken = {p.wallet for p in script["cast"].values()}
+            free = [p for p in self.people if p.participant and p.wallet not in taken]
+            # Prefer a wallet that already carries this real address, then one without a name yet.
+            pool = (
+                [p for p in free if p.real == wallet]
+                or [p for p in free if not p.real]
+                or free
+                or [p for p in self.people if p.participant]
+            )
+            person = script["cast"][wallet] = self.rng.choice(pool)
+            if not person.real:
+                person.real = wallet
+                asyncio.ensure_future(self.rename(person, f"{wallet[:6]}_{wallet[-6:]}"))
+        return person
+
+    async def rename(self, person, username):
+        try:
+            await self.authed(person, "POST", "/api/profile", {"username": username})
+        except Exception as exc:
+            person.real = None  # another worker already plays this wallet; take the next one
+            if "-> 409" not in str(exc):
+                log(event="profile-error", wallet=person.wallet[:8], error=str(exc)[:160])
+
+    async def replay_trade(self, person, addr, seats, is_buy, lamports):
+        price = int(self.markets[addr]["price"] or 0) or 28_000_000
+        lamports = int(lamports * self.args.replay_scale)
+        if is_buy:
+            # The real size, within what this wallet can fund.
+            lamports = min(lamports, int((person.cash or 0) * 0.3))
+            side, qty = "buy", lamports * 1_000_000 // price
+        else:
+            hold = person.positions.get(addr, 0)
+            qty = min(hold, lamports * 1_000_000 // price)
+            side, qty = "sell", hold if qty > 0.8 * hold else qty
+        try:
+            person.busy = True
+            await self.submit(person, addr, seats, side, qty, price)
+        except Exception as exc:
+            self.stats["errors"] += 1
+            log(event="error", wallet=person.wallet[:8], error=repr(exc)[:240])
+        finally:
+            person.busy = False
+
+    async def replay_loop(self):
+        while True:
+            await asyncio.sleep(0.2)
+            now = time.time()
+            batch = self.board_slot // self.batch_slots
+            for addr, script in list(self.script.items()):
+                if addr not in self.markets:
+                    continue
+                trades, clock = script["trades"], (now - script["t0"]) * self.args.replay_speed
+                seats = self.per_batch.setdefault((addr, batch), set())
+                while script["i"] < len(trades) and trades[script["i"]][0] <= clock:
+                    at, wallet, is_buy, lamports = trades[script["i"]]
+                    person = self.cast(script, wallet)
+                    full = len(seats) >= self.args.per_batch or person.wallet in seats or person.busy
+                    if full and clock - at < self.args.replay_patience:
+                        break  # wait for a seat in a later batch
+                    script["i"] += 1
+                    if full:
+                        self.stats["dropped"] = self.stats.get("dropped", 0) + 1
+                    else:
+                        person.busy = True
+                        seats.add(person.wallet)  # hold the seat now: the order is placed asynchronously
+                        asyncio.ensure_future(self.replay_trade(person, addr, seats, is_buy, lamports))
 
     def pump_meme(self):
         """Newest unused pump.fun launch name (scripts/pump-feed.py), else None."""
@@ -338,17 +439,17 @@ class Population:
                 elif person.cash < 400_000_000:
                     await self.seed(person, True)
                     log(event="refill", wallet=person.wallet)
-                else:
+                elif not self.tapes:
                     person.busy = True
                     # Simulated act rates are per 10 s batch; the demo compresses time.
                     if self.rng.random() < min(1.0, person.act * self.args.activity):
                         await self.trade(person)
+                    person.busy = False
             except Exception as exc:
                 self.stats["errors"] += 1
                 log(event="error", wallet=person.wallet[:8], error=repr(exc)[:240])
+                person.busy = person.busy and bool(self.tapes)
                 await asyncio.sleep(2)
-            finally:
-                person.busy = False
             await asyncio.sleep(self.rng.uniform(0.3, 1.2))
 
     async def launch_loop(self):
@@ -397,6 +498,7 @@ class Population:
                 self.step_memes(),
                 *([self.launch_loop()] if self.args.launch_max > 0 else []),
                 self.report_loop(),
+                *([self.replay_loop()] if self.tapes else []),
                 *(self.person_loop(p) for p in self.people),
             )
 
@@ -412,10 +514,18 @@ def main():
     parser.add_argument("--max-live", type=int, default=32, help="pause launches above this many live coins")
     parser.add_argument("--launch-min", type=float, default=2.0)
     parser.add_argument("--launch-max", type=float, default=4.0, help="0 disables launches in this worker")
-    parser.add_argument("--per-batch", type=int, default=7, help="participants per market per batch (program max 8)")
+    parser.add_argument("--per-batch", type=int, default=2,
+                        help="participants per market per batch; 8 is the program max but only 2 fit one packet with position setup")
+    parser.add_argument("--shard", type=int, default=0)
+    parser.add_argument("--shards", type=int, default=1)
     parser.add_argument("--activity", type=float, default=4.0, help="multiplier on simulated act rates")
     parser.add_argument("--budget-scale", type=float, default=0.25)
     parser.add_argument("--seed", type=int, default=7)
+    parser.add_argument("--replay", help="real pump.fun tapes from scripts/build-pump-replay.py; replaces the crowd model")
+    parser.add_argument("--replay-speed", type=float, default=1.0, help="tape seconds per real second")
+    parser.add_argument("--replay-scale", type=float, default=1.0, help="multiplier on real trade sizes")
+    parser.add_argument("--replay-patience", type=float, default=8.0,
+                        help="tape seconds a trade waits for a batch seat before it is dropped")
     args = parser.parse_args()
     assert os.environ.get("LM_NETWORK", "surfpool") == "surfpool"
     assert args.per_batch <= 8

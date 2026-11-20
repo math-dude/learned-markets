@@ -10,7 +10,8 @@ from .contracts import ClearRequest
 from .policy import state_for
 
 
-def clear(request: ClearRequest):
+def clear(request: ClearRequest, tape=None):
+    """Clear one batch. A `tape` (one world, one slot) is folded forward with the result."""
     state, cfg = state_for(request.market, len(request.people))
     indices = {p.participant: i for i, p in enumerate(request.people)}
     for i, person in enumerate(request.people):
@@ -49,12 +50,12 @@ def clear(request: ClearRequest):
         torch.zeros(n, dtype=torch.int64),
         torch.zeros(n, dtype=torch.int64),
         torch.tensor([indices[o.participant] for o in orders], dtype=torch.int64),
-        torch.tensor(
-            [BUY if o.side == "buy" else SELL for o in orders], dtype=torch.int64
-        ),
+        torch.tensor([BUY if o.side == "buy" else SELL for o in orders], dtype=torch.int64),
         qty,
     )
     result = step_batch(state, batch, core_quote, cfg)
+    if tape is not None:
+        tape.update(torch.ones(1, 1, dtype=torch.bool), result, state)
     if (
         bool((state.cash < 0).any())
         or bool((state.hold < 0).any())

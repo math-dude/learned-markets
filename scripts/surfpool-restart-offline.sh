@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # On chungus: snapshot the running Surfpool, then restart it --offline from that snapshot in tmux "surfpool".
 # Offline Surfpool never asks mainnet about absent accounts, which otherwise stalls under 429s.
+# Instruction profiling and Studio are off: with them every transaction took seconds once state grew.
 # The slot restarts near 0, so reset the backend DB afterwards (participants stay on chain).
 set -euo pipefail
 B=/data/ssd/jetstreamer/surfpool-bench
@@ -25,7 +26,10 @@ while [ -e "/proc/$PID" ]; do sleep 0.1; done
 tmux kill-session -t surfpool 2>/dev/null || true
 tmux new-session -d -s surfpool "$HOME/.local/bin/surfpool start --no-tui --no-deploy --offline --genesis-hash $GENESIS \
   --host 127.0.0.1 --port 8899 --ws-port 8900 --airdrop-amount 0 \
-  --snapshot $D/accounts.json --log-path $D/logs 2>&1 | tee $D/surfpool.out"
+  --disable-instruction-profiling --max-profiles 16 --log-bytes-limit 2000 \
+  --log-path $D/logs 2>&1 | tee $D/surfpool.out"
 for _ in $(seq 60); do rpc '{"jsonrpc":"2.0","id":1,"method":"getSlot"}' | grep -q result && break; sleep 0.5; done
+# Surfpool 1.7 hangs at startup on --snapshot with this many accounts, so the accounts go in over RPC.
+python3 "$(dirname "$0")/surfpool-inject-snapshot.py" http://127.0.0.1:8899 "$D/accounts.json"
 rpc '{"jsonrpc":"2.0","id":1,"method":"getSlot"}'
 echo
