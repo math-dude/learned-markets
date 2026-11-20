@@ -42,7 +42,14 @@ ROOT = Path(__file__).resolve().parent.parent
 SIM = SimConfig()
 VIS = {"Line": 1.0, "Rookie": 3.0, "Regular": 4.0}
 BASE_FEE = 0.01
+HANDLE_A = ["vice", "leonida", "lucia", "skibidi", "rizz", "sigma", "demure", "rot", "moodeng", "chill",
+            "hawk", "trala", "labubu", "sixseven", "aura", "dubai", "mew", "gyatt", "fanum", "ohio", "delulu",
+            "mog", "capy", "npc", "griddy", "slay", "bussin", "sahur", "pedro", "grimace"]
+HANDLE_B = ["maxi", "lord", "farmer", "enjoyer", "king", "queen", "ape", "degen", "chad", "andy", "bro", "fan",
+            "goblin", "whale", "scout", "vic"]
 MEMES = json.loads((ROOT / "apps/web/public/memes/memes.json").read_text())
+# Real-time pump.fun launch names; the sim crowd still drives every trade.
+PUMP_FEED = Path(os.environ.get("PUMP_FEED", ROOT / ".pump-feed.json"))
 
 
 def log(**event):
@@ -69,6 +76,7 @@ class Person:
         self.cash = 0
         self.positions = {}
         self.busy = False
+        self.touched = set()  # markets this wallet has ordered in; others have no position yet
 
 
 class Population:
@@ -89,6 +97,7 @@ class Population:
         self.stats = {"orders": 0, "buy": 0, "sell": 0, "launch": 0, "errors": 0}
         self.next_meme = self.rng.randrange(len(MEMES))
         self.used_names = set()
+        self.pump_used = set()
         keys = ROOT / "keys/market-demo/surfpool"
         self.people = [
             Person(i, Keypair.from_json((keys / f"population-{i:02d}.json").read_text()), self.rng)
@@ -115,6 +124,14 @@ class Population:
         if not me.get("eligible"):
             raise RuntimeError(f"{person.wallet} is not eligible; run scripts/enroll-population.ts")
         person.participant = Pubkey.from_string(me["participant"]["address"])
+        if not getattr(person, "named", False):
+            i = person.index
+            handle = f"{HANDLE_A[i % len(HANDLE_A)]}_{HANDLE_B[(i // len(HANDLE_A)) % len(HANDLE_B)]}{i // 480 or ''}"
+            try:
+                await self.call(person, "POST", "/api/profile", {"username": handle[:16]})
+                person.named = True
+            except RuntimeError as exc:
+                log(event="profile-error", wallet=person.wallet[:8], error=str(exc)[:160])
 
     async def relay(self, person, prepared):
         tx = Transaction.from_bytes(base64.b64decode(prepared["transactionBase64"]))
@@ -135,7 +152,8 @@ class Population:
     # ------------------------------------------------------------------ confirmed reads
     async def refresh(self, person):
         keys = [ledger_balance_address(person.participant)]
-        live = list(self.markets)
+        # Only read positions that can exist: absent accounts are slow on a forked Surfpool.
+        live = [m for m in self.markets if m in person.touched]
         keys += [ledger_position_address(Pubkey.from_string(m), person.participant) for m in live]
         values = (await self.rpc.get_multiple_accounts(keys, commitment="confirmed")).value
         ok = lambda raw: raw is not None and raw.owner == PROGRAM_ID
@@ -257,6 +275,7 @@ class Population:
         else:
             return
         seats.add(person.wallet)
+        person.touched.add(addr)
         prepared = await self.authed(
             person,
             "POST",
@@ -273,8 +292,22 @@ class Population:
         self.stats["orders"] += 1
         self.stats[side] += 1
 
+    def pump_meme(self):
+        """Newest unused pump.fun launch name (scripts/pump-feed.py), else None."""
+        try:
+            feed = json.loads(PUMP_FEED.read_text())
+        except (OSError, ValueError):
+            return None
+        for token in feed:
+            if token["ticker"] in self.pump_used or token["name"] in self.used_names:
+                continue
+            self.pump_used.add(token["ticker"])
+            art = MEMES[self.rng.randrange(len(MEMES))]["image"]
+            return {"name": token["name"], "ticker": token["ticker"], "image": token.get("image") or art}
+        return None
+
     async def launch(self, person):
-        meme = MEMES[self.next_meme % len(MEMES)]
+        meme = self.pump_meme() or MEMES[self.next_meme % len(MEMES)]
         self.next_meme += self.rng.randrange(1, 7)
         n = 1
         name = meme["name"]
@@ -312,7 +345,7 @@ class Population:
                         await self.trade(person)
             except Exception as exc:
                 self.stats["errors"] += 1
-                log(event="error", wallet=person.wallet[:8], error=str(exc)[:240])
+                log(event="error", wallet=person.wallet[:8], error=repr(exc)[:240])
                 await asyncio.sleep(2)
             finally:
                 person.busy = False
@@ -328,7 +361,7 @@ class Population:
                     await self.launch(person)
                 except Exception as exc:
                     self.stats["errors"] += 1
-                    log(event="launch-error", error=str(exc)[:240])
+                    log(event="launch-error", error=repr(exc)[:240])
 
         while True:
             await asyncio.sleep(self.rng.uniform(self.args.launch_min, self.args.launch_max))
