@@ -15,19 +15,48 @@ function tokenPrice(price: string) {
   return (Number(price) / 1e6).toLocaleString('en-US', { maximumFractionDigits: 6 })
 }
 
+// Slot duration learned from how fast slots arrive, for the chart time axis.
+const slotClock = { slot: 0, at: 0, ms: 400 }
+function learnSlot(slot: number) {
+  if (slot === slotClock.slot) return slotClock
+  const t = Date.now()
+  const per = (t - slotClock.at) / Math.max(1, slot - slotClock.slot)
+  if (slotClock.at && slot > slotClock.slot && per > 50 && per < 2000) slotClock.ms = slotClock.ms * 0.6 + per * 0.4
+  slotClock.slot = slot
+  slotClock.at = t
+  return slotClock
+}
+
 export function MarketHistory({
   market,
   fills,
   candles,
   rounds,
   names = {},
+  slot,
+  batchSlots,
 }: {
   market: Market
   fills: Fill[]
   candles: ChainState['candles']
   rounds?: ChainState['rounds']
   names?: Record<string, string>
+  slot?: number
+  batchSlots?: number
 }) {
+  // When each batch cleared, estimated once from the slot clock so candles keep their second.
+  const cleared = useRef(new Map<number, number>())
+  let times: number[] | undefined
+  if (slot && batchSlots) {
+    const { ms } = learnSlot(slot)
+    times = candles.map((c) => {
+      const known = cleared.current.get(c.batch)
+      if (known) return known
+      const at = Date.now() - Math.max(0, slot - (c.batch + 1) * batchSlots) * ms
+      cleared.current.set(c.batch, at)
+      return at
+    })
+  }
   const recent = fills.filter((f) => f.market === market.address)
   const history = candles.map((c) => ({
     o: Number(c.o) / 1e6,
@@ -46,6 +75,7 @@ export function MarketHistory({
     <div className="paper-history">
       <CandleChart
         candles={history}
+        times={times}
         price={Number(market.price) / 1e6}
         ticker={market.ticker}
         unit="lamports"

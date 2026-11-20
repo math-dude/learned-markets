@@ -26,9 +26,11 @@
   --match: #d9b45b;
   --radius: 6px;
   --mono: 'SF Mono', ui-monospace, Menlo, Consolas, monospace;
+  /* The damper wordmark's family; system type until it loads. */
+  --font: 'Outfit', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Arial, sans-serif;
 
   color-scheme: dark;
-  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family: var(--font);
   font-size: 15px;
   color: var(--text);
   background: var(--bg);
@@ -116,8 +118,7 @@ button:disabled {
 .sidenav-logo {
   width: 40px;
   height: 40px;
-  border-radius: var(--radius);
-  background: var(--accent);
+  border-radius: 10px;
   margin-bottom: 12px;
   display: block;
 }

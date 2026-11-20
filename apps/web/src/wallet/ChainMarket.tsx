@@ -178,7 +178,7 @@ export function ChainMarket() {
                 {error}
               </p>
             )}
-            <MarketHistory market={activeMarket} fills={state?.fills ?? []} candles={state?.candles ?? []} rounds={state?.rounds} names={state?.names} />
+            <MarketHistory market={activeMarket} fills={state?.fills ?? []} candles={state?.candles ?? []} rounds={state?.rounds} names={state?.names} slot={state?.slot} batchSlots={state?.batch_slots} />
           </main>
           <aside className="artifact-coin-sidebar">
             {activeMarket.live && admitted && wallet ? (
@@ -246,7 +246,7 @@ export function ChainMarket() {
           ) : (
             <header className="validator-mast">
               <div>
-                <span className="eyebrow">Learned Markets</span>
+                <span className="eyebrow">damper</span>
                 <h1>
                   {portfolio
                     ? 'Your wallet'

@@ -8,14 +8,45 @@ export interface Candle {
   v: number
 }
 
+/** One candle per second: a second without a cleared batch holds the last price. */
+function perSecond(candles: Candle[], times: number[], seconds: number) {
+  const end = Math.floor(Date.now() / 1000)
+  const start = end - seconds + 1
+  let i = 0
+  let last = candles[0].o
+  while (i < candles.length && Math.floor(times[i] / 1000) < start) last = candles[i++].c
+  const out: (Candle & { t: number })[] = []
+  for (let t = start; t <= end; t++) {
+    const k = { o: last, h: last, l: last, c: last, v: 0, t }
+    while (i < candles.length && Math.floor(times[i] / 1000) <= t) {
+      const c = candles[i++]
+      k.h = Math.max(k.h, c.c)
+      k.l = Math.min(k.l, c.c)
+      k.c = c.c
+      k.v += c.v
+    }
+    out.push(k)
+    last = k.c
+  }
+  return out
+}
+
+const RANGES = {
+  Batches: [[20, '20 batches'], [60, '60 batches'], [240, '240 batches']],
+  '1s': [[60, '1m'], [300, '5m'], [900, '15m']],
+} as const
+
 export function CandleChart({
   candles,
+  times,
   price,
   ticker,
   unit,
   caption,
 }: {
   candles: Candle[]
+  /** When each candle's batch cleared (ms). Enables the per-second view. */
+  times?: number[]
   price: number
   ticker: string
   unit: 'SOL' | 'lamports'
@@ -23,10 +54,15 @@ export function CandleChart({
 }) {
   const [hover, setHover] = useState<number | null>(null)
   const [mode, setMode] = useState<'Price' | 'Candles'>('Candles')
+  const [frame, setFrame] = useState<'Batches' | '1s'>('Batches')
   const [range, setRange] = useState(60)
   const gradient = useId().replaceAll(':', '')
-  const offset = Math.max(0, candles.length - range)
-  const data = candles.slice(offset)
+  const timed = frame === '1s' && times && candles.length > 0
+  const seconds = timed ? perSecond(candles, times, range) : null
+  const offset = seconds ? 0 : Math.max(0, candles.length - range)
+  const data: Candle[] = seconds ?? candles.slice(offset)
+  const label = (i: number) =>
+    seconds ? new Date(seconds[i].t * 1000).toLocaleTimeString('en-US', { hour12: false }) : caption(offset + i)
   if (!data.length)
     return (
       <section className="card">
@@ -80,9 +116,25 @@ export function CandleChart({
         </div>
       </header>
       <div className="chart-toolbar">
-        <span>{caption(offset + index)}</span>
+        <span>{label(index)}</span>
         <div>
-          {[20, 60, 240].map((value) => (
+          {times &&
+            (['Batches', '1s'] as const).map((value) => (
+              <button
+                className="chart-range chart-frame"
+                aria-pressed={frame === value}
+                key={value}
+                onClick={() => {
+                  setFrame(value)
+                  setRange(RANGES[value][1][0])
+                  setHover(null)
+                }}
+              >
+                {value}
+              </button>
+            ))}
+          {times && <i className="chart-divider" />}
+          {RANGES[frame].map(([value, text]) => (
             <button
               className="chart-range"
               aria-pressed={range === value}
@@ -92,7 +144,7 @@ export function CandleChart({
                 setHover(null)
               }}
             >
-              {value} batches
+              {text}
             </button>
           ))}
         </div>
@@ -111,12 +163,13 @@ export function CandleChart({
           C <b>{display(selected.c)}</b>
         </span>
       </div>
+      <div className="price-plot">
       <svg
         preserveAspectRatio="none"
         className="price-canvas"
         viewBox="0 0 1000 350"
         role="img"
-        aria-label={ticker + ' confirmed price history. ' + data.length + ' batches.'}
+        aria-label={ticker + ' confirmed price history. ' + data.length + (seconds ? ' seconds.' : ' batches.')}
         onPointerMove={move}
         onPointerDown={move}
         onPointerLeave={() => setHover(null)}
@@ -137,9 +190,6 @@ export function CandleChart({
               stroke="var(--border-soft)"
               strokeDasharray="3 6"
             />
-            <text x="906" y={28 + t * 230} className="chart-axis">
-              {display(top - t * (top - bottom))}
-            </text>
           </g>
         ))}
         {mode === 'Price' ? (
@@ -171,7 +221,7 @@ export function CandleChart({
             const width = Math.min(24, (856 / data.length) * 0.65)
             return (
               <g key={offset + i}>
-                <line x1={x(i)} x2={x(i)} y1={y(c.h)} y2={y(c.l)} stroke={fill} />
+                <line x1={x(i)} x2={x(i)} y1={y(c.h)} y2={y(c.l)} stroke={fill} vectorEffect="non-scaling-stroke" />
                 <rect
                   x={x(i) - width / 2}
                   y={y(Math.max(c.o, c.c))}
@@ -196,9 +246,6 @@ export function CandleChart({
             opacity=".35"
           />
         ))}
-        <text x="906" y="307" className="chart-axis">
-          VOLUME
-        </text>
         {hover !== null && (
           <g pointerEvents="none">
             <line x1={x(index)} x2={x(index)} y1="20" y2="330" stroke="var(--muted)" strokeDasharray="4 4" />
@@ -206,10 +253,20 @@ export function CandleChart({
           </g>
         )}
       </svg>
+        {/* Labels sit outside the stretched drawing so the type keeps its proportions. */}
+        {[0, 0.25, 0.5, 0.75, 1].map((t) => (
+          <span key={t} className="chart-axis" style={{ top: ((24 + t * 230) / 350) * 100 + '%' }}>
+            {display(top - t * (top - bottom))}
+          </span>
+        ))}
+        <span className="chart-axis" style={{ top: (304 / 350) * 100 + '%' }}>
+          Volume
+        </span>
+      </div>
       <footer className="chart-footer">
-        <span>{caption(offset)}</span>
-        <span>{hover === null ? 'Confirmed batches' : num(selected.v) + ' tokens traded'}</span>
-        <span>{caption(offset + data.length - 1)}</span>
+        <span>{label(0)}</span>
+        <span>{hover === null ? (seconds ? 'One candle per second' : 'Confirmed batches') : num(selected.v) + ' tokens traded'}</span>
+        <span>{label(data.length - 1)}</span>
       </footer>
     </section>
   )

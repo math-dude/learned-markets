@@ -12,7 +12,7 @@ async function walletSignature<T>(result: Promise<T>, timeout: number): Promise<
       result,
       new Promise<never>((_, reject) => {
         timer = setTimeout(
-          () => reject(new Error('The wallet signature timed out. Close any open Privy prompt and try again.')),
+          () => reject(new Error('The wallet signature timed out. Try again.')),
           timeout,
         )
       }),
@@ -43,7 +43,8 @@ export default function PrivyWallet({ children }: { children: ReactNode }) {
         solana: { rpcs: signingRpcs },
         loginMethods: ['email'],
         appearance: { walletChainType: 'solana-only', theme: 'dark' },
-        embeddedWallets: { solana: { createOnLogin: 'all-users' } },
+        // The embedded wallet signs orders in the background: no confirmation prompt per trade.
+        embeddedWallets: { solana: { createOnLogin: 'all-users' }, showWalletUIs: false },
       }}
     >
       <Bridge>{children}</Bridge>

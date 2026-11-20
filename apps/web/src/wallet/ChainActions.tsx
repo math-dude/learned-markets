@@ -45,7 +45,7 @@ export function ChainLaunch({ wallet, refresh }: { wallet: Wallet; refresh: () =
                   throw new Error(
                     typeof data.detail === 'string' ? data.detail : 'Launch could not be prepared.',
                   )
-                setStep('Confirm launch in Privy…')
+                setStep('Signing launch…')
                 await wallet.send(data.transactionBase64, () => setStep('Confirming on the validator…'))
                 setMarket(data.market)
                 refresh()
@@ -160,7 +160,7 @@ export function ChainOrder({
                 ],
               },
             })
-            setStep('Sign order in Privy…')
+            setStep('Signing order…')
             await wallet.send(tx.transactionBase64, () => {
               sessionStorage.setItem(recovery, tx.intent)
               setPending(tx.intent)

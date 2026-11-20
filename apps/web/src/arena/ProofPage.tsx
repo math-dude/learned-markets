@@ -43,7 +43,7 @@ export function ProofPage() {
             <i style={{ background: PUMP }} /> pump.fun bonding curve
           </span>
           <span>
-            <i style={{ background: OURS }} /> Learned Markets
+            <i style={{ background: OURS }} /> damper
           </span>
           <span>
             <i className="dash" /> Hidden true value

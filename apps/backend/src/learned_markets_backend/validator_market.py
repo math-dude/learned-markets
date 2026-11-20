@@ -61,6 +61,7 @@ WINDOW = int(os.environ.get("LM_BATCH_SLOTS", "32"))
 # Orders cleared per market per settlement (program max 8), and seconds of deadline headroom required.
 BATCH_ORDERS = min(8, int(os.environ.get("LM_BATCH_ORDERS", "8")))
 EXPIRY_MARGIN = float(os.environ.get("LM_EXPIRY_MARGIN", "15"))
+IDLE_SCALE = min(1.0, WINDOW * 0.4 / 10)
 
 
 async def maybe_fetch(cls, rpc, address, seconds=3.0):
@@ -106,7 +107,8 @@ class ValidatorMarket:
         if not entry:
             return Tape(state_for(public)[1])
         tape = copy.deepcopy(entry[0])
-        tape.idle = tape.idle + max(0, public.batch_id - entry[1] - 1)
+        # The quoter was trained on 10 s batches; shorter demo windows count as fractions of one.
+        tape.idle = tape.idle + max(0, public.batch_id - entry[1] - 1) * IDLE_SCALE
         return tape
 
     def observation(self, address, public, board, tape):
