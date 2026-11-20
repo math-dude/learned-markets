@@ -28,11 +28,15 @@ LEVER_MULT = (True, False, False, False, False, True)
 END_NONE, END_CUT, END_DEATH, END_BUMPED = 0, 1, 2, 3
 
 
-def levers_from_values(values: torch.Tensor) -> Levers:
-    """Build levers from a float tensor [W, 6] in real units, clamped to bounds."""
+def levers_from_values(values: torch.Tensor, clamp: bool = True) -> Levers:
+    """Build levers from a float tensor [W, 6] in real units, clamped to the public bounds.
+
+    `clamp=False` is for baselines outside what the auction network may choose,
+    such as an open door with no launch fee and no line cap.
+    """
     lo = torch.tensor(LEVER_LO, device=values.device)
     hi = torch.tensor(LEVER_HI, device=values.device)
-    v = torch.maximum(torch.minimum(values, hi), lo)
+    v = torch.maximum(torch.minimum(values, hi), lo) if clamp else values
     seats = v[:, 2].round().long()
     return Levers(
         launch_fee=v[:, 0].long(),

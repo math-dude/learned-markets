@@ -34,12 +34,13 @@ from learned_markets_core.units import prices
 from .crowd import Crowd
 from .memes import Memes
 from .params import SimConfig
-from .reward import batch_reward
+from .reward import batch_reward, gap_penalty
 
 
 @dataclass
 class StepOut:
-    reward: torch.Tensor  # [W, C] per-coin reward for this batch
+    reward: torch.Tensor  # [W, C] per-coin training reward for this batch (people term minus any smoothness charge)
+    people_reward: torch.Tensor  # [W, C] the people-and-price-accuracy term alone
     closeness: torch.Tensor  # [W, C] exp(-|log(price / true value)| / scale)
     result: BatchResult
     events: LifecycleEvents
@@ -74,6 +75,7 @@ class World:
         self.tape = Tape(cfg)
         self.launch_x = self.tape.launch_x
         self.lever_values = standin_lever_values(self.state, cfg)
+        self.clamp_levers = True
 
         # Seed the line so the first batch has something to trade.
         zero = torch.zeros(W, dtype=torch.int64, device=dev)
@@ -111,11 +113,12 @@ class World:
 
         ret = self.tape.update(live, res, s)
         closeness = torch.exp(-(self.tape.logp - self.true_log_price()).abs() / sim.closeness_scale)
-        reward = batch_reward(res.traders, closeness, live, cfg.n_people, sim)
+        people = batch_reward(res.traders, closeness, live, cfg.n_people, sim)
+        reward = people - gap_penalty(ret, live, sim) if sim.gap_weight else people
 
         self.memes.step(live, ret)
         self.lever_values = standin_lever_values(s, cfg) if lever_values is None else lever_values
-        levers = levers_from_values(self.lever_values)
+        levers = levers_from_values(self.lever_values, clamp=self.clamp_levers)
         launch = self.memes.launch_requests(levers.launch_fee)
         deployer = torch.randint(0, cfg.n_people, (cfg.n_worlds,), device=self.dev, generator=self.crowd_gen)
         ev = lifecycle_step(s, res, levers, launch, deployer, cfg)
@@ -125,7 +128,7 @@ class World:
         self.total_cash = self.total_cash + self.crowd.topup(s, self.wealth())
         if self.check:
             check_invariants(s, cfg, self.total_cash)
-        return StepOut(reward=reward, closeness=closeness, result=res, events=ev, orders=orders)
+        return StepOut(reward=reward, people_reward=people, closeness=closeness, result=res, events=ev, orders=orders)
 
     def _sequential(self, orders, rounds: int = 8) -> BatchResult:
         """Baseline only: execute orders in random order against the curve, not as one batch.

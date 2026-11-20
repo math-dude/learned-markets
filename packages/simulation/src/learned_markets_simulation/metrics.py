@@ -59,7 +59,7 @@ class Recorder:
         r["traders"].append(out.result.traders.float())
         r["lamports"].append((out.result.volume.double() * px).float())
         r["top10"].append(w.tape.top10.clone())
-        r["reward"].append(out.reward)
+        r["reward"].append(out.people_reward)
         r["edge"].append(out.result.at_edge)
         self.trapped += out.events.trapped.double()
         self.fees += float(out.result.fees.sum())

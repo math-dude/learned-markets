@@ -1,0 +1,44 @@
+{
+ "same_meme": {
+  "up_drift": {
+   "ours_error": 0.22777333855628967,
+   "pump_error": 0.4593888223171234,
+   "memes": 34,
+   "ours_better_share": 0.8529411764705882
+  },
+  "down_drift": {
+   "ours_error": 0.5371557474136353,
+   "pump_error": 1.687685251235962,
+   "memes": 35,
+   "ours_better_share": 1.0
+  },
+  "swings": {
+   "ours_error": 0.3632456958293915,
+   "pump_error": 0.764978289604187,
+   "memes": 29,
+   "ours_better_share": 0.9655172413793104
+  },
+  "quiet": {
+   "ours_error": 0.27386337518692017,
+   "pump_error": 0.9841938614845276,
+   "memes": 39,
+   "ours_better_share": 1.0
+  },
+  "info_jump": {
+   "ours_error": 0.28421953320503235,
+   "pump_error": 0.6036344170570374,
+   "memes": 22,
+   "ours_better_share": 0.8636363636363636
+  },
+  "near_dead": {
+   "ours_error": 0.5792485475540161,
+   "pump_error": 1.883099913597107,
+   "memes": 33,
+   "ours_better_share": 1.0
+  }
+ },
+ "hoarder_final_share_pct": {
+  "pump.fun curve": 33.87565994262695,
+  "Learned market": 2.0
+ }
+}

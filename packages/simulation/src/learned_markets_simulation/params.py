@@ -76,6 +76,10 @@ class SimConfig:
     # Reward.
     closeness_scale: float = 0.25
     reward_norm: float = 0.05  # reward 1.0 means 5% of the crowd traded at the true value
+    # Optional smoothness term (off by default): a charge on the part of a single-batch
+    # price move beyond `gap_free`, in log units. It damps the speed of moves, not the level.
+    gap_weight: float = 0.0
+    gap_free: float = 0.02
 
 
 def load_calibration(cfg: SimConfig | None = None) -> tuple[SimConfig, dict]:
