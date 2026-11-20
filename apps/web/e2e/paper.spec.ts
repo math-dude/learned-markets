@@ -13,6 +13,8 @@ test('launch, buy, sell and reconcile a browser account', async ({ page, browser
   await page.getByLabel('Ticker', { exact: true }).fill('BIRD')
   await page.getByRole('button', { name: 'Launch into the Line' }).click()
   await expect(page.getByRole('status')).toContainText('queued for batch')
+  await expect(page.getByRole('status')).toContainText('Joined the Line')
+  await expect(page.locator('.launch-token.lm-grad .lm-spark')).toHaveCount(6)
   await page.getByRole('link', { name: 'See it on the Board' }).click()
   await page.getByRole('link', { name: /Browser Bird/ }).click()
   await expect(page).toHaveURL(/\/coin\/BIRD$/)

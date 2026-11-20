@@ -31,3 +31,79 @@ a.paper-row:hover { background: var(--row); }
   .paper-hero { gap: 12px; }
   .paper-label { margin-left: 0; }
 }
+
+.market-board { flex: 1; }
+.market-board > .paper-grid { gap: 0; margin: 0; align-items: stretch; }
+.board-list { min-width: 0; border-right: 1px solid var(--border); }
+.board-filters { display: flex; flex-wrap: wrap; gap: 10px; padding: 0 20px 14px; }
+.market-board .panel-head { min-height: 58px; padding-inline: 20px; }
+.market-board .section-title { font-size: 19px; }
+.connected-row { position: relative; align-items: center; color: var(--text); border-radius: 0; }
+.board-rank { width: 36px; text-align: center; color: var(--muted); font-size: 17px; font-weight: 800; }
+.board-identity, .board-numbers { display: grid; gap: 6px; min-width: 0; }
+.board-identity strong { font-size: 18px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.board-identity span { display: flex; align-items: center; gap: 6px; }
+.board-identity small, .board-identity span, .board-numbers small, .hero-counts small { color: var(--muted); }
+.board-numbers { margin-left: auto; justify-items: end; white-space: nowrap; }
+.hero-counts { display: flex; justify-content: flex-end; gap: 24px; }
+.hero-counts strong { display: block; font-size: 30px; }
+.epoch-segments { display: flex; justify-content: center; gap: 3px; margin: 8px 0; }
+.epoch-segments i { height: 13px; width: 8px; border-radius: 2px; background: var(--chip); }
+.epoch-segments .lit { background: var(--violet); }
+.coin-sidebar { display: grid; gap: 14px; min-width: 0; }
+.coin-terms { display: grid; margin: 0; }
+.coin-terms div { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--border); }
+.coin-terms dt { color: var(--muted); }
+.coin-terms dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.portfolio-summary { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,195px),1fr)); gap: 14px; }
+.portfolio-summary > :first-child { background: var(--accent-soft); border-color: var(--accent-border); }
+@media (max-width: 760px) {
+  .board-rank { width: auto; }
+  .connected-row { gap: 8px; padding-inline: 10px; }
+  .connected-row .tile { width: 46px !important; height: 46px !important; }
+  .board-list { border-right: 0; }
+  .hero-counts { justify-content: center; }
+}
+
+.launch-page { width: min(1050px, 100%); padding: clamp(20px, 4vw, 52px); margin-inline: auto; }
+.launch-page h1, .portfolio-entry h1 { font-size: clamp(32px, 4vw, 54px); letter-spacing: -.055em; margin: 6px 0 24px; }
+.launch-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: stretch; }
+.launch-preview { position: relative; isolation: isolate; overflow: hidden; display: grid; align-content: center; justify-items: center; gap: 10px; padding: 44px 20px; text-align: center; border: 1px solid #493366; border-radius: 14px 0 0 14px; background: radial-gradient(ellipse at 55% 35%, #513566, #23162f 60%, #16121a); }
+.launch-orbit, .launch-orbit::after, .launch-orbit::before { position: absolute; width: 85%; aspect-ratio: 1; border: 1px solid #a483ab42; border-radius: 50%; }
+.launch-orbit { z-index: -1; left: 8%; top: 45%; transform: translateY(-50%) rotate(-23deg) scaleY(.65); }
+.launch-orbit::after, .launch-orbit::before { content: ''; inset: -15%; width: 130%; }
+.launch-orbit::after { inset: 13%; width: 74%; }
+.launch-token { position: relative; margin-bottom: 12px; }
+.launch-token .tile { border: 2px solid #e0b778; box-shadow: inset 0 0 0 4px #291e30, inset 0 0 0 5px #967445, 0 6px 0 #785835, 0 12px 35px #130b19; border-radius: 50%; color: #fde4b4; font: 700 20px var(--mono); }
+.launch-preview strong { overflow-wrap: anywhere; font-size: clamp(22px, 3vw, 38px); letter-spacing: -.045em; }
+.launch-preview > span, .launch-status small { font: 600 13px var(--mono); color: #cfb9e5; }
+.launch-editor { padding: clamp(20px, 3vw, 38px); border-radius: 0 14px 14px 0; justify-content: center; }
+.launch-editor form, .launch-editor label { display: grid; gap: 8px; }
+.launch-editor form { gap: 18px; }
+.launch-editor h2 { margin: 0; }
+.launch-editor p { color: var(--muted); line-height: 1.5; margin: 0; }
+.launch-editor .btn-primary { padding: 13px; text-align: center; }
+.launch-status { display: grid; gap: 10px; }
+.account-entry { max-width: 680px; border-top: 2px solid var(--violet); background: linear-gradient(135deg, #211a2d, var(--surface) 65%); padding: clamp(18px, 3vw, 32px); }
+.account-entry code { overflow-wrap: anywhere; }
+@media(max-width:700px) {
+  .launch-layout { grid-template-columns: 1fr; }
+  .launch-preview { padding: 24px 14px; border-radius: 14px 14px 0 0; }
+  .launch-editor { border-radius: 0 0 14px 14px; }
+}
+.wallet-balance { font-size: clamp(30px, 4vw, 48px); font-variant-numeric: tabular-nums; letter-spacing: -.04em; }
+.validator-mast { position: relative; isolation: isolate; display: flex; justify-content: space-between; align-items: end; gap: 16px; overflow: hidden; border: 1px solid #423245; border-radius: 14px; padding: clamp(18px,3.5vw,45px); background: radial-gradient(ellipse at right bottom,#38283d,#1c1724 60%,#17151c); }
+.validator-mast::after { content: ''; pointer-events:none; position:absolute; z-index:-1; right:-3%; top:-70%; width:56%; aspect-ratio:1; background:repeating-radial-gradient(ellipse at center,transparent 0 18px,#b097a526 19px,transparent 20px 28px); transform:rotate(-22deg) scaleY(.6); }
+.validator-mast h1 {margin:6px 0 0; line-height:1;}
+.validator-row {display:flex; align-items:center; gap:16px; padding:14px 10px; color:var(--text); border-top:1px solid var(--border);}
+.validator-row:hover {background:var(--accent-soft);}
+.validator-row > span:not(.badge) {display:grid;gap:5px;}
+.validator-quote {margin-left:auto;text-align:right;font-variant-numeric:tabular-nums;}
+.validator-row .tile {border-radius:50%;box-shadow:inset 0 0 0 2px #806343;color:#ffe0ac;}
+@media(max-width:600px){.validator-row{flex-wrap:wrap;gap:9px}.validator-mast{align-items:start;flex-direction:column}.validator-row>.badge{display:none}}
+.validator-ranks { position:relative; }
+.validator-ranks .connected-row { position:absolute; }
+.epoch-clock small { font:500 18px var(--mono); color:var(--muted); letter-spacing:0; }
+.validator-tape-window { flex:1; min-width:0; overflow:hidden; align-content:center; }
+.validator-tape { display:flex; width:max-content; white-space:pre; font:600 13px var(--mono); }
+.validator-tape-window:hover .validator-tape { animation-play-state:paused; }

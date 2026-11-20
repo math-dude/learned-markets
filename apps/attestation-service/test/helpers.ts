@@ -48,7 +48,8 @@ export const CONFIG: GateConfig = {
 
 /** In-memory stand-in for the chain, with failure injection. */
 export class FakeChain implements Chain {
-    async genesisHash() { return "local-test-genesis"; }
+    async broadcast() { this.check(); }
+    async genesisHash() { return 'EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG'; }
     participants = new Map<string, ParticipantRecord>();
     attestations = new Set<string>();
     bindings = new Set<string>();

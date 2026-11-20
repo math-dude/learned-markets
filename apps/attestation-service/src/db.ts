@@ -112,6 +112,8 @@ const MIGRATIONS = [
         admitted_at INTEGER NOT NULL
     );
     `,
+    `CREATE TABLE wallet_messages (hash TEXT PRIMARY KEY, wallet TEXT NOT NULL, expires_at INTEGER NOT NULL);
+     CREATE INDEX wallet_messages_expiry ON wallet_messages(expires_at);`,
 ];
 
 export type Db = DatabaseSync;

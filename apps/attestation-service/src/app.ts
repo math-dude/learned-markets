@@ -1,9 +1,13 @@
+import { createHash } from 'node:crypto';
 import { Hono, type Context } from 'hono';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import {
     getBase64Encoder,
     getPublicKeyFromAddress,
     getTransactionDecoder,
+    getSignatureFromTransaction,
+    getBase64EncodedWireTransaction,
+    assertIsFullySignedTransaction,
     verifySignature,
     type Address,
     type SignatureBytes,
@@ -155,7 +159,9 @@ export function createApp(deps: { db: Db; chain: Chain; config: ServiceConfig; n
         const ix = await registerParticipantInstruction({
             payer: op.wallet as Address, wallet: op.wallet as Address, participantId: fromHex(op.participant_id), badge: await badgeOf(op),
         });
-        return c.json(jsonSafe(await chain.buildWalletTransaction(op.wallet as Address, [ix])));
+        const built = await chain.buildWalletTransaction(op.wallet as Address, [ix]);
+        rememberMessage(op.wallet as Address, built.transactionBase64);
+        return c.json(jsonSafe(built));
     });
 
     /** Verifies both systems after the participant registered; activates access only when eligible. */
@@ -222,10 +228,72 @@ export function createApp(deps: { db: Db; chain: Chain; config: ServiceConfig; n
 
     // ----------------------------------------------------------------- lookup
 
-    app.get('/v1/network', async c => {
+    async function verifiedNetwork() {
         const cfg = await chain.config();
         if (cfg.network !== config.network) throw new HttpError(409, 'NetworkMismatch', 'program and service network names differ');
-        return c.json({ network: cfg.network, genesisHash: await chain.genesisHash() });
+        const genesisHash = await chain.genesisHash();
+        if (cfg.network === 'surfpool') {
+            const url = new URL(config.rpcUrl);
+            if (!['localhost', '127.0.0.1', '[::1]'].includes(url.hostname))
+                throw new HttpError(409, 'NetworkMismatch', 'Surfpool requires a local or tunneled RPC');
+            const version = await fetch(url, { method: 'POST', redirect: 'error', signal: AbortSignal.timeout(5000),
+                headers: { 'content-type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'getVersion' }) });
+            const info = await version.json() as { result?: { 'surfnet-version'?: unknown } };
+            if (!version.ok || typeof info.result?.['surfnet-version'] !== 'string')
+                throw new HttpError(409, 'NetworkMismatch', 'RPC is not Surfpool');
+        } else if (cfg.network !== 'devnet' || genesisHash !== 'EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG') {
+            throw new HttpError(409, 'NetworkMismatch', 'unexpected Solana cluster');
+        }
+        return { network: cfg.network, genesisHash };
+    }
+
+    app.get('/v1/network', async c => c.json(await verifiedNetwork()));
+
+    // Privy's signature dialog estimates the fee and simulates the prepared
+    // transaction. The browser never receives the validator's privileged RPC URL.
+    const previewMethods = new Set(['getAccountInfo', 'getBalance', 'getFeeForMessage', 'getLatestBlockhash', 'simulateTransaction']);
+    app.post('/v1/wallet-preview', async c => {
+        const request = await body(c);
+        const id = typeof request.id === 'string' || typeof request.id === 'number' ? request.id : null;
+        if (request.jsonrpc !== '2.0' || typeof request.method !== 'string' || !previewMethods.has(request.method))
+            return c.json({ jsonrpc: '2.0', id, error: { code: -32601, message: 'Unsupported preview method' } });
+        const payload = JSON.stringify({ jsonrpc: '2.0', id, method: request.method, params: request.params ?? [] });
+        if (payload.length > 8192) throw new HttpError(413, 'PreviewTooLarge', 'wallet preview request too large');
+        const res = await fetch(config.rpcUrl, { method: 'POST', redirect: 'error', signal: AbortSignal.timeout(8000),
+            headers: { 'content-type': 'application/json' }, body: payload });
+        if (!res.ok) throw new HttpError(503, 'PreviewUnavailable', 'wallet preview unavailable');
+        // Preserve Solana integer precision in RPC response bytes.
+        return c.body(await res.text(), 200, { 'Content-Type': 'application/json' });
+    });
+
+    function rememberMessage(wallet: Address, wire: string) {
+        const tx = getTransactionDecoder().decode(getBase64Encoder().encode(wire));
+        const hash = createHash('sha256').update(new Uint8Array(tx.messageBytes)).digest('hex');
+        db.prepare('DELETE FROM wallet_messages WHERE expires_at <= ?').run(now());
+        db.prepare('INSERT OR REPLACE INTO wallet_messages VALUES (?, ?, ?)').run(hash, wallet, now() + 300_000);
+    }
+
+    app.post('/v1/wallet-transactions', async c => {
+        const b = await body(c);
+        if (typeof b.transactionBase64 !== 'string' || b.transactionBase64.length > 1644)
+            throw new HttpError(400, 'InvalidTransaction', 'expected a signed Solana transaction');
+        const tx = (() => {
+            try {
+                const decoded = getTransactionDecoder().decode(getBase64Encoder().encode(b.transactionBase64 as string));
+                assertIsFullySignedTransaction(decoded);
+                return decoded;
+            } catch { throw new HttpError(400, 'InvalidTransaction', 'invalid or unsigned transaction'); }
+        })();
+        const hash = createHash('sha256').update(new Uint8Array(tx.messageBytes)).digest('hex');
+        const row = db.prepare('SELECT wallet FROM wallet_messages WHERE hash = ? AND expires_at > ?').get(hash, now()) as { wallet: Address } | undefined;
+        if (!row) throw new HttpError(409, 'UnknownTransaction', 'prepared transaction is unknown or expired');
+        const sig = tx.signatures[row.wallet];
+        if (!sig || !await verifySignature(await getPublicKeyFromAddress(row.wallet), sig, tx.messageBytes))
+            throw new HttpError(401, 'BadSignature', 'wallet signature did not verify');
+        await verifiedNetwork();
+        const signature = getSignatureFromTransaction(tx);
+        await chain.broadcast(getBase64EncodedWireTransaction(tx), signature);
+        return c.json({ signature, commitment: 'confirmed' });
     });
 
     app.get('/v1/me', async c => {
@@ -279,6 +347,7 @@ export function createApp(deps: { db: Db; chain: Chain; config: ServiceConfig; n
             badge: { ...issuer, attestation: ba.attestation, badgeMint: ba.badgeMint, badgeTokenAccount: ba.badgeTokenAccount },
         });
         const built = await chain.buildWalletTransaction(s.wallet, [ix]);
+        rememberMessage(s.wallet, built.transactionBase64);
         db.prepare(
             `INSERT OR REPLACE INTO prepared_intents (intent, participant, wallet, nonce, kind, target, contents_hex, payload_hash, deadline, created_at)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,

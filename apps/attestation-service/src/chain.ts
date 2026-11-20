@@ -4,6 +4,8 @@
  */
 import {
     getBase64Encoder,
+    type Base64EncodedWireTransaction,
+    type Signature,
     type Address,
     type Instruction,
     type Rpc,
@@ -33,6 +35,7 @@ export type ParticipantRecord = ParticipantAccount & { address: Address };
 export interface Chain {
     /** Full eligibility (registry + badge) at confirmed commitment. Throws RpcUnavailableError. */
     genesisHash(): Promise<string>;
+    broadcast(wire: Base64EncodedWireTransaction, expected: Signature): Promise<void>;
     eligibility(wallet: Address): Promise<EligibilityReport>;
     inspectAttestation(attestation: Address): Promise<unknown>;
     config(): Promise<GateConfig>;
@@ -67,6 +70,20 @@ export class RpcChain implements Chain {
 
     genesisHash() {
         return guarded(() => this.rpc.getGenesisHash().send());
+    }
+
+    async broadcast(wire: Base64EncodedWireTransaction, expected: Signature) {
+        const signature = await guarded(() => this.rpc.sendTransaction(wire, {
+            encoding: 'base64', preflightCommitment: 'confirmed', maxRetries: 0n,
+        }).send());
+        if (signature !== expected) throw new Error('RPC signature mismatch');
+        for (let attempt = 0; attempt < 45; attempt++) {
+            const status = (await guarded(() => this.rpc.getSignatureStatuses([signature]).send())).value[0];
+            if (status?.err) throw new Error('Solana rejected transaction ' + signature);
+            if (status?.confirmationStatus === 'confirmed' || status?.confirmationStatus === 'finalized') return;
+            await new Promise(resolve => setTimeout(resolve, 600));
+        }
+        throw new RpcUnavailableError(new Error('Confirmation pending for ' + signature));
     }
 
     eligibility(wallet: Address) {

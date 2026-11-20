@@ -85,7 +85,7 @@ pub struct CreditLedgerBalance<'info> {
 pub fn credit(ctx: Context<CreditLedgerBalance>, amount: u64) -> Result<()> {
     let a = ctx.accounts;
     require!(
-        cfg!(feature = "demo-credit") && matches!(a.config.network.as_str(), "localnet" | "devnet"),
+        cfg!(feature = "demo-credit") && matches!(a.config.network.as_str(), "localnet" | "surfpool" | "devnet"),
         GateError::LedgerCreditDisabled
     );
     a.balance.version = 1;

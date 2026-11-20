@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, Outlet, useParams } from 'react-router-dom'
 import { CoinTile } from '../components/CoinBits'
-import { Crown } from '../components/icons'
+import { Crown, PersonIcon, UpArrowIcon } from '../components/icons'
 import { ShellFrame, Search } from '../components/Shell'
 import { tintFor } from '../market/tints'
 import { sol, unitPrice, usePaperConnection, useRoom, type PaperCoin } from '../market/paper'
@@ -65,26 +65,46 @@ export function PaperBoard() {
   const { data } = useRoom()
   const seated = data.coins.filter(c => c.stage !== 'line').sort((a, b) => b.price - a.price || a.coin_id - b.coin_id)
   const line = data.coins.filter(c => c.stage === 'line').sort((a, b) => b.heat - a.heat)
+  const [sort, setSort] = useState('Market cap')
+  const visible = sort === 'Rookies' ? seated.filter(c => c.stage === 'rookie') : [...seated]
+  if (sort === 'Holders') visible.sort((a, b) => b.holders - a.holders)
   const king = seated[0]
   const now = useNow()
-  return <main>
+  const seconds = Math.max(0, Math.ceil(data.closes_at - now / 1000))
+  return <main className="market-board">
     <section className="epoch-hero paper-hero">
       {king ? <Link className="paper-king" to={'/coin/' + king.ticker}>
         <CoinTile ticker={king.ticker} tint="#2D2A24" size={80}><span className="paper-crown"><Crown /></span></CoinTile>
         <span><small className="gold">#1 · king of the hill</small><strong>{king.name}</strong>
           <small>{unitPrice(king.price)} lamports / token</small></span>
       </Link> : <h2>Seats are open</h2>}
-      <div><span className="eyebrow">Open batch</span><div className="epoch-clock">{data.batch_id}</div><small>Closes in {Math.max(0, Math.ceil(data.closes_at - now / 1000))}s</small></div>
-      <div className="paper-stat"><strong>{data.epoch_batches - data.batch_id % data.epoch_batches}</strong><small>batches to next epoch</small></div>
+      <div><span className="eyebrow">Open batch</span><div className="epoch-clock">{Math.floor(seconds / 60)}:{String(seconds % 60).padStart(2, '0')}</div>
+        <div className="epoch-segments" aria-label="Epoch progress">{Array.from({length: data.epoch_batches}, (_, i) =>
+          <i key={i} className={i <= data.batch_id % data.epoch_batches ? 'lit' : ''} />)}</div>
+        <small>Batch {data.batch_id} · {data.epoch_batches - data.batch_id % data.epoch_batches} to epoch</small></div>
+      <div className="hero-counts"><div><strong>{seated.length}</strong><small>seated</small></div>
+        <div><strong className="gold">{seated.filter(c => c.stage === 'rookie').length}</strong><small>rookies</small></div>
+        <div><strong>{line.length}</strong><small>in the Line</small></div></div>
     </section>
     <div className="headlines"><div className="headlines-label">Last fill</div>
       <span className="paper-tape">{data.trades[0] ? `$${data.trades[0].ticker} · ${num(data.trades[0].quantity)} tokens at ${unitPrice(data.trades[0].price)} lamports` : 'Waiting for the first trade'}</span></div>
     <div className="paper-grid">
-      <section className="panel"><div className="panel-head"><h1>Board</h1><span className="muted">Market cap · SOL</span></div>
-        {seated.map(c => <CoinRow key={c.coin_id} coin={c} detail={num(c.price * (data.supply / 1e15)) + ' SOL'} />)}
+      <section className="board-list"><div className="panel-head"><h1 className="section-title">Board</h1></div>
+        <div className="board-filters">{['Market cap', 'Holders', 'Rookies'].map(key =>
+          <button key={key} className="pill-btn" aria-pressed={sort === key} onClick={() => setSort(key)}>{key}</button>)}</div>
+        {visible.map(c => <Link key={c.coin_id} className="board-row connected-row" to={'/coin/' + c.ticker}>
+          <span className="board-rank">#{seated.indexOf(c) + 1}</span>
+          <CoinTile tint={tintFor(c.coin_id)} ticker={c.ticker} />
+          <div className="board-identity"><strong>{c.name}</strong><small>${c.ticker}</small>
+            <span><PersonIcon /> {num(c.holders)} holders</span></div>
+          <div className="board-numbers"><span className={c.stage === 'rookie' ? 'badge badge-rookie' : 'badge badge-outline'}>
+            {c.stage === 'rookie' && <UpArrowIcon />}{stage(c)}</span>
+            <strong>{(c.price * (data.supply / 1e15)).toLocaleString('en-US', {maximumFractionDigits: 2})} SOL</strong><small>Market cap</small></div>
+        </Link>)}
+        {!!seated.length && !visible.length && <p className="paper-empty">No rookies on the Board.</p>}
         {!seated.length && <p className="paper-empty">Coins earn a rookie seat at an epoch.</p>}
       </section>
-      <section className="panel"><div className="panel-head"><h2>The Line</h2><Link to="/launch">Launch a meme</Link></div>
+      <section className="board-line"><div className="panel-head"><h2 className="section-title">The Line</h2><Link to="/launch">Launch a meme</Link></div>
         {line.map(c => <CoinRow key={c.coin_id} coin={c} detail={'Heat ' + c.heat.toFixed(1)} />)}
         {!line.length && <p className="paper-empty">The Line is open for launches.</p>}
       </section>
@@ -121,13 +141,16 @@ export function PaperCoinPage() {
         {!trades.length && <p className="paper-empty">No recent fills for this coin.</p>}
       </section>
       </div>
-      <TradeTicket key={coin.coin_id} coin={coin} />
-    </div>
+      <aside className="coin-sidebar"><TradeTicket key={coin.coin_id} coin={coin} />
     <section className="card"><h2>Batch {data.batch_id} terms</h2>
-      <p>Position cap {num(coin.cap_tokens)} tokens · Base fee {data.base_fee_bps / 100}% · Early exit fee {(100 * coin.early_exit_fee).toFixed(2)}% · Half-life {coin.hold_half_life_batches.toFixed(1)} batches · Size fee {(100 * coin.size_fee_per_pct_supply).toFixed(2)}% per 1% of supply</p>
-      <small>Reserve {sol(coin.reserve_cash)} SOL · {num(coin.holders)} holders</small>
+      <dl className="coin-terms">{[
+        ['Position cap', num(coin.cap_tokens) + ' tokens'], ['Base fee', data.base_fee_bps / 100 + '%'],
+        ['Early exit fee', (100 * coin.early_exit_fee).toFixed(2) + '%'], ['Hold half-life', coin.hold_half_life_batches.toFixed(1) + ' batches'],
+        ['Size fee per 1% of supply', (100 * coin.size_fee_per_pct_supply).toFixed(2) + '%'],
+        ['Reserve', sol(coin.reserve_cash) + ' SOL'], ['Holders', num(coin.holders)],
+      ].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
       <details><summary>Quoter commitment</summary><code>{data.commitment}</code></details>
-    </section>
+    </section></aside></div>
   </main>
 }
 
@@ -170,12 +193,14 @@ function TradeTicket({ coin }: { coin: PaperCoin }) {
 export function PaperPortfolio() {
   const { data } = useRoom()
   const account = data.account
-  if (!account) return <main className="paper-page"><h1>Portfolio</h1><section className="card">
-    <h2>Start paper trading</h2><p>Your demo balance and positions follow this browser until the auctioneer restarts.</p><AccountButton />
+  if (!account) return <main className="paper-page portfolio-entry"><h1>Portfolio</h1><section className="card account-entry">
+    <h2>Start paper trading</h2><p>{data.access === 'solana' ? 'Verify your wallet to open a paper account. Your portfolio tracks fills as each batch clears.' : 'Open a demo account to launch coins and trade with paper SOL.'}</p><AccountButton />
   </section></main>
   const held = data.coins.filter(c => account.positions[c.coin_id] > 0)
   return <main className="paper-page"><h1>Portfolio</h1>
-    <div className="card paper-balance"><small>Available paper balance</small><strong>{sol(account.cash)} SOL</strong></div>
+    <section className="portfolio-summary"><div className="card paper-balance"><small>Available paper balance</small><strong>{sol(account.cash)} SOL</strong></div>
+      <div className="card paper-balance"><small>In coins</small><strong>{(held.reduce((sum, c) => sum + account.positions[c.coin_id] * (c.price / 1e15), 0)).toLocaleString('en-US', { maximumFractionDigits: 6 })} SOL</strong></div>
+      <div className="card paper-balance"><small>Open positions</small><strong>{held.length}</strong></div></section>
     <section className="panel"><div className="panel-head"><h2>Positions</h2></div>
       {held.map(c => <CoinRow key={c.coin_id} coin={c} detail={num(account.positions[c.coin_id]) + ' tokens'} />)}
       {!held.length && <p className="paper-empty">You don’t hold any coins yet. <Link to="/">Explore the Board</Link></p>}</section>
@@ -191,11 +216,11 @@ export function PaperPortfolio() {
 export function PaperLaunch() {
   const { data, busy, offline, post } = useRoom()
   if (!data.account) return <main className="paper-page"><h1>Launch a meme</h1><AccountButton /></main>
-  return <LaunchForm tickers={data.coins.map(c => c.ticker)} disabled={busy || offline || !!data.account.pending_launch}
+  return <LaunchForm receipts={data.account.receipts} tickers={data.coins.map(c => c.ticker)} disabled={busy || offline || !!data.account.pending_launch}
     detail={'Launch fee ' + sol(data.launch_fee) + ' paper SOL. Accepted launches join the Line when the batch clears.'}
     submit={async (name, ticker) => {
       const result = await post('launches', { name, ticker, batch_id: data.batch_id })
-      return '$' + ticker + ' queued for batch ' + result.batch_id + '.'
+      return result.batch_id
     }} />
 }
 

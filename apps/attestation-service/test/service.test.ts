@@ -324,6 +324,26 @@ test('status responses report attestation, registry and eligibility separately w
 
 // ---------------------------------------------------------------- intents
 
+test('relay verifies the prepared wallet message and returns its confirmed signature', async () => {
+    const h = await harness();
+    const w = await h.wallet();
+    await enrolled(h, w);
+    const { cookie } = await h.login(w);
+    const prep = await h.req('POST', '/v1/intents/prepare', { cookie, body: {
+        kind: 'nomination', target: CONFIG.schemaMint, nomination: { candidate: CONFIG.schemaMint },
+    } });
+    const wire = prep.json.transactionBase64;
+    const incomplete = await h.req('POST', '/v1/wallet-transactions', { body: { transactionBase64: wire } });
+    assert.equal(incomplete.status, 400);
+    const signed = await partiallySignTransaction([w.keyPair], getTransactionDecoder().decode(getBase64Encoder().encode(wire)));
+    const payload = { transactionBase64: getBase64EncodedWireTransaction(signed) };
+    const confirmed = await h.req('POST', '/v1/wallet-transactions', { body: payload });
+    assert.equal(confirmed.status, 200, JSON.stringify(confirmed.json));
+    assert.equal(confirmed.json.commitment, 'confirmed');
+    h.db.prepare('DELETE FROM wallet_messages').run();
+    assert.equal((await h.req('POST', '/v1/wallet-transactions', { body: payload })).status, 409);
+});
+
 test('intents are admitted only after the matching gated intent is confirmed', async () => {
     const h = await harness();
     const w = await h.wallet();
@@ -389,4 +409,13 @@ test('public badge metadata is served from the configured HTTPS origin', async (
     assert.equal(img.headers.get('content-type'), 'image/svg+xml');
     const { loadConfig } = await import('../src/config.ts');
     assert.throws(() => loadConfig({ SERVICE_ORIGIN: 'http://lm.example' }), /https/);
+});
+
+test('wallet preview refuses submission and validator administration', async () => {
+    const h = await harness();
+    for (const method of ['sendTransaction', 'requestAirdrop', 'surfnet_setAccount']) {
+        const r = await h.req('POST', '/v1/wallet-preview', { body: { jsonrpc: '2.0', id: 42, method } });
+        assert.equal(r.json.error.code, -32601);
+        assert.equal(r.json.id, 42);
+    }
 });

@@ -6,6 +6,7 @@ const root = fileURLToPath(new URL('../', import.meta.url))
 const port = process.env.LM_WEB_API_PORT || '8000'
 const network = process.env.LM_NETWORK || 'surfpool'
 if (!['surfpool', 'devnet'].includes(network)) throw new Error('LM_NETWORK must be surfpool or devnet.')
+const sandbox = process.env.LM_PAPER_SANDBOX === '1'
 const rpc = process.env.LM_RPC_URL || (network === 'surfpool' ? 'http://127.0.0.1:8899' : 'https://api.devnet.solana.com')
 const children = new Set()
 let closing = false
@@ -33,12 +34,12 @@ const args = process.argv.slice(2)
 const requestedPort = args.indexOf('--port')
 const uiPort = requestedPort >= 0 ? args[requestedPort + 1] : '5173'
 if (process.env.LM_PAPER_SANDBOX !== '1' && !process.env.LM_ATTESTATION_URL) {
-  start(process.execPath, ['apps/attestation-service/src/main.ts'], root, {
+  start(process.execPath, ['--watch', 'apps/attestation-service/src/main.ts'], root, {
     ...process.env, LM_NETWORK: network, LM_RPC_URL: rpc, DB_PATH: process.env.DB_PATH || 'attestation-' + network + '.sqlite', HOST: '127.0.0.1', PORT: '8787',
     SERVICE_ORIGIN: process.env.SERVICE_ORIGIN || 'http://localhost:' + uiPort,
   })
 }
 start('uv', ['run', '--locked', '--package', 'learned-markets-backend', 'uvicorn',
-  'learned_markets_backend.web:app', '--host', '127.0.0.1', '--port', port], root, process.env)
+  sandbox ? 'learned_markets_backend.web:app' : 'learned_markets_backend.chain_web:app', '--host', '127.0.0.1', '--port', port, ...(!sandbox ? ['--reload', '--reload-dir', 'apps/backend/src'] : [])], root, { ...process.env, LM_RPC_URL: rpc, LM_NETWORK: network })
 start(process.execPath, [fileURLToPath(new URL('./bin/vite.js', import.meta.resolve('vite/package.json'))), '--strictPort', ...args],
-  root + 'apps/web', { ...process.env, VITE_LM_NETWORK: network, LM_WEB_API: 'http://127.0.0.1:' + port })
+  root + 'apps/web', { ...process.env, VITE_LM_EXECUTION: sandbox ? 'sandbox' : 'chain', VITE_LM_NETWORK: network, LM_WEB_API: 'http://127.0.0.1:' + port })
